@@ -5,8 +5,8 @@ import lombok.Data;
 import java.util.UUID;
 
 @Data
-public class LoginCompleteReq {
+public class RefreshReq {
     private String email;
     private UUID deviceId;
-    private String signedNonce;
+    private String refreshToken;
 }

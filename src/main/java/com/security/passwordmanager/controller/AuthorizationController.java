@@ -1,8 +1,6 @@
 package com.security.passwordmanager.controller;
 
-import com.security.passwordmanager.api.authorization.LoginCompleteResp;
-import com.security.passwordmanager.api.authorization.LoginStartReq;
-import com.security.passwordmanager.api.authorization.RegistrationReq;
+import com.security.passwordmanager.api.authorization.*;
 import com.security.passwordmanager.service.AuthorizationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -23,9 +21,19 @@ public class AuthorizationController {
         return authorizationService.registerUser(req);
     }
 
-    @PostMapping("/login")
-    public ResponseEntity<LoginCompleteResp> loginUser(@RequestBody LoginStartReq req) {
-        return authorizationService.loginUser(req);
+    @PostMapping("/login/start")
+    public ResponseEntity<?> loginUserStart(@RequestBody LoginStartReq req) {
+        return authorizationService.loginUserStart(req);
+    }
+
+    @PostMapping("/login/end")
+    public ResponseEntity<?> loginUserEnd(@RequestBody LoginCompleteReq req) {
+        return authorizationService.loginUserEnd(req);
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refreshJWT(RefreshReq req) {
+        return authorizationService.refreshJWT(req);
     }
 
 }

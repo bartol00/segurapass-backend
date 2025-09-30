@@ -1,4 +1,4 @@
-package com.security.passwordmanager.model;
+package com.security.passwordmanager.model.authorization;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -9,26 +9,26 @@ import java.util.Objects;
 import java.util.UUID;
 
 @Entity
-@Table(name = "session", schema = "password_manager")
+@Table(name = "nonce", schema = "password_manager")
 @Getter
 @Setter
 @ToString
 @RequiredArgsConstructor
-public class SessionEntity {
+public class NonceEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private Long id;
+
+    @Column(name = "NONCE", nullable = false, unique = true)
+    private UUID nonce;
 
     @Column(name = "DEVICE_ID", nullable = false, unique = true)
     private UUID deviceId;
 
-    @Column(name = "REFRESH_TOKEN_HASH", nullable = false, unique = true)
-    private String refreshTokenHash;
-
-    @Column(name = "EXPIRY_TIME", nullable = false)
-    private Instant expiryTime;
+    @Column(name = "NONCE_EXPIRY", nullable = false)
+    private Instant nonceExpiry;
 
     @ManyToOne
     @JoinColumn(name = "USER_ENTITY_ID")
@@ -41,7 +41,7 @@ public class SessionEntity {
         Class<?> oEffectiveClass = o instanceof HibernateProxy ? ((HibernateProxy) o).getHibernateLazyInitializer().getPersistentClass() : o.getClass();
         Class<?> thisEffectiveClass = this instanceof HibernateProxy ? ((HibernateProxy) this).getHibernateLazyInitializer().getPersistentClass() : this.getClass();
         if (thisEffectiveClass != oEffectiveClass) return false;
-        SessionEntity that = (SessionEntity) o;
+        NonceEntity that = (NonceEntity) o;
         return getId() != null && Objects.equals(getId(), that.getId());
     }
 

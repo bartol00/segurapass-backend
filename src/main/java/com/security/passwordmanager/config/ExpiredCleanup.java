@@ -1,9 +1,9 @@
 package com.security.passwordmanager.config;
 
-import com.security.passwordmanager.model.NonceDao;
-import com.security.passwordmanager.model.NonceEntity;
-import com.security.passwordmanager.model.SessionDao;
-import com.security.passwordmanager.model.SessionEntity;
+import com.security.passwordmanager.model.authorization.NonceDao;
+import com.security.passwordmanager.model.authorization.NonceEntity;
+import com.security.passwordmanager.model.authorization.SessionDao;
+import com.security.passwordmanager.model.authorization.SessionEntity;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;

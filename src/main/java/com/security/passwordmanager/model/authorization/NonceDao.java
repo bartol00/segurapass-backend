@@ -1,4 +1,4 @@
-package com.security.passwordmanager.model;
+package com.security.passwordmanager.model.authorization;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 

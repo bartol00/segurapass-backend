@@ -1,7 +1,7 @@
 package com.security.passwordmanager.mapper;
 
 import com.security.passwordmanager.api.authorization.RegistrationReq;
-import com.security.passwordmanager.model.UserEntity;
+import com.security.passwordmanager.model.authorization.UserEntity;
 import org.mapstruct.Mapper;
 
 @Mapper(componentModel = "spring")

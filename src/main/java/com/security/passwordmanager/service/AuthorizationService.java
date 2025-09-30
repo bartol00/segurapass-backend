@@ -7,7 +7,7 @@ import com.security.passwordmanager.config.TokenGenerator;
 import com.security.passwordmanager.config.TokenHasher;
 import com.security.passwordmanager.config.UserKeyLoader;
 import com.security.passwordmanager.mapper.UserMapper;
-import com.security.passwordmanager.model.*;
+import com.security.passwordmanager.model.authorization.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;

@@ -86,6 +86,7 @@ public class AuthorizationService {
         resp.setNonce(nonce);
         resp.setKeyIv(userEntity.getKeyIv());
         resp.setEncryptedPrivateKey(userEntity.getEncryptedPrivateKey());
+        resp.setKeySalt(userEntity.getKeySalt());
 
         return ResponseEntity.ok(resp);
     }

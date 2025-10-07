@@ -8,5 +8,6 @@ import java.util.UUID;
 public class LoginStartResp {
     private String encryptedPrivateKey;
     private String keyIv;
+    private String keySalt;
     private UUID nonce;
 }

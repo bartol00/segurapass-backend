@@ -10,5 +10,6 @@ public class RegistrationReq {
     private String publicKeyPem;
     private String encryptedPrivateKey;
     private String keyIv;
+    private String keySalt;
     private UUID deviceId;
 }

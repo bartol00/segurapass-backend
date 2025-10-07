@@ -36,6 +36,9 @@ public class UserEntity {
     @Column(name = "KEY_IV", nullable = false, unique = true)
     private String keyIv;
 
+    @Column(name = "KEY_SALT", nullable = false, unique = true)
+    private String keySalt;
+
     @Override
     public final boolean equals(Object o) {
         if (this == o) return true;

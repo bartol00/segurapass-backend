@@ -21,7 +21,7 @@ public class SessionEntity {
     @Column(nullable = false)
     private Long id;
 
-    @Column(name = "DEVICE_ID", nullable = false, unique = true)
+    @Column(name = "DEVICE_ID", nullable = false)
     private UUID deviceId;
 
     @Column(name = "REFRESH_TOKEN_HASH", nullable = false, unique = true)

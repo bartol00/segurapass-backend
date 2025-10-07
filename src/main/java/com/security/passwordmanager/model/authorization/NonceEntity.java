@@ -24,7 +24,7 @@ public class NonceEntity {
     @Column(name = "NONCE", nullable = false, unique = true)
     private UUID nonce;
 
-    @Column(name = "DEVICE_ID", nullable = false, unique = true)
+    @Column(name = "DEVICE_ID", nullable = false)
     private UUID deviceId;
 
     @Column(name = "NONCE_EXPIRY", nullable = false)

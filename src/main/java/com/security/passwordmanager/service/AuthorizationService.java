@@ -153,12 +153,12 @@ public class AuthorizationService {
     }
 
     public ResponseEntity<?> refreshJWT(RefreshReq req) {
-        Instant now = Instant.now();
-
         if (!userDao.existsByEmail(req.getEmail())) {
             ApiError apiError = new ApiError(ApiErrorEnum.USER_NOT_EXISTS);
             return ResponseEntity.status(apiError.getHttpStatus()).body(apiError);
         }
+
+        Instant now = Instant.now();
 
         UserEntity userEntity = userDao.findByEmail(req.getEmail());
 

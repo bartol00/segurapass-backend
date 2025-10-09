@@ -32,7 +32,7 @@ public class AuthorizationController {
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<?> refreshJWT(RefreshReq req) {
+    public ResponseEntity<?> refreshJWT(@RequestBody RefreshReq req) {
         return authorizationService.refreshJWT(req);
     }
 

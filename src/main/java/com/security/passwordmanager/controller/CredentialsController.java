@@ -34,7 +34,7 @@ public class CredentialsController {
         return credentialsService.createCredentials(req, email);
     }
 
-    @PatchMapping("/update/{id}")
+    @PutMapping("/update/{id}")
     public ResponseEntity<?> updateCredentials(@PathVariable UUID id, @RequestBody CredentialsReq req, @AuthenticationPrincipal String email) {
         return credentialsService.updateCredentials(id, req, email);
     }

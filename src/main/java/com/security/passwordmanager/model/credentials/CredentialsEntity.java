@@ -34,8 +34,11 @@ public class CredentialsEntity {
     @Column(name = "ENCRYPTED_PASSWORD", nullable = false)
     private String password;
 
-    @Column(name = "IV", nullable = false, unique = true)
-    private String iv;
+    @Column(name = "IV_EMAIL", nullable = false, unique = true)
+    private String ivEmail;
+
+    @Column(name = "IV_PASSWORD", nullable = false, unique = true)
+    private String ivPassword;
 
     @Column(name = "LAST_UPDATED", nullable = false)
     private Instant lastUpdated;

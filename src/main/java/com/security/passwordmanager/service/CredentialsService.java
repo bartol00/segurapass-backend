@@ -8,6 +8,7 @@ import com.security.passwordmanager.model.authorization.UserDao;
 import com.security.passwordmanager.model.authorization.UserEntity;
 import com.security.passwordmanager.model.credentials.CredentialsDao;
 import com.security.passwordmanager.model.credentials.CredentialsEntity;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -28,12 +29,14 @@ public class CredentialsService {
     private final CredentialsDao credentialsDao;
     private final UserDao userDao;
 
+    @Transactional
     public ResponseEntity<?> getCredentials(String email, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("website").ascending());
         Page<CredentialsEntity> credentialsEntityPage = credentialsDao.findByUserEntity_Email(email, pageable);
         return ResponseEntity.ok(mapper.toCredentialsRespPage(credentialsEntityPage));
     }
 
+    @Transactional
     public ResponseEntity<?> getCredentialById(UUID id, String email) {
         CredentialsEntity credentialsEntity = credentialsDao.findByCredentialsIdAndUserEntity_Email(id, email);
         if (credentialsEntity == null) {
@@ -43,6 +46,7 @@ public class CredentialsService {
         return ResponseEntity.ok(mapper.toCredentialsResp(credentialsEntity));
     }
 
+    @Transactional
     public ResponseEntity<?> createCredentials(CredentialsReq req, String email) {
         UserEntity userEntity = userDao.findByEmail(email);
 
@@ -56,6 +60,7 @@ public class CredentialsService {
         return ResponseEntity.ok(mapper.toCredentialsResp(credentialsEntity));
     }
 
+    @Transactional
     public ResponseEntity<?> updateCredentials(UUID id, CredentialsReq req, String email) {
         CredentialsEntity entity = credentialsDao.findByCredentialsIdAndUserEntity_Email(id, email);
         if (entity == null) {
@@ -67,20 +72,29 @@ public class CredentialsService {
             entity.setWebsite(req.getWebsite());
         }
         if (req.getUsername() != null && !req.getUsername().isBlank()) {
+            if (req.getIvEmail() == null || req.getIvEmail().isBlank()) {
+                ApiError apiError = new ApiError(ApiErrorEnum.CREDENTIAL_UPDATE_IV_MISSING);
+                return ResponseEntity.status(apiError.getHttpStatus()).body(apiError);
+            }
             entity.setUsername(req.getUsername());
+            entity.setIvEmail(req.getIvEmail());
         }
         if (req.getPassword() != null && !req.getPassword().isBlank()) {
+            if (req.getIvPassword() == null || req.getIvPassword().isBlank()) {
+                ApiError apiError = new ApiError(ApiErrorEnum.CREDENTIAL_UPDATE_IV_MISSING);
+                return ResponseEntity.status(apiError.getHttpStatus()).body(apiError);
+            }
             entity.setPassword(req.getPassword());
+            entity.setIvPassword(req.getIvPassword());
         }
-        if (req.getIv() != null && !req.getIv().isBlank()) {
-            entity.setIv(req.getIv());
-        }
+        entity.setLastUpdated(Instant.now());
 
         entity = credentialsDao.save(entity);
 
         return ResponseEntity.ok(mapper.toCredentialsResp(entity));
     }
 
+    @Transactional
     public ResponseEntity<?> deleteCredentials(UUID id, String email) {
         CredentialsEntity credentialsEntity = credentialsDao.findByCredentialsIdAndUserEntity_Email(id, email);
         if (credentialsEntity == null) {

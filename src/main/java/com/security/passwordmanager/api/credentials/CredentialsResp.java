@@ -11,6 +11,7 @@ public class CredentialsResp {
     private String website;
     private String username;
     private String password;
-    private String iv;
+    private String ivEmail;
+    private String ivPassword;
     private Instant lastUpdated;
 }

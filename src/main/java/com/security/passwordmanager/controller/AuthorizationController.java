@@ -36,4 +36,9 @@ public class AuthorizationController {
         return authorizationService.refreshJWT(req);
     }
 
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(@RequestBody RefreshReq req) {
+        return authorizationService.logout(req);
+    }
+
 }

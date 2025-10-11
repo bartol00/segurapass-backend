@@ -5,9 +5,9 @@ import com.security.passwordmanager.api.error.ApiError;
 import com.security.passwordmanager.api.error.ApiErrorEnum;
 import com.security.passwordmanager.config.TokenGenerator;
 import com.security.passwordmanager.config.TokenHasher;
-import com.security.passwordmanager.config.UserKeyLoader;
 import com.security.passwordmanager.mapper.UserMapper;
 import com.security.passwordmanager.model.authorization.*;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.bouncycastle.crypto.Digest;
 import org.bouncycastle.crypto.agreement.srp.SRP6StandardGroups;
@@ -18,8 +18,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.math.BigInteger;
-import java.nio.charset.StandardCharsets;
-import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -177,6 +175,29 @@ public class AuthorizationService {
         resp.setAccessToken(generateJwt(req.getEmail(), req.getDeviceId()));
 
         return ResponseEntity.ok(resp);
+    }
+
+    @Transactional
+    public ResponseEntity<?> logout(RefreshReq req) {
+        SessionEntity sessionEntity = sessionDao.findByUserEntity_EmailAndDeviceId(
+                req.getEmail(),
+                req.getDeviceId()
+        );
+
+        if (sessionEntity == null) {
+            ApiError apiError = new ApiError(ApiErrorEnum.SESSION_NOT_FOUND);
+            return ResponseEntity.status(apiError.getHttpStatus()).body(apiError);
+        }
+
+        boolean verified = TokenHasher.verifyToken(req.getRefreshToken(), sessionEntity.getRefreshTokenHash());
+        if (!verified) {
+            ApiError apiError = new ApiError(ApiErrorEnum.TOKEN_VERIFICATION_FAILED);
+            return ResponseEntity.status(apiError.getHttpStatus()).body(apiError);
+        }
+
+        sessionDao.delete(sessionEntity);
+
+        return ResponseEntity.ok(null);
     }
 
     private String generateJwt(String email, UUID deviceId) {

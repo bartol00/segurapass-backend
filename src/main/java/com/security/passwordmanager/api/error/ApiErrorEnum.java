@@ -11,6 +11,7 @@ public enum ApiErrorEnum {
     SRP_VERIFICATION_FAILED(HttpStatus.CONFLICT, "SRP verification failed"),
     TOKEN_EXPIRED(HttpStatus.CONFLICT, "Refresh token has expired"),
     TOKEN_VERIFICATION_FAILED(HttpStatus.CONFLICT, "User could not verify refresh token"),
+    SESSION_NOT_FOUND(HttpStatus.NOT_FOUND, "Session could not be found"),
     CREDENTIAL_NOT_EXISTS(HttpStatus.NOT_FOUND, "Credential with this identifier does not exist"),
     CREDENTIAL_UPDATE_IV_MISSING(HttpStatus.NOT_ACCEPTABLE, "Credential is missing one or both required IV fields");
 

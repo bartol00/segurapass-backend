@@ -2,12 +2,8 @@ package com.security.passwordmanager.api.authorization;
 
 import lombok.Data;
 
-import java.util.UUID;
-
 @Data
 public class LoginStartResp {
-    private String encryptedPrivateKey;
-    private String keyIv;
-    private String keySalt;
-    private UUID nonce;
+    private String B;
+    private String saltAuth;
 }

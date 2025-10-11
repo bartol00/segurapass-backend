@@ -27,17 +27,14 @@ public class UserEntity {
     @Column(name = "EMAIL", nullable = false, unique = true)
     private String email;
 
-    @Column(name = "PUBLIC_KEY", nullable = false, unique = true, length = Length.LONG32)
-    private String publicKeyPem;
+    @Column(name = "SALT_AUTH", nullable = false, unique = true)
+    private String saltAuth;
 
-    @Column(name = "ENCRYPTED_PRIVATE_KEY", nullable = false, unique = true, length = Length.LONG32)
-    private String encryptedPrivateKey;
+    @Column(name = "VERIFIER", nullable = false, unique = true, length = Length.LONG32)
+    private String verifier;
 
-    @Column(name = "KEY_IV", nullable = false, unique = true)
-    private String keyIv;
-
-    @Column(name = "KEY_SALT", nullable = false, unique = true)
-    private String keySalt;
+    @Column(name = "SALT_KEY", nullable = false, unique = true)
+    private String saltKey;
 
     @Override
     public final boolean equals(Object o) {

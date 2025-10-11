@@ -7,9 +7,8 @@ import java.util.UUID;
 @Data
 public class RegistrationReq {
     private String email;
-    private String publicKeyPem;
-    private String encryptedPrivateKey;
-    private String keyIv;
-    private String keySalt;
+    private String saltAuth;
+    private String verifier;
+    private String saltKey;
     private UUID deviceId;
 }

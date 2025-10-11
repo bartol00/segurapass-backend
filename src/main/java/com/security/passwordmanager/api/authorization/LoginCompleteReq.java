@@ -8,5 +8,5 @@ import java.util.UUID;
 public class LoginCompleteReq {
     private String email;
     private UUID deviceId;
-    private String signedNonce;
+    private String M1;
 }

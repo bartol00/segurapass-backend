@@ -47,7 +47,7 @@ public class AuthorizationService {
         userEntity = userDao.save(userEntity);
 
         String refreshToken = TokenGenerator.generateRefreshToken(32);
-        Instant refreshTokenExpiry = Instant.now().plus(12, ChronoUnit.HOURS);
+        Instant refreshTokenExpiry = Instant.now().plus(30, ChronoUnit.MINUTES);
 
         SessionEntity sessionEntity = new SessionEntity();
         sessionEntity.setUserEntity(userEntity);
@@ -127,7 +127,7 @@ public class AuthorizationService {
 
         UserEntity user = userDao.findByEmail(req.getEmail());
         String refreshToken = TokenGenerator.generateRefreshToken(32);
-        Instant refreshExpiry = Instant.now().plus(12, ChronoUnit.HOURS);
+        Instant refreshExpiry = Instant.now().plus(30, ChronoUnit.MINUTES);
 
         SessionEntity sessionEntity = sessionDao.findByUserEntityAndDeviceId(user, req.getDeviceId());
         if (sessionEntity == null) {
@@ -203,7 +203,7 @@ public class AuthorizationService {
     private String generateJwt(String email, UUID deviceId) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("deviceId", deviceId);
-        return jwtService.generateToken(email, claims, 600);
+        return jwtService.generateToken(email, claims, 300);
     }
 
     private static class SrpSession {

@@ -20,7 +20,7 @@ public class CredentialsController {
     @GetMapping("/get")
     public ResponseEntity<?> getCredentials(@AuthenticationPrincipal String email, @RequestParam(defaultValue = "0") int page,
                                             @RequestParam(defaultValue = "20") int size) {
-        System.out.println("Controller email: " + email);
+        // System.out.println("Controller email: " + email);
         return credentialsService.getCredentials(email, page, size);
     }
 

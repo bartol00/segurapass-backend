@@ -69,15 +69,20 @@ public class CredentialsService {
         }
 
         if (req.getWebsite() != null && !req.getWebsite().isBlank()) {
+            if (req.getIvWebsite() == null || req.getIvWebsite().isBlank()) {
+                ApiError apiError = new ApiError(ApiErrorEnum.CREDENTIAL_UPDATE_IV_MISSING);
+                return ResponseEntity.status(apiError.getHttpStatus()).body(apiError);
+            }
             entity.setWebsite(req.getWebsite());
+            entity.setIvWebsite(req.getIvWebsite());
         }
         if (req.getUsername() != null && !req.getUsername().isBlank()) {
-            if (req.getIvEmail() == null || req.getIvEmail().isBlank()) {
+            if (req.getIvUsername() == null || req.getIvUsername().isBlank()) {
                 ApiError apiError = new ApiError(ApiErrorEnum.CREDENTIAL_UPDATE_IV_MISSING);
                 return ResponseEntity.status(apiError.getHttpStatus()).body(apiError);
             }
             entity.setUsername(req.getUsername());
-            entity.setIvEmail(req.getIvEmail());
+            entity.setIvUsername(req.getIvUsername());
         }
         if (req.getPassword() != null && !req.getPassword().isBlank()) {
             if (req.getIvPassword() == null || req.getIvPassword().isBlank()) {

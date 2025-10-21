@@ -25,7 +25,7 @@ public class CredentialsEntity {
     @Column(name = "CREDENTIALS_ID", nullable = false, unique = true)
     private UUID credentialsId;
 
-    @Column(name = "WEBSITE", nullable = false)
+    @Column(name = "ENCRYPTED_WEBSITE", nullable = false)
     private String website;
 
     @Column(name = "ENCRYPTED_USERNAME", nullable = false)
@@ -34,8 +34,11 @@ public class CredentialsEntity {
     @Column(name = "ENCRYPTED_PASSWORD", nullable = false)
     private String password;
 
-    @Column(name = "IV_EMAIL", nullable = false, unique = true)
-    private String ivEmail;
+    @Column(name = "IV_WEBSITE", nullable = false, unique = true)
+    private String ivWebsite;
+
+    @Column(name = "IV_USERNAME", nullable = false, unique = true)
+    private String ivUsername;
 
     @Column(name = "IV_PASSWORD", nullable = false, unique = true)
     private String ivPassword;

@@ -7,6 +7,7 @@ public class CredentialsReq {
     private String website;
     private String username;
     private String password;
-    private String ivEmail;
+    private String ivWebsite;
+    private String ivUsername;
     private String ivPassword;
 }

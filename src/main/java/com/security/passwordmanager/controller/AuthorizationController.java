@@ -4,10 +4,7 @@ import com.security.passwordmanager.api.authorization.*;
 import com.security.passwordmanager.service.AuthorizationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
@@ -39,6 +36,11 @@ public class AuthorizationController {
     @PostMapping("/logout")
     public ResponseEntity<?> logout(@RequestBody RefreshReq req) {
         return authorizationService.logout(req);
+    }
+
+    @GetMapping("/verify/{token}")
+    public ResponseEntity<?> verifyEmail(@PathVariable String token) {
+        return authorizationService.verifyEmail(token);
     }
 
 }

@@ -5,6 +5,7 @@ import lombok.*;
 import org.hibernate.Length;
 import org.hibernate.proxy.HibernateProxy;
 
+import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -35,6 +36,15 @@ public class UserEntity {
 
     @Column(name = "SALT_KEY", nullable = false, unique = true)
     private String saltKey;
+
+    @Column(name = "VERIFICATION_STRING")
+    private String verificationString;
+
+    @Column(name = "VERIFICATION_EXPIRY_TIME")
+    private Instant verificationExpiryTime;
+
+    @Column(name = "EMAIL_VERIFIED", nullable = false)
+    private Boolean emailVerified;
 
     @Override
     public final boolean equals(Object o) {

@@ -7,6 +7,10 @@ import org.springframework.http.HttpStatus;
 public enum ApiErrorEnum {
     USER_EXISTS(HttpStatus.CONFLICT, "Email is already in use"),
     USER_NOT_EXISTS(HttpStatus.CONFLICT, "User with this email does not exist"),
+    USER_EMAIL_INVALID(HttpStatus.CONFLICT, "Email is invalid"),
+    USER_EMAIL_UNVERIFIED(HttpStatus.UNAUTHORIZED, "User has not yet verified their email"),
+    USER_VERIFICATION_NOT_EXISTS(HttpStatus.CONFLICT, "Could not verify user email, user verification token does not exist"),
+    USER_VERIFICATION_EXPIRED(HttpStatus.CONFLICT, "Could not verify user email, user verification token has expired"),
     SRP_SESSION_NOT_FOUND(HttpStatus.NOT_FOUND, "SRP session could not be found on server"),
     SRP_VERIFICATION_FAILED(HttpStatus.CONFLICT, "SRP verification failed"),
     TOKEN_EXPIRED(HttpStatus.CONFLICT, "Refresh token has expired"),

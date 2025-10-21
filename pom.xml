@@ -115,6 +115,12 @@
             <artifactId>bcprov-jdk18on</artifactId>
             <version>1.82</version>
         </dependency>
+
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>ses</artifactId>
+            <version>2.32.24</version>
+        </dependency>
 	</dependencies>
 
 	<build>

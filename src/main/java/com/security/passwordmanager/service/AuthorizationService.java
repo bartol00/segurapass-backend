@@ -3,6 +3,7 @@ package com.security.passwordmanager.service;
 import com.security.passwordmanager.api.authorization.*;
 import com.security.passwordmanager.api.error.ApiError;
 import com.security.passwordmanager.api.error.ApiErrorEnum;
+import com.security.passwordmanager.config.EmailService;
 import com.security.passwordmanager.config.TokenGenerator;
 import com.security.passwordmanager.config.TokenHasher;
 import com.security.passwordmanager.mapper.UserMapper;
@@ -23,6 +24,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
@@ -32,37 +34,48 @@ public class AuthorizationService {
     private final JwtService jwtService;
     private final UserDao userDao;
     private final SessionDao sessionDao;
+    private final EmailService emailService;
 
     private final Map<String, SrpSession> srpSessions = new ConcurrentHashMap<>();
 
+    private static final String EMAIL_REGEX =
+            "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$";
+    private static final Pattern EMAIL_PATTERN = Pattern.compile(EMAIL_REGEX);
+    private static final Set<String> ALLOWED_DOMAINS = Set.of(
+            "gmail.com",
+            "outlook.com",
+            "hotmail.com",
+            "yahoo.com",
+            "proton.me",
+            "icloud.com",
+            "aol.com",
+            "zoho.com"
+    );
+
+    @Transactional
     public ResponseEntity<?> registerUser(RegistrationReq req) {
+        if (!isValidEmail(req.getEmail())) {
+            ApiError apiError = new ApiError(ApiErrorEnum.USER_EMAIL_INVALID);
+            return ResponseEntity.status(apiError.getHttpStatus()).body(apiError);
+        }
         if (userDao.existsByEmail(req.getEmail())) {
             ApiError apiError = new ApiError(ApiErrorEnum.USER_EXISTS);
             return ResponseEntity.status(apiError.getHttpStatus()).body(apiError);
         }
 
+        String verificationString = generateEmailVerifier();
+
         UserEntity userEntity = userMapper.toUserEntity(req);
         userEntity.setUserId(UUID.randomUUID());
+        userEntity.setVerificationString(verificationString);
+        userEntity.setVerificationExpiryTime(Instant.now().plus(15, ChronoUnit.MINUTES));
+        userEntity.setEmailVerified(false);
 
-        userEntity = userDao.save(userEntity);
+        userDao.save(userEntity);
 
-        String refreshToken = TokenGenerator.generateRefreshToken(32);
-        Instant refreshTokenExpiry = Instant.now().plus(30, ChronoUnit.MINUTES);
+        emailService.sendVerificationEmail(req.getEmail(), verificationString);
 
-        SessionEntity sessionEntity = new SessionEntity();
-        sessionEntity.setUserEntity(userEntity);
-        sessionEntity.setDeviceId(req.getDeviceId());
-        sessionEntity.setRefreshTokenHash(TokenHasher.hashToken(refreshToken));
-        sessionEntity.setExpiryTime(refreshTokenExpiry);
-
-        sessionDao.save(sessionEntity);
-
-        RegistrationResp resp = new RegistrationResp();
-        resp.setRefreshToken(refreshToken);
-        resp.setAccessToken(generateJwt(req.getEmail(), req.getDeviceId()));
-        resp.setRefreshTokenExpiryTime(refreshTokenExpiry);
-
-        return ResponseEntity.ok(resp);
+        return ResponseEntity.ok(null);
     }
 
     public ResponseEntity<?> loginUserStart(LoginStartReq req) {
@@ -72,6 +85,11 @@ public class AuthorizationService {
         }
 
         UserEntity userEntity = userDao.findByEmail(req.getEmail());
+        if (!userEntity.getEmailVerified()) {
+            ApiError apiError = new ApiError(ApiErrorEnum.USER_EMAIL_UNVERIFIED);
+            return ResponseEntity.status(apiError.getHttpStatus()).body(apiError);
+        }
+
         SRP6GroupParameters group = SRP6StandardGroups.rfc5054_3072;
         Digest digest = new SHA256Digest();
         SecureRandom random = new SecureRandom();
@@ -200,10 +218,58 @@ public class AuthorizationService {
         return ResponseEntity.ok(null);
     }
 
+    @Transactional
+    public ResponseEntity<?> verifyEmail(String token) {
+        UserEntity userEntity = userDao.findByVerificationString(token);
+
+        if (userEntity == null) {
+            ApiError apiError = new ApiError(ApiErrorEnum.USER_VERIFICATION_NOT_EXISTS);
+            return ResponseEntity.status(apiError.getHttpStatus()).body(apiError);
+        }
+        if (userEntity.getVerificationExpiryTime().isBefore(Instant.now())) {
+            ApiError apiError = new ApiError(ApiErrorEnum.USER_VERIFICATION_EXPIRED);
+            return ResponseEntity.status(apiError.getHttpStatus()).body(apiError);
+        }
+
+        userEntity.setVerificationString(null);
+        userEntity.setVerificationExpiryTime(null);
+        userEntity.setEmailVerified(true);
+        userDao.save(userEntity);
+
+        return ResponseEntity.ok("Email has been verified successfully");
+    }
+
     private String generateJwt(String email, UUID deviceId) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("deviceId", deviceId);
         return jwtService.generateToken(email, claims, 300);
+    }
+
+    private String generateEmailVerifier() {
+        String charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        SecureRandom random = new SecureRandom();
+
+        StringBuilder sb = new StringBuilder(32);
+
+        for (int i = 0; i < 32; i++) {
+            int index = random.nextInt(charset.length());
+            sb.append(charset.charAt(index));
+        }
+
+        return sb.toString();
+    }
+
+    private boolean isValidEmail(String email) {
+        if (email == null || email.isBlank()) {
+            return false;
+        }
+
+        if (!EMAIL_PATTERN.matcher(email).matches()) {
+            return false;
+        }
+
+        String domain = email.substring(email.lastIndexOf('@') + 1).toLowerCase();
+        return ALLOWED_DOMAINS.contains(domain);
     }
 
     private static class SrpSession {

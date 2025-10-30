@@ -23,7 +23,6 @@ import java.security.SecureRandom;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
 @Service
@@ -34,9 +33,8 @@ public class AuthorizationService {
     private final JwtService jwtService;
     private final UserDao userDao;
     private final SessionDao sessionDao;
+    private final SrpDao srpDao;
     private final EmailService emailService;
-
-    private final Map<String, SrpSession> srpSessions = new ConcurrentHashMap<>();
 
     private static final String EMAIL_REGEX =
             "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$";
@@ -103,8 +101,20 @@ public class AuthorizationService {
         BigInteger k = SRP6Util.calculateK(digest, N, g);
         BigInteger B = k.multiply(v).add(g.modPow(b, N)).mod(N);
 
-        SrpSession session = new SrpSession(req.getEmail(), req.getA(), b, B, v);
-        srpSessions.put(req.getEmail(), session);
+        SrpEntity srpEntity = new SrpEntity();
+        srpEntity.setA(req.getA());
+        srpEntity.setBpriv(Base64.getEncoder().encodeToString(b.toByteArray()));
+        srpEntity.setB(Base64.getEncoder().encodeToString(B.toByteArray()));
+        srpEntity.setVerifier(Base64.getEncoder().encodeToString(v.toByteArray()));
+        srpEntity.setDeviceId(req.getDeviceId());
+        srpEntity.setUserEntity(userEntity);
+        srpEntity.setExpiryTime(Instant.now().plus(60, ChronoUnit.SECONDS));
+
+        SrpEntity existing = srpDao.findByUserEntity_EmailAndDeviceId(req.getEmail(), req.getDeviceId());
+        if (existing != null) {
+            srpDao.delete(existing);
+        }
+        srpDao.save(srpEntity);
 
         LoginStartResp resp = new LoginStartResp();
         resp.setSaltAuth(userEntity.getSaltAuth());
@@ -114,9 +124,16 @@ public class AuthorizationService {
     }
 
     public ResponseEntity<?> loginUserEnd(LoginCompleteReq req) {
-        SrpSession session = srpSessions.remove(req.getEmail());
-        if (session == null) {
+        SrpEntity srpEntity = srpDao.findByUserEntity_EmailAndDeviceId(req.getEmail(), req.getDeviceId());
+        if (srpEntity == null) {
             ApiError apiError = new ApiError(ApiErrorEnum.SRP_SESSION_NOT_FOUND);
+            return ResponseEntity.status(apiError.getHttpStatus()).body(apiError);
+        }
+
+        srpDao.delete(srpEntity);
+
+        if (srpEntity.getExpiryTime().isBefore(Instant.now())) {
+            ApiError apiError = new ApiError(ApiErrorEnum.SRP_SESSION_EXPIRED);
             return ResponseEntity.status(apiError.getHttpStatus()).body(apiError);
         }
 
@@ -126,10 +143,10 @@ public class AuthorizationService {
         BigInteger N = group.getN();
         BigInteger g = group.getG();
 
-        BigInteger A = new BigInteger(1, Base64.getDecoder().decode(session.getA()));
-        BigInteger B = session.getB();
-        BigInteger b = session.getBpriv();
-        BigInteger v = session.getVerifier();
+        BigInteger A = new BigInteger(1, Base64.getDecoder().decode(srpEntity.getA()));
+        BigInteger B = new BigInteger(1, Base64.getDecoder().decode(srpEntity.getB()));
+        BigInteger b = new BigInteger(1, Base64.getDecoder().decode(srpEntity.getBpriv()));
+        BigInteger v = new BigInteger(1, Base64.getDecoder().decode(srpEntity.getVerifier()));
 
         BigInteger u = SRP6Util.calculateU(digest, N, A, B);
         BigInteger S = A.multiply(v.modPow(u, N)).modPow(b, N);
@@ -270,28 +287,6 @@ public class AuthorizationService {
 
         String domain = email.substring(email.lastIndexOf('@') + 1).toLowerCase();
         return ALLOWED_DOMAINS.contains(domain);
-    }
-
-    private static class SrpSession {
-        private final String email;
-        private final String A;
-        private final BigInteger bpriv;
-        private final BigInteger B;
-        private final BigInteger verifier;
-
-        public SrpSession(String email, String A, BigInteger bpriv, BigInteger B, BigInteger verifier) {
-            this.email = email;
-            this.A = A;
-            this.bpriv = bpriv;
-            this.B = B;
-            this.verifier = verifier;
-        }
-
-        public String getEmail() { return email; }
-        public String getA() { return A; }
-        public BigInteger getBpriv() { return bpriv; }
-        public BigInteger getB() { return B; }
-        public BigInteger getVerifier() { return verifier; }
     }
 
 }

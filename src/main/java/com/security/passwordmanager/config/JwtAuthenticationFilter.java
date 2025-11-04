@@ -27,7 +27,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final PublicKey publicKey;
     private final UserDao userDao;
 
-    private final List<String> whitelistStartsWith = List.of("/api/authorization", "/swagger-ui", "/v3");
+    private final List<String> whitelistStartsWith = List.of(
+            "/api/authorization",
+            "/api/versions",
+            "/swagger-ui", "/v3");
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,

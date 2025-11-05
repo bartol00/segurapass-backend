@@ -19,11 +19,15 @@ public class VersionsService {
     @Value("${app.latest.update-time}")
     private String versionDate;
 
+    @Value("${app.latest.download-url}")
+    private String downloadUrl;
+
     public ResponseEntity<VersionInfo> getLatestVersion() {
         VersionInfo versionInfo = new VersionInfo();
         versionInfo.setVersionNumber(versionNumber);
         versionInfo.setVersionDescription(versionDescription);
         versionInfo.setVersionDate(LocalDate.parse(versionDate));
+        versionInfo.setDownloadUrl(downloadUrl);
         return ResponseEntity.ok(versionInfo);
     }
 

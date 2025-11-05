@@ -6,6 +6,6 @@ import java.time.LocalDate;
 
 @Data
 public class VersionInfo {
-    private String versionNumber, versionDescription;
+    private String versionNumber, versionDescription, downloadUrl;
     private LocalDate versionDate;
 }

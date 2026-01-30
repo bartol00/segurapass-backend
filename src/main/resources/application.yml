@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: segurapass
+  profiles:
+    active: dev
+#    active: prod
+
+app:
+  base:
+    url: https://segurapass.xyz
+  latest:
+    version: ${LATEST_VERSION:0.0.1}
+    update-time: ${LATEST_UPDATE_TIME:na}
+    description: ${LATEST_APP_DESCRIPTION:latest}
+    download-url: ${LATEST_DOWNLOAD_URL:test.com}
+
+aws:
+  accessKey: ${AWS_ACCESSKEY:accesskey}
+  secretKey: ${AWS_SECRETKEY:secretkey}
+  region: ${AWS_REGION:region}
+  fromEmail: verification@segurapass.xyz

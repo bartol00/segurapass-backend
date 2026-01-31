@@ -55,10 +55,9 @@ public class EmailService {
                     .build();
 
             sesClient.sendEmail(emailRequest);
-            System.out.println("Verification email sent to: " + to);
 
         } catch (Exception e) {
-            System.err.println("Failed to send verification email to " + to + ": " + e.getMessage());
+            e.printStackTrace();
         }
     }
 

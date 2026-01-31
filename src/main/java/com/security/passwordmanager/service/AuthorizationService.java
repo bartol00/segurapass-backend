@@ -4,6 +4,7 @@ import com.security.passwordmanager.api.authorization.*;
 import com.security.passwordmanager.api.error.ApiError;
 import com.security.passwordmanager.api.error.ApiErrorEnum;
 import com.security.passwordmanager.config.EmailService;
+import com.security.passwordmanager.config.SrpFlow;
 import com.security.passwordmanager.config.TokenGenerator;
 import com.security.passwordmanager.config.TokenHasher;
 import com.security.passwordmanager.mapper.UserMapper;
@@ -35,6 +36,7 @@ public class AuthorizationService {
     private final SessionDao sessionDao;
     private final SrpDao srpDao;
     private final EmailService emailService;
+    private final SrpFlow srpFlow;
 
     private static final String EMAIL_REGEX =
             "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$";
@@ -88,27 +90,29 @@ public class AuthorizationService {
             return ResponseEntity.status(apiError.getHttpStatus()).body(apiError);
         }
 
-        SRP6GroupParameters group = SRP6StandardGroups.rfc5054_3072;
-        Digest digest = new SHA256Digest();
-        SecureRandom random = new SecureRandom();
+//        SRP6GroupParameters group = SRP6StandardGroups.rfc5054_3072;
+//        Digest digest = new SHA256Digest();
+//        SecureRandom random = new SecureRandom();
+//
+//        BigInteger N = group.getN();
+//        BigInteger g = group.getG();
+//
+//        BigInteger v = new BigInteger(1, Base64.getDecoder().decode(userEntity.getVerifier()));
+//
+//        BigInteger b = new BigInteger(256, random);
+//        BigInteger k = SRP6Util.calculateK(digest, N, g);
+//        BigInteger B = k.multiply(v).add(g.modPow(b, N)).mod(N);
+//
+//        SrpEntity srpEntity = new SrpEntity();
+//        srpEntity.setA(req.getA());
+//        srpEntity.setBpriv(Base64.getEncoder().encodeToString(b.toByteArray()));
+//        srpEntity.setB(Base64.getEncoder().encodeToString(B.toByteArray()));
+//        srpEntity.setVerifier(Base64.getEncoder().encodeToString(v.toByteArray()));
+//        srpEntity.setDeviceId(req.getDeviceId());
+//        srpEntity.setUserEntity(userEntity);
+//        srpEntity.setExpiryTime(Instant.now().plus(60, ChronoUnit.SECONDS));
 
-        BigInteger N = group.getN();
-        BigInteger g = group.getG();
-
-        BigInteger v = new BigInteger(1, Base64.getDecoder().decode(userEntity.getVerifier()));
-
-        BigInteger b = new BigInteger(256, random);
-        BigInteger k = SRP6Util.calculateK(digest, N, g);
-        BigInteger B = k.multiply(v).add(g.modPow(b, N)).mod(N);
-
-        SrpEntity srpEntity = new SrpEntity();
-        srpEntity.setA(req.getA());
-        srpEntity.setBpriv(Base64.getEncoder().encodeToString(b.toByteArray()));
-        srpEntity.setB(Base64.getEncoder().encodeToString(B.toByteArray()));
-        srpEntity.setVerifier(Base64.getEncoder().encodeToString(v.toByteArray()));
-        srpEntity.setDeviceId(req.getDeviceId());
-        srpEntity.setUserEntity(userEntity);
-        srpEntity.setExpiryTime(Instant.now().plus(60, ChronoUnit.SECONDS));
+        SrpEntity srpEntity = srpFlow.beginFlow(req.getA(), req.getDeviceId(), userEntity);
 
         SrpEntity existing = srpDao.findByUserEntity_EmailAndDeviceId(req.getEmail(), req.getDeviceId());
         if (existing != null) {
@@ -118,7 +122,7 @@ public class AuthorizationService {
 
         LoginStartResp resp = new LoginStartResp();
         resp.setSaltAuth(userEntity.getSaltAuth());
-        resp.setB(Base64.getEncoder().encodeToString(B.toByteArray()));
+        resp.setB(srpEntity.getB());
 
         return ResponseEntity.ok(resp);
     }
@@ -137,28 +141,31 @@ public class AuthorizationService {
             return ResponseEntity.status(apiError.getHttpStatus()).body(apiError);
         }
 
-        SRP6GroupParameters group = SRP6StandardGroups.rfc5054_3072;
-        Digest digest = new SHA256Digest();
+//        SRP6GroupParameters group = SRP6StandardGroups.rfc5054_3072;
+//        Digest digest = new SHA256Digest();
 
-        BigInteger N = group.getN();
-        BigInteger g = group.getG();
+//        BigInteger N = group.getN();
+//        BigInteger g = group.getG();
 
-        BigInteger A = new BigInteger(1, Base64.getDecoder().decode(srpEntity.getA()));
-        BigInteger B = new BigInteger(1, Base64.getDecoder().decode(srpEntity.getB()));
-        BigInteger b = new BigInteger(1, Base64.getDecoder().decode(srpEntity.getBpriv()));
-        BigInteger v = new BigInteger(1, Base64.getDecoder().decode(srpEntity.getVerifier()));
+//        BigInteger A = new BigInteger(1, Base64.getDecoder().decode(srpEntity.getA()));
+//        BigInteger B = new BigInteger(1, Base64.getDecoder().decode(srpEntity.getB()));
+//        BigInteger b = new BigInteger(1, Base64.getDecoder().decode(srpEntity.getBpriv()));
+//        BigInteger v = new BigInteger(1, Base64.getDecoder().decode(srpEntity.getVerifier()));
+//
+//        BigInteger u = SRP6Util.calculateU(digest, N, A, B);
+//        BigInteger S = A.multiply(v.modPow(u, N)).modPow(b, N);
+//        BigInteger M1_server = SRP6Util.calculateM1(digest, N, A, B, S);
 
-        BigInteger u = SRP6Util.calculateU(digest, N, A, B);
-        BigInteger S = A.multiply(v.modPow(u, N)).modPow(b, N);
-        BigInteger M1_server = SRP6Util.calculateM1(digest, N, A, B, S);
+        BigInteger M1Server = srpFlow.calculateM1Server(srpEntity);
+        BigInteger M1Client = new BigInteger(1, Base64.getDecoder().decode(req.getM1()));
 
-        BigInteger M1_client = new BigInteger(1, Base64.getDecoder().decode(req.getM1()));
-        if (!M1_server.equals(M1_client)) {
+        if (!M1Server.equals(M1Client)) {
             ApiError apiError = new ApiError(ApiErrorEnum.SRP_VERIFICATION_FAILED);
             return ResponseEntity.status(apiError.getHttpStatus()).body(apiError);
         }
 
-        BigInteger M2 = SRP6Util.calculateM2(digest, A, M1_client, S, B);
+//        BigInteger M2 = SRP6Util.calculateM2(digest, A, M1_client, S, B);
+        BigInteger M2Server = srpFlow.calculateM2Server(srpEntity, M1Client);
 
         UserEntity user = userDao.findByEmail(req.getEmail());
         String refreshToken = TokenGenerator.generateRefreshToken(32);
@@ -175,7 +182,7 @@ public class AuthorizationService {
         sessionDao.save(sessionEntity);
 
         LoginCompleteResp resp = new LoginCompleteResp();
-        resp.setM2(Base64.getEncoder().encodeToString(M2.toByteArray()));
+        resp.setM2(Base64.getEncoder().encodeToString(M2Server.toByteArray()));
         resp.setSaltKey(user.getSaltKey());
         resp.setAccessToken(generateJwt(req.getEmail(), req.getDeviceId()));
         resp.setRefreshToken(refreshToken);

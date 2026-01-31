@@ -10,6 +10,7 @@ import com.security.passwordmanager.model.credentials.CredentialsDao;
 import com.security.passwordmanager.model.credentials.CredentialsEntity;
 import com.security.passwordmanager.service.CredentialsService;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -58,6 +59,13 @@ public class CredentialsServiceIT {
         List<CredentialsEntity> credentialsEntityList = List.of(credentialsEntity1, credentialsEntity2, credentialsEntity3);
         credentialsDao.saveAll(credentialsEntityList);
     }
+
+    @AfterAll
+    void clean() {
+        credentialsDao.deleteAll();
+        userDao.deleteAll();
+    }
+
 
     @Test
     void shouldSucceedGetCredentials() {

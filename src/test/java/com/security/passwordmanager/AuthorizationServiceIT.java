@@ -7,9 +7,12 @@ import com.security.passwordmanager.config.EmailService;
 import com.security.passwordmanager.config.SrpFlow;
 import com.security.passwordmanager.config.TokenHasher;
 import com.security.passwordmanager.model.authorization.*;
+import com.security.passwordmanager.model.deletion.EmailDeletionEntity;
 import com.security.passwordmanager.service.AuthorizationService;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
@@ -29,6 +32,7 @@ import static org.mockito.Mockito.*;
 @Slf4j
 @SpringBootTest
 @ActiveProfiles("test")
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class AuthorizationServiceIT {
 
     private final String email = "me@gmail.com";
@@ -46,6 +50,11 @@ public class AuthorizationServiceIT {
     private SrpFlow srpFlow;
     @MockitoBean
     private EmailService emailService;
+
+    @BeforeAll
+    void setup() {
+        userDao.deleteAll();
+    }
 
     @Test
     void shouldFailInvalidEmailErrorRegisterUser() {

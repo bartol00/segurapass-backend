@@ -46,10 +46,10 @@ public class CredentialsServiceIT {
     @BeforeAll
     void setup() {
         userDao.deleteAll();
+
         UserEntity userEntity = generateUserEntity();
         userDao.save(userEntity);
 
-        credentialsDao.deleteAll();
         CredentialsEntity credentialsEntity1 = generateCredentialsEntity();
         credentialsEntity1.setUserEntity(userEntity);
         CredentialsEntity credentialsEntity2 = generateCredentialsEntity();

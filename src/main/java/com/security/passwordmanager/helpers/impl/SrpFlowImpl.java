@@ -1,6 +1,6 @@
-package com.security.passwordmanager.config.impl;
+package com.security.passwordmanager.helpers.impl;
 
-import com.security.passwordmanager.config.SrpFlow;
+import com.security.passwordmanager.helpers.SrpFlow;
 import com.security.passwordmanager.model.authorization.SrpEntity;
 import com.security.passwordmanager.model.authorization.UserEntity;
 import org.bouncycastle.crypto.Digest;

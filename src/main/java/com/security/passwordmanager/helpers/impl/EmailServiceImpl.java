@@ -1,12 +1,13 @@
-package com.security.passwordmanager.config;
+package com.security.passwordmanager.helpers.impl;
 
+import com.security.passwordmanager.helpers.EmailService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import software.amazon.awssdk.services.ses.SesClient;
 import software.amazon.awssdk.services.ses.model.*;
 
 @Component
-public class EmailService {
+public class EmailServiceImpl implements EmailService {
 
     private final SesClient sesClient;
 
@@ -16,7 +17,7 @@ public class EmailService {
     @Value("${app.base.url}")
     private String baseUrl;
 
-    public EmailService(SesClient sesClient) {
+    public EmailServiceImpl(SesClient sesClient) {
         this.sesClient = sesClient;
     }
 

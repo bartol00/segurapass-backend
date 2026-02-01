@@ -1,23 +1,24 @@
-package com.security.passwordmanager.config;
+package com.security.passwordmanager.helpers.impl;
 
+import com.security.passwordmanager.helpers.TokenGenerator;
 import org.springframework.stereotype.Component;
 
 import java.security.SecureRandom;
 import java.util.Base64;
 
 @Component
-public class TokenGenerator {
+public class TokenGeneratorImpl implements TokenGenerator {
 
-    private static final SecureRandom secureRandom = new SecureRandom();
-    private static final Base64.Encoder base64UrlEncoder = Base64.getUrlEncoder().withoutPadding();
+    private final SecureRandom secureRandom = new SecureRandom();
+    private final Base64.Encoder base64UrlEncoder = Base64.getUrlEncoder().withoutPadding();
 
-    public static String generateRefreshToken(int byteLength) {
+    public String generateRefreshToken(int byteLength) {
         byte[] randomBytes = new byte[byteLength];
         secureRandom.nextBytes(randomBytes);
         return base64UrlEncoder.encodeToString(randomBytes);
     }
 
-    public static String generateEmailVerifier() {
+    public String generateEmailVerifier() {
         String charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
         StringBuilder sb = new StringBuilder(32);

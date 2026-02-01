@@ -3,7 +3,7 @@ package com.security.passwordmanager;
 import com.security.passwordmanager.api.deletion.EmailDeletionStartReq;
 import com.security.passwordmanager.api.error.ApiError;
 import com.security.passwordmanager.api.error.ApiErrorEnum;
-import com.security.passwordmanager.config.EmailService;
+import com.security.passwordmanager.helpers.EmailService;
 import com.security.passwordmanager.model.authorization.UserDao;
 import com.security.passwordmanager.model.authorization.UserEntity;
 import com.security.passwordmanager.model.deletion.EmailDeletionDao;

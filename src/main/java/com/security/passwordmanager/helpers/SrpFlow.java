@@ -1,4 +1,4 @@
-package com.security.passwordmanager.config;
+package com.security.passwordmanager.helpers;
 
 import com.security.passwordmanager.model.authorization.SrpEntity;
 import com.security.passwordmanager.model.authorization.UserEntity;

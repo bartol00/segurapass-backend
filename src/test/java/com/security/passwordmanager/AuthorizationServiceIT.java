@@ -3,11 +3,10 @@ package com.security.passwordmanager;
 import com.security.passwordmanager.api.authorization.*;
 import com.security.passwordmanager.api.error.ApiError;
 import com.security.passwordmanager.api.error.ApiErrorEnum;
-import com.security.passwordmanager.config.EmailService;
-import com.security.passwordmanager.config.SrpFlow;
-import com.security.passwordmanager.config.TokenHasher;
+import com.security.passwordmanager.helpers.EmailService;
+import com.security.passwordmanager.helpers.SrpFlow;
+import com.security.passwordmanager.helpers.TokenHasher;
 import com.security.passwordmanager.model.authorization.*;
-import com.security.passwordmanager.model.deletion.EmailDeletionEntity;
 import com.security.passwordmanager.service.AuthorizationService;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeAll;
@@ -40,6 +39,8 @@ public class AuthorizationServiceIT {
 
     @Autowired
     private AuthorizationService authorizationService;
+    @Autowired
+    private TokenHasher tokenHasher;
     @MockitoSpyBean
     private UserDao userDao;
     @MockitoSpyBean
@@ -285,7 +286,7 @@ public class AuthorizationServiceIT {
         RefreshReq refreshReq = generateRefreshReq();
         UserEntity userEntity = generateUserEntity();
         SessionEntity sessionEntity = generateSessionEntity();
-        sessionEntity.setRefreshTokenHash(TokenHasher.hashToken(refreshReq.getRefreshToken()));
+        sessionEntity.setRefreshTokenHash(tokenHasher.hashToken(refreshReq.getRefreshToken()));
         doReturn(true).when(userDao).existsByEmail(refreshReq.getEmail());
         doReturn(userEntity).when(userDao).findByEmail(refreshReq.getEmail());
         doReturn(sessionEntity).when(sessionDao).findByUserEntityAndDeviceId(userEntity, refreshReq.getDeviceId());
@@ -331,7 +332,7 @@ public class AuthorizationServiceIT {
         // given
         RefreshReq refreshReq = generateRefreshReq();
         SessionEntity sessionEntity = generateSessionEntity();
-        sessionEntity.setRefreshTokenHash(TokenHasher.hashToken(refreshReq.getRefreshToken()));
+        sessionEntity.setRefreshTokenHash(tokenHasher.hashToken(refreshReq.getRefreshToken()));
         doReturn(sessionEntity).when(sessionDao).findByUserEntity_EmailAndDeviceId(refreshReq.getEmail(), refreshReq.getDeviceId());
         doNothing().when(sessionDao).delete(any(SessionEntity.class));
 

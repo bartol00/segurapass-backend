@@ -3,8 +3,8 @@ package com.security.passwordmanager.service;
 import com.security.passwordmanager.api.deletion.EmailDeletionStartReq;
 import com.security.passwordmanager.api.error.ApiError;
 import com.security.passwordmanager.api.error.ApiErrorEnum;
-import com.security.passwordmanager.config.EmailService;
-import com.security.passwordmanager.config.TokenGenerator;
+import com.security.passwordmanager.helpers.EmailService;
+import com.security.passwordmanager.helpers.TokenGenerator;
 import com.security.passwordmanager.model.authorization.UserDao;
 import com.security.passwordmanager.model.authorization.UserEntity;
 import com.security.passwordmanager.model.deletion.EmailDeletionDao;
@@ -25,6 +25,7 @@ public class AccountDeletionService {
     private final EmailDeletionDao emailDeletionDao;
 
     private final EmailService emailService;
+    private final TokenGenerator tokenGenerator;
 
     public void startDeletionEmail(EmailDeletionStartReq req) {
         UserEntity userEntity = userDao.findByEmail(req.getEmail());
@@ -35,7 +36,7 @@ public class AccountDeletionService {
             return;
         }
 
-        String deletionToken = TokenGenerator.generateEmailVerifier();
+        String deletionToken = tokenGenerator.generateEmailVerifier();
 
         EmailDeletionEntity emailDeletionEntity = new EmailDeletionEntity();
         emailDeletionEntity.setToken(deletionToken);

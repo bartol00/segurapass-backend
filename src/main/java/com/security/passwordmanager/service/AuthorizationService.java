@@ -3,10 +3,10 @@ package com.security.passwordmanager.service;
 import com.security.passwordmanager.api.authorization.*;
 import com.security.passwordmanager.api.error.ApiError;
 import com.security.passwordmanager.api.error.ApiErrorEnum;
-import com.security.passwordmanager.config.EmailService;
-import com.security.passwordmanager.config.SrpFlow;
-import com.security.passwordmanager.config.TokenGenerator;
-import com.security.passwordmanager.config.TokenHasher;
+import com.security.passwordmanager.helpers.EmailService;
+import com.security.passwordmanager.helpers.SrpFlow;
+import com.security.passwordmanager.helpers.TokenGenerator;
+import com.security.passwordmanager.helpers.TokenHasher;
 import com.security.passwordmanager.mapper.UserMapper;
 import com.security.passwordmanager.model.authorization.*;
 import jakarta.transaction.Transactional;
@@ -31,6 +31,8 @@ public class AuthorizationService {
     private final SrpDao srpDao;
     private final EmailService emailService;
     private final SrpFlow srpFlow;
+    private final TokenGenerator tokenGenerator;
+    private final TokenHasher tokenHasher;
 
     private static final String EMAIL_REGEX =
             "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$";
@@ -57,7 +59,7 @@ public class AuthorizationService {
             return ResponseEntity.status(apiError.getHttpStatus()).body(apiError);
         }
 
-        String verificationString = TokenGenerator.generateEmailVerifier();
+        String verificationString = tokenGenerator.generateEmailVerifier();
 
         UserEntity userEntity = userMapper.toUserEntity(req);
         userEntity.setUserId(UUID.randomUUID());
@@ -130,7 +132,7 @@ public class AuthorizationService {
         user.setLastLogin(Instant.now());
         userDao.save(user);
 
-        String refreshToken = TokenGenerator.generateRefreshToken(32);
+        String refreshToken = tokenGenerator.generateRefreshToken(32);
         Instant refreshExpiry = Instant.now().plus(30, ChronoUnit.MINUTES);
 
         SessionEntity sessionEntity = sessionDao.findByUserEntityAndDeviceId(user, req.getDeviceId());
@@ -139,7 +141,7 @@ public class AuthorizationService {
             sessionEntity.setUserEntity(user);
             sessionEntity.setDeviceId(req.getDeviceId());
         }
-        sessionEntity.setRefreshTokenHash(TokenHasher.hashToken(refreshToken));
+        sessionEntity.setRefreshTokenHash(tokenHasher.hashToken(refreshToken));
         sessionEntity.setExpiryTime(refreshExpiry);
         sessionDao.save(sessionEntity);
 
@@ -169,7 +171,7 @@ public class AuthorizationService {
             return ResponseEntity.status(apiError.getHttpStatus()).body(apiError);
         }
 
-        boolean verified = TokenHasher.verifyToken(req.getRefreshToken(), sessionEntity.getRefreshTokenHash());
+        boolean verified = tokenHasher.verifyToken(req.getRefreshToken(), sessionEntity.getRefreshTokenHash());
         if (!verified) {
             ApiError apiError = new ApiError(ApiErrorEnum.TOKEN_VERIFICATION_FAILED);
             return ResponseEntity.status(apiError.getHttpStatus()).body(apiError);
@@ -193,7 +195,7 @@ public class AuthorizationService {
             return ResponseEntity.status(apiError.getHttpStatus()).body(apiError);
         }
 
-        boolean verified = TokenHasher.verifyToken(req.getRefreshToken(), sessionEntity.getRefreshTokenHash());
+        boolean verified = tokenHasher.verifyToken(req.getRefreshToken(), sessionEntity.getRefreshTokenHash());
         if (!verified) {
             ApiError apiError = new ApiError(ApiErrorEnum.TOKEN_VERIFICATION_FAILED);
             return ResponseEntity.status(apiError.getHttpStatus()).body(apiError);

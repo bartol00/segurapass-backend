@@ -1,11 +1,14 @@
 package com.security.passwordmanager.model.authorization;
 
+import com.security.passwordmanager.model.credentials.CredentialsEntity;
+import com.security.passwordmanager.model.deletion.EmailDeletionEntity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.Length;
 import org.hibernate.proxy.HibernateProxy;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -45,6 +48,18 @@ public class UserEntity {
 
     @Column(name = "EMAIL_VERIFIED", nullable = false)
     private Boolean emailVerified;
+
+    @OneToMany(mappedBy = "userEntity", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<SessionEntity> sessionEntities;
+
+    @OneToMany(mappedBy = "userEntity", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<SrpEntity> srpEntities;
+
+    @OneToMany(mappedBy = "userEntity", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<CredentialsEntity> credentialsEntities;
+
+    @OneToMany(mappedBy = "userEntity", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<EmailDeletionEntity> emailDeletionEntities;
 
     @Override
     public final boolean equals(Object o) {

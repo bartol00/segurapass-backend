@@ -31,7 +31,7 @@ public class CredentialsService {
 
     @Transactional
     public ResponseEntity<?> getCredentials(String email, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("website").ascending());
+        Pageable pageable = PageRequest.of(page, size);
         Page<CredentialsEntity> credentialsEntityPage = credentialsDao.findByUserEntity_Email(email, pageable);
         return ResponseEntity.ok(mapper.toCredentialsRespPage(credentialsEntityPage));
     }

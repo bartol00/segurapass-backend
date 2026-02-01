@@ -64,6 +64,8 @@ public class AuthorizationService {
         userEntity.setVerificationString(verificationString);
         userEntity.setVerificationExpiryTime(Instant.now().plus(15, ChronoUnit.MINUTES));
         userEntity.setEmailVerified(false);
+        userEntity.setCreationTime(Instant.now());
+        userEntity.setLastLogin(Instant.now());
 
         userDao.save(userEntity);
 
@@ -99,6 +101,7 @@ public class AuthorizationService {
         return ResponseEntity.ok(resp);
     }
 
+    @Transactional
     public ResponseEntity<?> loginUserEnd(LoginCompleteReq req) {
         SrpEntity srpEntity = srpDao.findByUserEntity_EmailAndDeviceId(req.getEmail(), req.getDeviceId());
         if (srpEntity == null) {
@@ -124,6 +127,9 @@ public class AuthorizationService {
         BigInteger M2Server = srpFlow.calculateM2Server(srpEntity, M1Client);
 
         UserEntity user = userDao.findByEmail(req.getEmail());
+        user.setLastLogin(Instant.now());
+        userDao.save(user);
+
         String refreshToken = TokenGenerator.generateRefreshToken(32);
         Instant refreshExpiry = Instant.now().plus(30, ChronoUnit.MINUTES);
 

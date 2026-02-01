@@ -49,6 +49,12 @@ public class UserEntity {
     @Column(name = "EMAIL_VERIFIED", nullable = false)
     private Boolean emailVerified;
 
+    @Column(name = "CREATION_TIME")
+    private Instant creationTime;
+
+    @Column(name = "LAST_LOGIN")
+    private Instant lastLogin;
+
     @OneToMany(mappedBy = "userEntity", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<SessionEntity> sessionEntities;
 

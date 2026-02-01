@@ -5,4 +5,5 @@
 
     <include file="db/changelog/db.changelog-baseline.xml"/>
     <include file="db/changelog/db.changelog-2026-02-01-email-deletion.xml"/>
+    <include file="db/changelog/db.changelog-2026-02-01-user-times.xml"/>
 </databaseChangeLog>

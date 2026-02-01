@@ -16,4 +16,17 @@ public class TokenGenerator {
         secureRandom.nextBytes(randomBytes);
         return base64UrlEncoder.encodeToString(randomBytes);
     }
+
+    public static String generateEmailVerifier() {
+        String charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+        StringBuilder sb = new StringBuilder(32);
+
+        for (int i = 0; i < 32; i++) {
+            int index = secureRandom.nextInt(charset.length());
+            sb.append(charset.charAt(index));
+        }
+
+        return sb.toString();
+    }
 }

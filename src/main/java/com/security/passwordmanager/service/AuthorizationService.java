@@ -11,16 +11,10 @@ import com.security.passwordmanager.mapper.UserMapper;
 import com.security.passwordmanager.model.authorization.*;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.bouncycastle.crypto.Digest;
-import org.bouncycastle.crypto.agreement.srp.SRP6StandardGroups;
-import org.bouncycastle.crypto.agreement.srp.SRP6Util;
-import org.bouncycastle.crypto.digests.SHA256Digest;
-import org.bouncycastle.crypto.params.SRP6GroupParameters;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.math.BigInteger;
-import java.security.SecureRandom;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
@@ -63,7 +57,7 @@ public class AuthorizationService {
             return ResponseEntity.status(apiError.getHttpStatus()).body(apiError);
         }
 
-        String verificationString = generateEmailVerifier();
+        String verificationString = TokenGenerator.generateEmailVerifier();
 
         UserEntity userEntity = userMapper.toUserEntity(req);
         userEntity.setUserId(UUID.randomUUID());
@@ -225,24 +219,11 @@ public class AuthorizationService {
         return ResponseEntity.ok("Email has been verified successfully");
     }
 
+
     private String generateJwt(String email, UUID deviceId) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("deviceId", deviceId);
         return jwtService.generateToken(email, claims, 300);
-    }
-
-    private String generateEmailVerifier() {
-        String charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-        SecureRandom random = new SecureRandom();
-
-        StringBuilder sb = new StringBuilder(32);
-
-        for (int i = 0; i < 32; i++) {
-            int index = random.nextInt(charset.length());
-            sb.append(charset.charAt(index));
-        }
-
-        return sb.toString();
     }
 
     private boolean isValidEmail(String email) {

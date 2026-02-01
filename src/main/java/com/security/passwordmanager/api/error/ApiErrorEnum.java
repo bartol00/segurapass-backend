@@ -11,6 +11,8 @@ public enum ApiErrorEnum {
     USER_EMAIL_UNVERIFIED(HttpStatus.UNAUTHORIZED, "User has not yet verified their email"),
     USER_VERIFICATION_NOT_EXISTS(HttpStatus.CONFLICT, "Could not verify user email, user verification token does not exist"),
     USER_VERIFICATION_EXPIRED(HttpStatus.CONFLICT, "Could not verify user email, user verification token has expired"),
+    USER_DELETION_NOT_EXISTS(HttpStatus.CONFLICT, "Could not delete user account, user deletion token does not exist"),
+    USER_DELETION_EXPIRED(HttpStatus.CONFLICT, "Could not delete user account, user deletion token has expired"),
     SRP_SESSION_NOT_FOUND(HttpStatus.NOT_FOUND, "SRP session could not be found on server"),
     SRP_SESSION_EXPIRED(HttpStatus.CONFLICT, "SRP session has already expired"),
     SRP_VERIFICATION_FAILED(HttpStatus.CONFLICT, "Login information is incorrect"),

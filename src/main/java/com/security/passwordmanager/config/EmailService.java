@@ -61,4 +61,45 @@ public class EmailService {
         }
     }
 
+    public void sendDeletionEmail(String to, String verificationToken) {
+        String subject = "Delete your SeguraPass account";
+        String verificationLink = baseUrl + "/api/deletion/email/end/" + verificationToken;
+
+        String textBody = String.format(
+                "Welcome to SeguraPass!\n\nClick the link below to verify your account:\n%s\n\nIf you didn’t request this, you can ignore it.\n\nThe verification link expires 15 minutes from now.",
+                verificationLink
+        );
+
+        String htmlBody = String.format("""
+            <html>
+                <body style="font-family: Arial, sans-serif;">
+                    <h2>We're sorry to see you go!</h2>
+                    <p>Click below to send an account deletion request:</p>
+                    <p><a href="%s">Delete Your Account</a></p>
+                    <p>If you didn’t request this, please ignore it.</p>
+                    <p>The deletion link expires 15 minutes from now.</p>
+                </body>
+            </html>
+        """, verificationLink);
+
+        try {
+            SendEmailRequest emailRequest = SendEmailRequest.builder()
+                    .source(fromEmail)
+                    .destination(Destination.builder().toAddresses(to).build())
+                    .message(Message.builder()
+                            .subject(Content.builder().data(subject).charset("UTF-8").build())
+                            .body(Body.builder()
+                                    .html(Content.builder().data(htmlBody).charset("UTF-8").build())
+                                    .text(Content.builder().data(textBody).charset("UTF-8").build())
+                                    .build())
+                            .build())
+                    .build();
+
+            sesClient.sendEmail(emailRequest);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
 }

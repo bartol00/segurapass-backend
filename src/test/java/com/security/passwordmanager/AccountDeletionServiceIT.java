@@ -4,6 +4,7 @@ import com.security.passwordmanager.api.deletion.EmailDeletionStartReq;
 import com.security.passwordmanager.api.error.ApiError;
 import com.security.passwordmanager.api.error.ApiErrorEnum;
 import com.security.passwordmanager.helpers.EmailService;
+import com.security.passwordmanager.helpers.TokenHasher;
 import com.security.passwordmanager.model.authorization.UserDao;
 import com.security.passwordmanager.model.authorization.UserEntity;
 import com.security.passwordmanager.model.deletion.EmailDeletionDao;
@@ -34,9 +35,12 @@ import static org.junit.jupiter.api.Assertions.*;
 public class AccountDeletionServiceIT {
 
     private final String email = "me@gmail.com";
+    private final String token = "random token";
 
     @Autowired
     private AccountDeletionService accountDeletionService;
+    @Autowired
+    private TokenHasher tokenHasher;
     @MockitoSpyBean
     private UserDao userDao;
     @MockitoSpyBean
@@ -119,7 +123,6 @@ public class AccountDeletionServiceIT {
         EmailDeletionEntity emailDeletionEntity = emailDeletionDao.findByUserEntity_Email(email);
         emailDeletionEntity.setTokenExpiry(Instant.now().minus(2, ChronoUnit.MINUTES));
         emailDeletionDao.save(emailDeletionEntity);
-        String token = emailDeletionEntity.getToken();
 
         // when
         ResponseEntity<ApiError> response = (ResponseEntity<ApiError>) accountDeletionService.completeDeletionEmail(token);
@@ -135,7 +138,6 @@ public class AccountDeletionServiceIT {
         EmailDeletionEntity emailDeletionEntity = emailDeletionDao.findByUserEntity_Email(email);
         emailDeletionEntity.setTokenExpiry(Instant.now().plus(2, ChronoUnit.MINUTES));
         emailDeletionDao.save(emailDeletionEntity);
-        String token = emailDeletionEntity.getToken();
 
         // when
         ResponseEntity<?> response = accountDeletionService.completeDeletionEmail(token);
@@ -166,7 +168,7 @@ public class AccountDeletionServiceIT {
 
     private EmailDeletionEntity generateEmailDeletionEntity() {
         EmailDeletionEntity emailDeletionEntity = new EmailDeletionEntity();
-        emailDeletionEntity.setToken(UUID.randomUUID().toString());
+        emailDeletionEntity.setToken(tokenHasher.generateSha256(token));
         emailDeletionEntity.setTokenExpiry(Instant.now());
         return emailDeletionEntity;
     }

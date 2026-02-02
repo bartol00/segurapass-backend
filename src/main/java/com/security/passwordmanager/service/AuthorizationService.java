@@ -59,11 +59,11 @@ public class AuthorizationService {
             return ResponseEntity.status(apiError.getHttpStatus()).body(apiError);
         }
 
-        String verificationString = tokenGenerator.generateEmailVerifier();
+        String verificationToken = tokenGenerator.generateEmailVerifier();
 
         UserEntity userEntity = userMapper.toUserEntity(req);
         userEntity.setUserId(UUID.randomUUID());
-        userEntity.setVerificationString(verificationString);
+        userEntity.setVerificationString(tokenHasher.generateSha256(verificationToken));
         userEntity.setVerificationExpiryTime(Instant.now().plus(15, ChronoUnit.MINUTES));
         userEntity.setEmailVerified(false);
         userEntity.setCreationTime(Instant.now());
@@ -71,7 +71,7 @@ public class AuthorizationService {
 
         userDao.save(userEntity);
 
-        emailService.sendVerificationEmail(req.getEmail(), verificationString);
+        emailService.sendVerificationEmail(req.getEmail(), verificationToken);
 
         return ResponseEntity.ok(null);
     }
@@ -208,7 +208,7 @@ public class AuthorizationService {
 
     @Transactional
     public ResponseEntity<?> verifyEmail(String token) {
-        UserEntity userEntity = userDao.findByVerificationString(token);
+        UserEntity userEntity = userDao.findByVerificationString(tokenHasher.generateSha256(token));
 
         if (userEntity == null) {
             ApiError apiError = new ApiError(ApiErrorEnum.USER_VERIFICATION_NOT_EXISTS);

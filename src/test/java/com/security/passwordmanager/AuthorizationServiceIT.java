@@ -346,7 +346,7 @@ public class AuthorizationServiceIT {
     @Test
     void shouldFailUserIsNullVerifyEmail() {
         // given
-        doReturn(null).when(userDao).findByVerificationString(emailVerificationToken);
+        doReturn(null).when(userDao).findByVerificationString(tokenHasher.generateSha256(emailVerificationToken));
 
         // when
         ResponseEntity<ApiError> response = (ResponseEntity<ApiError>) authorizationService.verifyEmail(emailVerificationToken);
@@ -361,7 +361,7 @@ public class AuthorizationServiceIT {
         // given
         UserEntity userEntity = generateUserEntity();
         userEntity.setVerificationExpiryTime(Instant.now().minus(2, ChronoUnit.MINUTES));
-        doReturn(userEntity).when(userDao).findByVerificationString(emailVerificationToken);
+        doReturn(userEntity).when(userDao).findByVerificationString(tokenHasher.generateSha256(emailVerificationToken));
 
         // when
         ResponseEntity<ApiError> response = (ResponseEntity<ApiError>) authorizationService.verifyEmail(emailVerificationToken);
@@ -375,7 +375,7 @@ public class AuthorizationServiceIT {
     void shouldSucceedVerifyEmail() {
         // given
         UserEntity userEntity = generateUserEntity();
-        doReturn(userEntity).when(userDao).findByVerificationString(emailVerificationToken);
+        doReturn(userEntity).when(userDao).findByVerificationString(tokenHasher.generateSha256(emailVerificationToken));
 
         // when
         ResponseEntity<?> response = authorizationService.verifyEmail(emailVerificationToken);
@@ -427,7 +427,7 @@ public class AuthorizationServiceIT {
         userEntity.setSaltAuth("saltAuth");
         userEntity.setVerifier("verifier");
         userEntity.setSaltKey("saltKey");
-        userEntity.setVerificationString(emailVerificationToken);
+        userEntity.setVerificationString(tokenHasher.generateSha256(emailVerificationToken));
         userEntity.setVerificationExpiryTime(Instant.now().plus(1, ChronoUnit.DAYS));
         userEntity.setEmailVerified(false);
         return userEntity;

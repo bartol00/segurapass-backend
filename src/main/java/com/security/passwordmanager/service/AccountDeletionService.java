@@ -5,6 +5,7 @@ import com.security.passwordmanager.api.error.ApiError;
 import com.security.passwordmanager.api.error.ApiErrorEnum;
 import com.security.passwordmanager.helpers.EmailService;
 import com.security.passwordmanager.helpers.TokenGenerator;
+import com.security.passwordmanager.helpers.TokenHasher;
 import com.security.passwordmanager.model.authorization.UserDao;
 import com.security.passwordmanager.model.authorization.UserEntity;
 import com.security.passwordmanager.model.deletion.EmailDeletionDao;
@@ -26,6 +27,7 @@ public class AccountDeletionService {
 
     private final EmailService emailService;
     private final TokenGenerator tokenGenerator;
+    private final TokenHasher tokenHasher;
 
     public void startDeletionEmail(EmailDeletionStartReq req) {
         UserEntity userEntity = userDao.findByEmail(req.getEmail());
@@ -39,7 +41,7 @@ public class AccountDeletionService {
         String deletionToken = tokenGenerator.generateEmailVerifier();
 
         EmailDeletionEntity emailDeletionEntity = new EmailDeletionEntity();
-        emailDeletionEntity.setToken(deletionToken);
+        emailDeletionEntity.setToken(tokenHasher.generateSha256(deletionToken));
         emailDeletionEntity.setTokenExpiry(Instant.now().plus(15, ChronoUnit.MINUTES));
         emailDeletionEntity.setUserEntity(userEntity);
 
@@ -50,7 +52,7 @@ public class AccountDeletionService {
 
     @Transactional
     public ResponseEntity<?> completeDeletionEmail(String token) {
-        EmailDeletionEntity emailDeletionEntity = emailDeletionDao.findByToken(token);
+        EmailDeletionEntity emailDeletionEntity = emailDeletionDao.findByToken(tokenHasher.generateSha256(token));
         if (emailDeletionEntity == null) {
             ApiError apiError = new ApiError(ApiErrorEnum.USER_DELETION_NOT_EXISTS);
             return ResponseEntity.status(apiError.getHttpStatus()).body(apiError);

@@ -2,8 +2,8 @@ spring:
   application:
     name: segurapass
   profiles:
-    active: dev
-#    active: prod
+#    active: dev
+    active: prod
 
 app:
   base:

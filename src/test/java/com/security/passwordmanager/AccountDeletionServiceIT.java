@@ -1,10 +1,16 @@
 package com.security.passwordmanager;
 
+import com.security.passwordmanager.api.deletion.AuthorizedDeletionCompleteReq;
+import com.security.passwordmanager.api.deletion.AuthorizedDeletionStartReq;
+import com.security.passwordmanager.api.deletion.AuthorizedDeletionStartResp;
 import com.security.passwordmanager.api.deletion.EmailDeletionStartReq;
 import com.security.passwordmanager.api.error.ApiError;
 import com.security.passwordmanager.api.error.ApiErrorEnum;
 import com.security.passwordmanager.helpers.EmailService;
+import com.security.passwordmanager.helpers.SrpFlow;
 import com.security.passwordmanager.helpers.TokenHasher;
+import com.security.passwordmanager.model.authorization.SrpDao;
+import com.security.passwordmanager.model.authorization.SrpEntity;
 import com.security.passwordmanager.model.authorization.UserDao;
 import com.security.passwordmanager.model.authorization.UserEntity;
 import com.security.passwordmanager.model.deletion.EmailDeletionDao;
@@ -22,11 +28,14 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
+import java.math.BigInteger;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Base64;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 @Slf4j
 @SpringBootTest
@@ -36,6 +45,9 @@ public class AccountDeletionServiceIT {
 
     private final String email = "me@gmail.com";
     private final String token = "random token";
+    private final String authorizedEmail = "authorized@gmail.com";
+    private final UUID authorizedDeviceId = UUID.fromString("9a55c43b-52b3-4efb-b77c-3747b115e551");
+
 
     @Autowired
     private AccountDeletionService accountDeletionService;
@@ -45,6 +57,10 @@ public class AccountDeletionServiceIT {
     private UserDao userDao;
     @MockitoSpyBean
     private EmailDeletionDao emailDeletionDao;
+    @MockitoSpyBean
+    private SrpDao srpDao;
+    @MockitoSpyBean
+    private SrpFlow srpFlow;
     @MockitoBean
     private EmailService emailService;
 
@@ -56,6 +72,102 @@ public class AccountDeletionServiceIT {
         EmailDeletionEntity emailDeletionEntity = generateEmailDeletionEntity();
         emailDeletionEntity.setUserEntity(userEntity);
         emailDeletionDao.save(emailDeletionEntity);
+        UserEntity authorizedUser = generateUserEntity();
+        authorizedUser.setEmail(authorizedEmail);
+        authorizedUser.setVerifier("authorizedVerifier");
+        userDao.save(authorizedUser);
+    }
+
+    @Test
+    void shouldFailUserIsNullStartAuthorizedDeletion() {
+        // given
+        String randomEmail = "random@gmail.com";
+        AuthorizedDeletionStartReq authorizedDeletionStartReq = generateAuthorizedDeletionStartReq();
+
+        // when
+        ResponseEntity<ApiError> response = (ResponseEntity<ApiError>) accountDeletionService.startAuthorizedDeletion(randomEmail, authorizedDeletionStartReq);
+
+        // then
+        assertEquals(ApiErrorEnum.USER_NOT_EXISTS.getHttpStatus(), response.getStatusCode());
+        assertEquals(ApiErrorEnum.USER_NOT_EXISTS.getMessage(), response.getBody().getMessage());
+    }
+
+    @Test
+    void shouldSucceedStartAuthorizedDeletion() {
+        // given
+        UserEntity userEntity = userDao.findByEmail(authorizedEmail);
+        AuthorizedDeletionStartReq authorizedDeletionStartReq = generateAuthorizedDeletionStartReq();
+
+        // when
+        ResponseEntity<AuthorizedDeletionStartResp> response = (ResponseEntity<AuthorizedDeletionStartResp>) accountDeletionService.startAuthorizedDeletion(authorizedEmail, authorizedDeletionStartReq);
+
+        // then
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(userEntity.getSaltAuth(), response.getBody().getSaltAuth());
+    }
+
+    @Test
+    void shouldFailSrpIsNullCompleteAuthorizedDeletion() {
+        // given
+        doReturn(null).when(srpDao).findByUserEntity_EmailAndDeviceId(authorizedEmail, authorizedDeviceId);
+        AuthorizedDeletionCompleteReq authorizedDeletionCompleteReq = generateAuthorizedDeletionCompleteReq();
+
+        // when
+        ResponseEntity<ApiError> response = (ResponseEntity<ApiError>) accountDeletionService.completeAuthorizedDeletion(authorizedEmail, authorizedDeletionCompleteReq);
+
+        // then
+        assertEquals(ApiErrorEnum.SRP_SESSION_NOT_FOUND.getHttpStatus(), response.getStatusCode());
+        assertEquals(ApiErrorEnum.SRP_SESSION_NOT_FOUND.getMessage(), response.getBody().getMessage());
+    }
+
+    @Test
+    void shouldFailSrpIsExpiredCompleteAuthorizedDeletion() {
+        // given
+        SrpEntity srpEntity = generateSrpEntity();
+        srpEntity.setExpiryTime(Instant.now().minus(1, ChronoUnit.MINUTES));
+        AuthorizedDeletionCompleteReq authorizedDeletionCompleteReq = generateAuthorizedDeletionCompleteReq();
+        doReturn(srpEntity).when(srpDao).findByUserEntity_EmailAndDeviceId(authorizedEmail, authorizedDeviceId);
+        doNothing().when(srpDao).delete(srpEntity);
+
+        // when
+        ResponseEntity<ApiError> response = (ResponseEntity<ApiError>) accountDeletionService.completeAuthorizedDeletion(authorizedEmail, authorizedDeletionCompleteReq);
+
+        // then
+        assertEquals(ApiErrorEnum.SRP_SESSION_EXPIRED.getHttpStatus(), response.getStatusCode());
+        assertEquals(ApiErrorEnum.SRP_SESSION_EXPIRED.getMessage(), response.getBody().getMessage());
+    }
+
+    @Test
+    void shouldFailM1MismatchCompleteAuthorizedDeletion() {
+        // given
+        SrpEntity srpEntity = generateSrpEntity();
+        AuthorizedDeletionCompleteReq authorizedDeletionCompleteReq = generateAuthorizedDeletionCompleteReq();
+        doReturn(srpEntity).when(srpDao).findByUserEntity_EmailAndDeviceId(authorizedEmail, authorizedDeviceId);
+        doNothing().when(srpDao).delete(srpEntity);
+
+        // when
+        ResponseEntity<ApiError> response = (ResponseEntity<ApiError>) accountDeletionService.completeAuthorizedDeletion(authorizedEmail, authorizedDeletionCompleteReq);
+
+        // then
+        assertEquals(ApiErrorEnum.SRP_VERIFICATION_FAILED.getHttpStatus(), response.getStatusCode());
+        assertEquals(ApiErrorEnum.SRP_VERIFICATION_FAILED.getMessage(), response.getBody().getMessage());
+    }
+
+    @Test
+    void shouldSucceedCompleteAuthorizedDeletion() {
+        // given
+        SrpEntity srpEntity = generateSrpEntity();
+        AuthorizedDeletionCompleteReq authorizedDeletionCompleteReq = generateAuthorizedDeletionCompleteReq();
+        doReturn(srpEntity).when(srpDao).findByUserEntity_EmailAndDeviceId(authorizedEmail, authorizedDeviceId);
+        doNothing().when(srpDao).delete(srpEntity);
+        doReturn(new BigInteger(1, Base64.getDecoder().decode(authorizedDeletionCompleteReq.getM1()))).when(srpFlow).calculateM1Server(srpEntity);
+        doNothing().when(userDao).deleteByEmail(authorizedEmail);
+
+        // when
+        ResponseEntity<?> response = accountDeletionService.completeAuthorizedDeletion(authorizedEmail, authorizedDeletionCompleteReq);
+
+        // then
+        assertEquals(HttpStatus.OK, response.getStatusCode());
     }
 
     @Test
@@ -149,6 +261,20 @@ public class AccountDeletionServiceIT {
     }
 
 
+    private AuthorizedDeletionStartReq generateAuthorizedDeletionStartReq() {
+        AuthorizedDeletionStartReq authorizedDeletionStartReq = new AuthorizedDeletionStartReq();
+        authorizedDeletionStartReq.setDeviceId(authorizedDeviceId);
+        authorizedDeletionStartReq.setA("publicA");
+        return authorizedDeletionStartReq;
+    }
+
+    private AuthorizedDeletionCompleteReq generateAuthorizedDeletionCompleteReq() {
+        AuthorizedDeletionCompleteReq authorizedDeletionCompleteReq = new AuthorizedDeletionCompleteReq();
+        authorizedDeletionCompleteReq.setDeviceId(authorizedDeviceId);
+        authorizedDeletionCompleteReq.setM1("clientM1");
+        return authorizedDeletionCompleteReq;
+    }
+
     private EmailDeletionStartReq generateEmailDeletionStartReq() {
         EmailDeletionStartReq emailDeletionStartReq = new EmailDeletionStartReq();
         emailDeletionStartReq.setEmail(email);
@@ -171,6 +297,19 @@ public class AccountDeletionServiceIT {
         emailDeletionEntity.setToken(tokenHasher.generateSha256(token));
         emailDeletionEntity.setTokenExpiry(Instant.now());
         return emailDeletionEntity;
+    }
+
+    private SrpEntity generateSrpEntity() {
+        SrpEntity srpEntity = new SrpEntity();
+        srpEntity.setId(1L);
+        srpEntity.setA("publicA");
+        srpEntity.setBpriv("privateB");
+        srpEntity.setB("publicB");
+        srpEntity.setVerifier("verifier");
+        srpEntity.setDeviceId(UUID.randomUUID());
+        srpEntity.setUserEntity(userDao.findByEmail(authorizedEmail));
+        srpEntity.setExpiryTime(Instant.now().plus(30, ChronoUnit.MINUTES));
+        return srpEntity;
     }
 
 }

@@ -76,6 +76,7 @@ public class AuthorizationService {
         return ResponseEntity.ok(null);
     }
 
+    @Transactional
     public ResponseEntity<?> loginUserStart(LoginStartReq req) {
         if (!userDao.existsByEmail(req.getEmail())) {
             ApiError apiError = new ApiError(ApiErrorEnum.USER_NOT_EXISTS);

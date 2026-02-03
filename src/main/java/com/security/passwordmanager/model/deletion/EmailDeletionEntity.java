@@ -28,7 +28,7 @@ public class EmailDeletionEntity {
     @Column(name = "TOKEN_EXPIRY", nullable = false)
     private Instant tokenExpiry;
 
-    @OneToOne
+    @ManyToOne
     @JoinColumn(name = "USER_ENTITY_ID")
     private UserEntity userEntity;
 

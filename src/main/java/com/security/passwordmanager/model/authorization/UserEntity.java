@@ -64,8 +64,8 @@ public class UserEntity {
     @OneToMany(mappedBy = "userEntity", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CredentialsEntity> credentialsEntities;
 
-    @OneToOne(mappedBy = "userEntity", cascade = CascadeType.ALL, orphanRemoval = true)
-    private EmailDeletionEntity emailDeletionEntity;
+    @OneToMany(mappedBy = "userEntity", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<EmailDeletionEntity> emailDeletionEntities;
 
     @Override
     public final boolean equals(Object o) {

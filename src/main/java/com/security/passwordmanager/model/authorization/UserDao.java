@@ -10,4 +10,5 @@ public interface UserDao extends JpaRepository<UserEntity, Long> {
     UserEntity findByVerificationString(String verificationString);
     void deleteByVerificationExpiryTimeLessThanAndEmailVerified(Instant verificationExpiryTime, Boolean emailVerified);
     void deleteByLastLoginLessThan(Instant lastLogin);
+    void deleteByEmail(String email);
 }

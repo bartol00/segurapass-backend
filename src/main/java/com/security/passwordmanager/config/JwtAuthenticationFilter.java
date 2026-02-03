@@ -30,7 +30,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final List<String> whitelistStartsWith = List.of(
             "/api/authorization",
             "/api/versions",
-            "/swagger-ui", "/v3");
+            "/api/deletion/email");
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,

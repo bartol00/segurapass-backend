@@ -3,11 +3,6 @@ spring:
     url: ${DB_URL}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
-  liquibase:
-    change-log: classpath:db/changelog/db.changelog-master.xml
-    enabled: true
-    default-schema: password_manager
-    liquibase-schema: public
 #    hikari:
 #      maximum-pool-size: 20
   jpa:

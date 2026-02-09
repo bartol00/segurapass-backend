@@ -17,6 +17,9 @@ app:
     update-time: ${LATEST_UPDATE_TIME:na}
     description: ${LATEST_APP_DESCRIPTION:latest}
     download-url: ${LATEST_DOWNLOAD_URL:test.com}
+  security:
+    private-key-path: ${PRIVATE_KEY_PATH}
+    public-key-path: ${PUBLIC_KEY_PATH}
 
 aws:
   accessKey: ${AWS_ACCESSKEY:accesskey}

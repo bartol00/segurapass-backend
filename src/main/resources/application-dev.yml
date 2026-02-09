@@ -7,8 +7,3 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate
-
-app:
-  security:
-    private-key-path: src/main/resources/keys/private.pem
-    public-key-path: src/main/resources/keys/public.pem

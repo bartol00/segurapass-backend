@@ -39,9 +39,8 @@ import static org.mockito.Mockito.*;
 
 @Slf4j
 @SpringBootTest
-@ActiveProfiles("test")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public class AccountDeletionServiceIT {
+public class AccountDeletionServiceIT extends AbstractPostgresIT {
 
     private final String email = "me@gmail.com";
     private final String token = "random token";

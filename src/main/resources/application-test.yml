@@ -1,14 +1,15 @@
 spring:
-  datasource:
-    url: jdbc:postgresql://localhost:5432/passwordmanager_test
-    username: postgres
-    password: postgres
-    driver-class-name: org.postgresql.Driver
   liquibase:
     enabled: false
   jpa:
     hibernate:
       ddl-auto: create-drop
+    properties:
+      hibernate:
+        default_schema: password_manager
+        hibernate.hbm2ddl.auto: create-drop
+  datasource:
+    driver-class-name: org.postgresql.Driver
 
 app:
   security:

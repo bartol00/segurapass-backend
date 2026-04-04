@@ -68,7 +68,7 @@ public class CredentialsServiceIT extends AbstractPostgresIT {
     @Test
     void shouldSucceedGetCredentials() {
         // when
-        ResponseEntity<Page<CredentialsResp>> response = (ResponseEntity<Page<CredentialsResp>>) credentialsService.getCredentials(email, 0, 20);
+        ResponseEntity<Page<CredentialsResp>> response = credentialsService.getCredentials(email, 0, 20);
 
         // then
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -95,7 +95,7 @@ public class CredentialsServiceIT extends AbstractPostgresIT {
         CredentialsEntity credentialsEntity = credentialsEntityList.get(0);
 
         // when
-        ResponseEntity<CredentialsResp> response = (ResponseEntity<CredentialsResp>) credentialsService.getCredentialById(credentialsEntity.getCredentialsId(), email);
+        ResponseEntity<CredentialsResp> response = credentialsService.getCredentialById(credentialsEntity.getCredentialsId(), email);
         CredentialsResp resp = response.getBody();
 
         // then
@@ -112,7 +112,7 @@ public class CredentialsServiceIT extends AbstractPostgresIT {
         long count = credentialsDao.count();
 
         // when
-        ResponseEntity<CredentialsResp> response = (ResponseEntity<CredentialsResp>) credentialsService.createCredentials(req, email);
+        ResponseEntity<CredentialsResp> response = credentialsService.createCredentials(req, email);
         CredentialsResp resp = response.getBody();
 
         // then
@@ -160,7 +160,7 @@ public class CredentialsServiceIT extends AbstractPostgresIT {
         CredentialsReq req = generateCredentialsReq();
 
         // when
-        ResponseEntity<CredentialsResp> response = (ResponseEntity<CredentialsResp>) credentialsService.updateCredentials(credentialsEntity.getCredentialsId(), req, email);
+        ResponseEntity<CredentialsResp> response = credentialsService.updateCredentials(credentialsEntity.getCredentialsId(), req, email);
         CredentialsResp resp = response.getBody();
 
         // then
@@ -191,7 +191,7 @@ public class CredentialsServiceIT extends AbstractPostgresIT {
         long count = credentialsDao.count();
 
         // when
-        ResponseEntity<?> response = credentialsService.deleteCredentials(credentialsEntity.getCredentialsId(), email);
+        ResponseEntity<Void> response = credentialsService.deleteCredentials(credentialsEntity.getCredentialsId(), email);
 
         // then
         assertEquals(HttpStatus.OK, response.getStatusCode());

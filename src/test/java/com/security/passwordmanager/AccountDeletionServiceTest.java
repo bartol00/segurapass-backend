@@ -97,7 +97,7 @@ public class AccountDeletionServiceTest extends AbstractPostgresIT {
         AuthorizedDeletionStartReq req = generateAuthorizedDeletionStartReq();
 
         // when
-        ResponseEntity<AuthorizedDeletionStartResp> response = (ResponseEntity<AuthorizedDeletionStartResp>) accountDeletionService.startAuthorizedDeletion(authorizedEmail, req);
+        ResponseEntity<AuthorizedDeletionStartResp> response = accountDeletionService.startAuthorizedDeletion(authorizedEmail, req);
 
         // then
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -162,7 +162,7 @@ public class AccountDeletionServiceTest extends AbstractPostgresIT {
         doNothing().when(userDao).deleteByEmail(authorizedEmail);
 
         // when
-        ResponseEntity<?> response = accountDeletionService.completeAuthorizedDeletion(authorizedEmail, req);
+        ResponseEntity<Void> response = accountDeletionService.completeAuthorizedDeletion(authorizedEmail, req);
 
         // then
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -250,7 +250,7 @@ public class AccountDeletionServiceTest extends AbstractPostgresIT {
         emailDeletionDao.save(emailDeletionEntity);
 
         // when
-        ResponseEntity<?> response = accountDeletionService.completeDeletionEmail(token);
+        ResponseEntity<String> response = accountDeletionService.completeDeletionEmail(token);
 
         // then
         assertEquals(HttpStatus.OK, response.getStatusCode());

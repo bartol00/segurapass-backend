@@ -1,8 +1,10 @@
 package com.security.passwordmanager.controller;
 
 import com.security.passwordmanager.api.credentials.CredentialsReq;
+import com.security.passwordmanager.api.credentials.CredentialsResp;
 import com.security.passwordmanager.service.CredentialsService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -17,29 +19,29 @@ public class CredentialsController {
     private final CredentialsService credentialsService;
 
     @GetMapping("/get")
-    public ResponseEntity<?> getCredentials(@AuthenticationPrincipal String email, @RequestParam(defaultValue = "0") int page,
-                                            @RequestParam(defaultValue = "20") int size) {
+    public ResponseEntity<Page<CredentialsResp>> getCredentials(@AuthenticationPrincipal String email, @RequestParam(defaultValue = "0") int page,
+                                                                @RequestParam(defaultValue = "20") int size) {
         // System.out.println("Controller email: " + email);
         return credentialsService.getCredentials(email, page, size);
     }
 
     @GetMapping("/get/{id}")
-    public ResponseEntity<?> getCredentialById(@PathVariable UUID id, @AuthenticationPrincipal String email) {
+    public ResponseEntity<CredentialsResp> getCredentialById(@PathVariable UUID id, @AuthenticationPrincipal String email) {
         return credentialsService.getCredentialById(id, email);
     }
 
     @PostMapping("/create")
-    public ResponseEntity<?> createCredentials(@RequestBody CredentialsReq req, @AuthenticationPrincipal String email) {
+    public ResponseEntity<CredentialsResp> createCredentials(@RequestBody CredentialsReq req, @AuthenticationPrincipal String email) {
         return credentialsService.createCredentials(req, email);
     }
 
     @PutMapping("/update/{id}")
-    public ResponseEntity<?> updateCredentials(@PathVariable UUID id, @RequestBody CredentialsReq req, @AuthenticationPrincipal String email) {
+    public ResponseEntity<CredentialsResp> updateCredentials(@PathVariable UUID id, @RequestBody CredentialsReq req, @AuthenticationPrincipal String email) {
         return credentialsService.updateCredentials(id, req, email);
     }
 
     @DeleteMapping("/delete/{id}")
-    public ResponseEntity<?> deleteCredentials(@PathVariable UUID id, @AuthenticationPrincipal String email) {
+    public ResponseEntity<Void> deleteCredentials(@PathVariable UUID id, @AuthenticationPrincipal String email) {
         return credentialsService.deleteCredentials(id, email);
     }
 

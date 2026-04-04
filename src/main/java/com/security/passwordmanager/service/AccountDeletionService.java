@@ -4,8 +4,7 @@ import com.security.passwordmanager.api.deletion.AuthorizedDeletionCompleteReq;
 import com.security.passwordmanager.api.deletion.AuthorizedDeletionStartReq;
 import com.security.passwordmanager.api.deletion.AuthorizedDeletionStartResp;
 import com.security.passwordmanager.api.deletion.EmailDeletionStartReq;
-import com.security.passwordmanager.api.error.ApiError;
-import com.security.passwordmanager.api.error.ApiErrorEnum;
+import com.security.passwordmanager.exceptions.AccountDeletionException;
 import com.security.passwordmanager.helpers.EmailService;
 import com.security.passwordmanager.helpers.SrpFlow;
 import com.security.passwordmanager.helpers.TokenGenerator;
@@ -26,6 +25,8 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 
+import static com.security.passwordmanager.exceptions.ErrorEnum.*;
+
 @Service
 @RequiredArgsConstructor
 public class AccountDeletionService {
@@ -43,8 +44,7 @@ public class AccountDeletionService {
     public ResponseEntity<?> startAuthorizedDeletion(String email, AuthorizedDeletionStartReq req) {
         UserEntity userEntity = userDao.findByEmail(email);
         if (userEntity == null) {
-            ApiError apiError = new ApiError(ApiErrorEnum.USER_NOT_EXISTS);
-            return ResponseEntity.status(apiError.getHttpStatus()).body(apiError);
+            throw new AccountDeletionException(USER_NOT_EXISTS);
         }
 
         SrpEntity srpEntity = srpFlow.beginFlow(req.getA(), req.getDeviceId(), userEntity);
@@ -66,23 +66,20 @@ public class AccountDeletionService {
     public ResponseEntity<?> completeAuthorizedDeletion(String email, AuthorizedDeletionCompleteReq req) {
         SrpEntity srpEntity = srpDao.findByUserEntity_EmailAndDeviceId(email, req.getDeviceId());
         if (srpEntity == null) {
-            ApiError apiError = new ApiError(ApiErrorEnum.SRP_SESSION_NOT_FOUND);
-            return ResponseEntity.status(apiError.getHttpStatus()).body(apiError);
+            throw new AccountDeletionException(SRP_SESSION_NOT_FOUND);
         }
 
         srpDao.delete(srpEntity);
 
         if (srpEntity.getExpiryTime().isBefore(Instant.now())) {
-            ApiError apiError = new ApiError(ApiErrorEnum.SRP_SESSION_EXPIRED);
-            return ResponseEntity.status(apiError.getHttpStatus()).body(apiError);
+            throw new AccountDeletionException(SRP_SESSION_EXPIRED);
         }
 
         BigInteger M1Server = srpFlow.calculateM1Server(srpEntity);
         BigInteger M1Client = new BigInteger(1, Base64.getDecoder().decode(req.getM1()));
 
         if (!M1Server.equals(M1Client)) {
-            ApiError apiError = new ApiError(ApiErrorEnum.SRP_VERIFICATION_FAILED);
-            return ResponseEntity.status(apiError.getHttpStatus()).body(apiError);
+            throw new AccountDeletionException(SRP_VERIFICATION_FAILED);
         }
 
         userDao.deleteByEmail(email);
@@ -116,12 +113,10 @@ public class AccountDeletionService {
     public ResponseEntity<?> completeDeletionEmail(String token) {
         EmailDeletionEntity emailDeletionEntity = emailDeletionDao.findByToken(tokenHasher.generateSha256(token));
         if (emailDeletionEntity == null) {
-            ApiError apiError = new ApiError(ApiErrorEnum.USER_DELETION_NOT_EXISTS);
-            return ResponseEntity.status(apiError.getHttpStatus()).body(apiError);
+            throw new AccountDeletionException(USER_DELETION_NOT_EXISTS);
         }
         if (emailDeletionEntity.getTokenExpiry().isBefore(Instant.now())) {
-            ApiError apiError = new ApiError(ApiErrorEnum.USER_DELETION_EXPIRED);
-            return ResponseEntity.status(apiError.getHttpStatus()).body(apiError);
+            throw new AccountDeletionException(USER_DELETION_EXPIRED);
         }
 
         userDao.delete(emailDeletionEntity.getUserEntity());

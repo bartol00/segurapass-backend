@@ -1,8 +1,7 @@
 package com.security.passwordmanager.service;
 
 import com.security.passwordmanager.api.authorization.*;
-import com.security.passwordmanager.api.error.ApiError;
-import com.security.passwordmanager.api.error.ApiErrorEnum;
+import com.security.passwordmanager.exceptions.AuthorizationException;
 import com.security.passwordmanager.helpers.EmailService;
 import com.security.passwordmanager.helpers.SrpFlow;
 import com.security.passwordmanager.helpers.TokenGenerator;
@@ -19,6 +18,8 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.regex.Pattern;
+
+import static com.security.passwordmanager.exceptions.ErrorEnum.*;
 
 @Service
 @RequiredArgsConstructor
@@ -51,12 +52,10 @@ public class AuthorizationService {
     @Transactional
     public ResponseEntity<?> registerUser(RegistrationReq req) {
         if (!isValidEmail(req.getEmail())) {
-            ApiError apiError = new ApiError(ApiErrorEnum.USER_EMAIL_INVALID);
-            return ResponseEntity.status(apiError.getHttpStatus()).body(apiError);
+            throw new AuthorizationException(USER_EMAIL_INVALID);
         }
         if (userDao.existsByEmail(req.getEmail())) {
-            ApiError apiError = new ApiError(ApiErrorEnum.USER_EXISTS);
-            return ResponseEntity.status(apiError.getHttpStatus()).body(apiError);
+            throw new AuthorizationException(USER_EXISTS);
         }
 
         String verificationToken = tokenGenerator.generateEmailVerifier();
@@ -79,14 +78,12 @@ public class AuthorizationService {
     @Transactional
     public ResponseEntity<?> loginUserStart(LoginStartReq req) {
         if (!userDao.existsByEmail(req.getEmail())) {
-            ApiError apiError = new ApiError(ApiErrorEnum.USER_NOT_EXISTS);
-            return ResponseEntity.status(apiError.getHttpStatus()).body(apiError);
+            throw new AuthorizationException(USER_NOT_EXISTS);
         }
 
         UserEntity userEntity = userDao.findByEmail(req.getEmail());
         if (!userEntity.getEmailVerified()) {
-            ApiError apiError = new ApiError(ApiErrorEnum.USER_EMAIL_UNVERIFIED);
-            return ResponseEntity.status(apiError.getHttpStatus()).body(apiError);
+            throw new AuthorizationException(USER_EMAIL_UNVERIFIED);
         }
 
         SrpEntity srpEntity = srpFlow.beginFlow(req.getA(), req.getDeviceId(), userEntity);
@@ -108,23 +105,20 @@ public class AuthorizationService {
     public ResponseEntity<?> loginUserEnd(LoginCompleteReq req) {
         SrpEntity srpEntity = srpDao.findByUserEntity_EmailAndDeviceId(req.getEmail(), req.getDeviceId());
         if (srpEntity == null) {
-            ApiError apiError = new ApiError(ApiErrorEnum.SRP_SESSION_NOT_FOUND);
-            return ResponseEntity.status(apiError.getHttpStatus()).body(apiError);
+            throw new AuthorizationException(SRP_SESSION_NOT_FOUND);
         }
 
         srpDao.delete(srpEntity);
 
         if (srpEntity.getExpiryTime().isBefore(Instant.now())) {
-            ApiError apiError = new ApiError(ApiErrorEnum.SRP_SESSION_EXPIRED);
-            return ResponseEntity.status(apiError.getHttpStatus()).body(apiError);
+            throw new AuthorizationException(SRP_SESSION_EXPIRED);
         }
 
         BigInteger M1Server = srpFlow.calculateM1Server(srpEntity);
         BigInteger M1Client = new BigInteger(1, Base64.getDecoder().decode(req.getM1()));
 
         if (!M1Server.equals(M1Client)) {
-            ApiError apiError = new ApiError(ApiErrorEnum.SRP_VERIFICATION_FAILED);
-            return ResponseEntity.status(apiError.getHttpStatus()).body(apiError);
+            throw new AuthorizationException(SRP_VERIFICATION_FAILED);
         }
 
         BigInteger M2Server = srpFlow.calculateM2Server(srpEntity, M1Client);
@@ -158,8 +152,7 @@ public class AuthorizationService {
 
     public ResponseEntity<?> refreshJWT(RefreshReq req) {
         if (!userDao.existsByEmail(req.getEmail())) {
-            ApiError apiError = new ApiError(ApiErrorEnum.USER_NOT_EXISTS);
-            return ResponseEntity.status(apiError.getHttpStatus()).body(apiError);
+            throw new AuthorizationException(USER_NOT_EXISTS);
         }
 
         Instant now = Instant.now();
@@ -168,14 +161,12 @@ public class AuthorizationService {
 
         SessionEntity sessionEntity = sessionDao.findByUserEntityAndDeviceId(userEntity, req.getDeviceId());
         if (sessionEntity == null || sessionEntity.getExpiryTime().isBefore(now)) {
-            ApiError apiError = new ApiError(ApiErrorEnum.TOKEN_EXPIRED);
-            return ResponseEntity.status(apiError.getHttpStatus()).body(apiError);
+            throw new AuthorizationException(TOKEN_EXPIRED);
         }
 
         boolean verified = tokenHasher.verifyToken(req.getRefreshToken(), sessionEntity.getRefreshTokenHash());
         if (!verified) {
-            ApiError apiError = new ApiError(ApiErrorEnum.TOKEN_VERIFICATION_FAILED);
-            return ResponseEntity.status(apiError.getHttpStatus()).body(apiError);
+            throw new AuthorizationException(TOKEN_VERIFICATION_FAILED);
         }
 
         RefreshResp resp = new RefreshResp();
@@ -192,14 +183,12 @@ public class AuthorizationService {
         );
 
         if (sessionEntity == null) {
-            ApiError apiError = new ApiError(ApiErrorEnum.SESSION_NOT_FOUND);
-            return ResponseEntity.status(apiError.getHttpStatus()).body(apiError);
+            throw new AuthorizationException(SESSION_NOT_FOUND);
         }
 
         boolean verified = tokenHasher.verifyToken(req.getRefreshToken(), sessionEntity.getRefreshTokenHash());
         if (!verified) {
-            ApiError apiError = new ApiError(ApiErrorEnum.TOKEN_VERIFICATION_FAILED);
-            return ResponseEntity.status(apiError.getHttpStatus()).body(apiError);
+            throw new AuthorizationException(TOKEN_VERIFICATION_FAILED);
         }
 
         sessionDao.delete(sessionEntity);
@@ -212,12 +201,10 @@ public class AuthorizationService {
         UserEntity userEntity = userDao.findByVerificationString(tokenHasher.generateSha256(token));
 
         if (userEntity == null) {
-            ApiError apiError = new ApiError(ApiErrorEnum.USER_VERIFICATION_NOT_EXISTS);
-            return ResponseEntity.status(apiError.getHttpStatus()).body(apiError);
+            throw new AuthorizationException(USER_VERIFICATION_NOT_EXISTS);
         }
         if (userEntity.getVerificationExpiryTime().isBefore(Instant.now())) {
-            ApiError apiError = new ApiError(ApiErrorEnum.USER_VERIFICATION_EXPIRED);
-            return ResponseEntity.status(apiError.getHttpStatus()).body(apiError);
+            throw new AuthorizationException(USER_VERIFICATION_EXPIRED);
         }
 
         userEntity.setVerificationString(null);

@@ -4,8 +4,7 @@ import com.security.passwordmanager.api.deletion.AuthorizedDeletionCompleteReq;
 import com.security.passwordmanager.api.deletion.AuthorizedDeletionStartReq;
 import com.security.passwordmanager.api.deletion.AuthorizedDeletionStartResp;
 import com.security.passwordmanager.api.deletion.EmailDeletionStartReq;
-import com.security.passwordmanager.api.error.ApiError;
-import com.security.passwordmanager.api.error.ApiErrorEnum;
+import com.security.passwordmanager.exceptions.AccountDeletionException;
 import com.security.passwordmanager.helpers.EmailService;
 import com.security.passwordmanager.helpers.SrpFlow;
 import com.security.passwordmanager.helpers.TokenHasher;
@@ -24,7 +23,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
@@ -36,11 +34,12 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+import static com.security.passwordmanager.exceptions.ErrorEnum.*;
 
 @Slf4j
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public class AccountDeletionServiceIT extends AbstractPostgresIT {
+public class AccountDeletionServiceTest extends AbstractPostgresIT {
 
     private final String email = "me@gmail.com";
     private final String token = "random token";
@@ -81,24 +80,24 @@ public class AccountDeletionServiceIT extends AbstractPostgresIT {
     void shouldFailUserIsNullStartAuthorizedDeletion() {
         // given
         String randomEmail = "random@gmail.com";
-        AuthorizedDeletionStartReq authorizedDeletionStartReq = generateAuthorizedDeletionStartReq();
+        AuthorizedDeletionStartReq req = generateAuthorizedDeletionStartReq();
 
         // when
-        ResponseEntity<ApiError> response = (ResponseEntity<ApiError>) accountDeletionService.startAuthorizedDeletion(randomEmail, authorizedDeletionStartReq);
+        AccountDeletionException ex = assertThrows(AccountDeletionException.class, () -> accountDeletionService.startAuthorizedDeletion(randomEmail, req));
 
         // then
-        assertEquals(ApiErrorEnum.USER_NOT_EXISTS.getHttpStatus(), response.getStatusCode());
-        assertEquals(ApiErrorEnum.USER_NOT_EXISTS.getMessage(), response.getBody().getMessage());
+        assertEquals(USER_NOT_EXISTS.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(USER_NOT_EXISTS.getMessage(), ex.getErrorEnum().getMessage());
     }
 
     @Test
     void shouldSucceedStartAuthorizedDeletion() {
         // given
         UserEntity userEntity = userDao.findByEmail(authorizedEmail);
-        AuthorizedDeletionStartReq authorizedDeletionStartReq = generateAuthorizedDeletionStartReq();
+        AuthorizedDeletionStartReq req = generateAuthorizedDeletionStartReq();
 
         // when
-        ResponseEntity<AuthorizedDeletionStartResp> response = (ResponseEntity<AuthorizedDeletionStartResp>) accountDeletionService.startAuthorizedDeletion(authorizedEmail, authorizedDeletionStartReq);
+        ResponseEntity<AuthorizedDeletionStartResp> response = (ResponseEntity<AuthorizedDeletionStartResp>) accountDeletionService.startAuthorizedDeletion(authorizedEmail, req);
 
         // then
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -109,14 +108,14 @@ public class AccountDeletionServiceIT extends AbstractPostgresIT {
     void shouldFailSrpIsNullCompleteAuthorizedDeletion() {
         // given
         doReturn(null).when(srpDao).findByUserEntity_EmailAndDeviceId(authorizedEmail, authorizedDeviceId);
-        AuthorizedDeletionCompleteReq authorizedDeletionCompleteReq = generateAuthorizedDeletionCompleteReq();
+        AuthorizedDeletionCompleteReq req = generateAuthorizedDeletionCompleteReq();
 
         // when
-        ResponseEntity<ApiError> response = (ResponseEntity<ApiError>) accountDeletionService.completeAuthorizedDeletion(authorizedEmail, authorizedDeletionCompleteReq);
+        AccountDeletionException ex = assertThrows(AccountDeletionException.class, () -> accountDeletionService.completeAuthorizedDeletion(authorizedEmail, req));
 
         // then
-        assertEquals(ApiErrorEnum.SRP_SESSION_NOT_FOUND.getHttpStatus(), response.getStatusCode());
-        assertEquals(ApiErrorEnum.SRP_SESSION_NOT_FOUND.getMessage(), response.getBody().getMessage());
+        assertEquals(SRP_SESSION_NOT_FOUND.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(SRP_SESSION_NOT_FOUND.getMessage(), ex.getErrorEnum().getMessage());
     }
 
     @Test
@@ -124,46 +123,46 @@ public class AccountDeletionServiceIT extends AbstractPostgresIT {
         // given
         SrpEntity srpEntity = generateSrpEntity();
         srpEntity.setExpiryTime(Instant.now().minus(1, ChronoUnit.MINUTES));
-        AuthorizedDeletionCompleteReq authorizedDeletionCompleteReq = generateAuthorizedDeletionCompleteReq();
+        AuthorizedDeletionCompleteReq req = generateAuthorizedDeletionCompleteReq();
         doReturn(srpEntity).when(srpDao).findByUserEntity_EmailAndDeviceId(authorizedEmail, authorizedDeviceId);
         doNothing().when(srpDao).delete(srpEntity);
 
         // when
-        ResponseEntity<ApiError> response = (ResponseEntity<ApiError>) accountDeletionService.completeAuthorizedDeletion(authorizedEmail, authorizedDeletionCompleteReq);
+        AccountDeletionException ex = assertThrows(AccountDeletionException.class, () -> accountDeletionService.completeAuthorizedDeletion(authorizedEmail, req));
 
         // then
-        assertEquals(ApiErrorEnum.SRP_SESSION_EXPIRED.getHttpStatus(), response.getStatusCode());
-        assertEquals(ApiErrorEnum.SRP_SESSION_EXPIRED.getMessage(), response.getBody().getMessage());
+        assertEquals(SRP_SESSION_EXPIRED.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(SRP_SESSION_EXPIRED.getMessage(), ex.getErrorEnum().getMessage());
     }
 
     @Test
     void shouldFailM1MismatchCompleteAuthorizedDeletion() {
         // given
         SrpEntity srpEntity = generateSrpEntity();
-        AuthorizedDeletionCompleteReq authorizedDeletionCompleteReq = generateAuthorizedDeletionCompleteReq();
+        AuthorizedDeletionCompleteReq req = generateAuthorizedDeletionCompleteReq();
         doReturn(srpEntity).when(srpDao).findByUserEntity_EmailAndDeviceId(authorizedEmail, authorizedDeviceId);
         doNothing().when(srpDao).delete(srpEntity);
 
         // when
-        ResponseEntity<ApiError> response = (ResponseEntity<ApiError>) accountDeletionService.completeAuthorizedDeletion(authorizedEmail, authorizedDeletionCompleteReq);
+        AccountDeletionException ex = assertThrows(AccountDeletionException.class, () -> accountDeletionService.completeAuthorizedDeletion(authorizedEmail, req));
 
         // then
-        assertEquals(ApiErrorEnum.SRP_VERIFICATION_FAILED.getHttpStatus(), response.getStatusCode());
-        assertEquals(ApiErrorEnum.SRP_VERIFICATION_FAILED.getMessage(), response.getBody().getMessage());
+        assertEquals(SRP_VERIFICATION_FAILED.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(SRP_VERIFICATION_FAILED.getMessage(), ex.getErrorEnum().getMessage());
     }
 
     @Test
     void shouldSucceedCompleteAuthorizedDeletion() {
         // given
         SrpEntity srpEntity = generateSrpEntity();
-        AuthorizedDeletionCompleteReq authorizedDeletionCompleteReq = generateAuthorizedDeletionCompleteReq();
+        AuthorizedDeletionCompleteReq req = generateAuthorizedDeletionCompleteReq();
         doReturn(srpEntity).when(srpDao).findByUserEntity_EmailAndDeviceId(authorizedEmail, authorizedDeviceId);
         doNothing().when(srpDao).delete(srpEntity);
-        doReturn(new BigInteger(1, Base64.getDecoder().decode(authorizedDeletionCompleteReq.getM1()))).when(srpFlow).calculateM1Server(srpEntity);
+        doReturn(new BigInteger(1, Base64.getDecoder().decode(req.getM1()))).when(srpFlow).calculateM1Server(srpEntity);
         doNothing().when(userDao).deleteByEmail(authorizedEmail);
 
         // when
-        ResponseEntity<?> response = accountDeletionService.completeAuthorizedDeletion(authorizedEmail, authorizedDeletionCompleteReq);
+        ResponseEntity<?> response = accountDeletionService.completeAuthorizedDeletion(authorizedEmail, req);
 
         // then
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -173,11 +172,11 @@ public class AccountDeletionServiceIT extends AbstractPostgresIT {
     void shouldFailUserIsNullStartDeletionEmail() {
         // given
         String randomEmail = "random@gmail.com";
-        EmailDeletionStartReq emailDeletionStartReq = generateEmailDeletionStartReq();
-        emailDeletionStartReq.setEmail(randomEmail);
+        EmailDeletionStartReq req = generateEmailDeletionStartReq();
+        req.setEmail(randomEmail);
 
         // when
-        accountDeletionService.startDeletionEmail(emailDeletionStartReq);
+        accountDeletionService.startDeletionEmail(req);
 
         // then
         assertFalse(emailDeletionDao.existsByUserEntity_Email(randomEmail));
@@ -186,11 +185,11 @@ public class AccountDeletionServiceIT extends AbstractPostgresIT {
     @Test
     void shouldFailEmailEntityAlreadyExistsStartDeletionEmail() {
         // given
-        EmailDeletionStartReq emailDeletionStartReq = generateEmailDeletionStartReq();
+        EmailDeletionStartReq req = generateEmailDeletionStartReq();
         EmailDeletionEntity emailDeletionEntity = emailDeletionDao.findByUserEntity_Email(email);
 
         // when
-        accountDeletionService.startDeletionEmail(emailDeletionStartReq);
+        accountDeletionService.startDeletionEmail(req);
         EmailDeletionEntity retrievedEntity = emailDeletionDao.findByUserEntity_Email(email);
 
         // then
@@ -202,14 +201,14 @@ public class AccountDeletionServiceIT extends AbstractPostgresIT {
     void shouldSucceedStartDeletionEmail() {
         // given
         String testEmail = "test@gmail.com";
-        EmailDeletionStartReq emailDeletionStartReq = generateEmailDeletionStartReq();
-        emailDeletionStartReq.setEmail(testEmail);
+        EmailDeletionStartReq req = generateEmailDeletionStartReq();
+        req.setEmail(testEmail);
         UserEntity userEntity = generateUserEntity();
         userEntity.setEmail(testEmail);
         userDao.save(userEntity);
 
         // when
-        accountDeletionService.startDeletionEmail(emailDeletionStartReq);
+        accountDeletionService.startDeletionEmail(req);
 
         // then
         assertTrue(emailDeletionDao.existsByUserEntity_Email(testEmail));
@@ -221,11 +220,11 @@ public class AccountDeletionServiceIT extends AbstractPostgresIT {
         String randomToken = UUID.randomUUID().toString();
 
         // when
-        ResponseEntity<ApiError> response = (ResponseEntity<ApiError>) accountDeletionService.completeDeletionEmail(randomToken);
+        AccountDeletionException ex = assertThrows(AccountDeletionException.class, () -> accountDeletionService.completeDeletionEmail(randomToken));
 
         // then
-        assertEquals(ApiErrorEnum.USER_DELETION_NOT_EXISTS.getHttpStatus(), response.getStatusCode());
-        assertEquals(ApiErrorEnum.USER_DELETION_NOT_EXISTS.getMessage(), response.getBody().getMessage());
+        assertEquals(USER_DELETION_NOT_EXISTS.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(USER_DELETION_NOT_EXISTS.getMessage(), ex.getErrorEnum().getMessage());
     }
 
     @Test
@@ -236,11 +235,11 @@ public class AccountDeletionServiceIT extends AbstractPostgresIT {
         emailDeletionDao.save(emailDeletionEntity);
 
         // when
-        ResponseEntity<ApiError> response = (ResponseEntity<ApiError>) accountDeletionService.completeDeletionEmail(token);
+        AccountDeletionException ex = assertThrows(AccountDeletionException.class, () -> accountDeletionService.completeDeletionEmail(token));
 
         // then
-        assertEquals(ApiErrorEnum.USER_DELETION_EXPIRED.getHttpStatus(), response.getStatusCode());
-        assertEquals(ApiErrorEnum.USER_DELETION_EXPIRED.getMessage(), response.getBody().getMessage());
+        assertEquals(USER_DELETION_EXPIRED.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(USER_DELETION_EXPIRED.getMessage(), ex.getErrorEnum().getMessage());
     }
 
     @Test

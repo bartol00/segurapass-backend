@@ -1,10 +1,10 @@
-package com.security.passwordmanager.api.error;
+package com.security.passwordmanager.exceptions;
 
 import lombok.Getter;
 import org.springframework.http.HttpStatus;
 
 @Getter
-public enum ApiErrorEnum {
+public enum ErrorEnum {
     USER_EXISTS(HttpStatus.CONFLICT, "Email is already in use"),
     USER_NOT_EXISTS(HttpStatus.CONFLICT, "User with this email does not exist"),
     USER_EMAIL_INVALID(HttpStatus.CONFLICT, "Email is invalid"),
@@ -25,7 +25,7 @@ public enum ApiErrorEnum {
     private final HttpStatus httpStatus;
     private final String message;
 
-    ApiErrorEnum(HttpStatus httpStatus, String message) {
+    ErrorEnum(HttpStatus httpStatus, String message) {
         this.httpStatus = httpStatus;
         this.message = message;
     }

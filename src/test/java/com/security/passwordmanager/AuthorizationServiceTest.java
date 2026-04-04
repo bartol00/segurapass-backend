@@ -1,8 +1,7 @@
 package com.security.passwordmanager;
 
 import com.security.passwordmanager.api.authorization.*;
-import com.security.passwordmanager.api.error.ApiError;
-import com.security.passwordmanager.api.error.ApiErrorEnum;
+import com.security.passwordmanager.exceptions.AuthorizationException;
 import com.security.passwordmanager.helpers.EmailService;
 import com.security.passwordmanager.helpers.SrpFlow;
 import com.security.passwordmanager.helpers.TokenHasher;
@@ -16,7 +15,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.*;
 
 import java.math.BigInteger;
@@ -27,11 +25,12 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+import static com.security.passwordmanager.exceptions.ErrorEnum.*;
 
 @Slf4j
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public class AuthorizationServiceIT extends AbstractPostgresIT {
+public class AuthorizationServiceTest extends AbstractPostgresIT {
 
     private final String email = "me@gmail.com";
     private final String emailVerificationToken = "verification token";
@@ -59,83 +58,83 @@ public class AuthorizationServiceIT extends AbstractPostgresIT {
     @Test
     void shouldFailInvalidEmailErrorRegisterUser() {
         // given
-        RegistrationReq registrationReq = generateRegistrationReq();
-        registrationReq.setEmail("invalid@email.com");
+        RegistrationReq req = generateRegistrationReq();
+        req.setEmail("invalid@email.com");
 
         // when
-        ResponseEntity<ApiError> response = (ResponseEntity<ApiError>) authorizationService.registerUser(registrationReq);
+        AuthorizationException ex = assertThrows(AuthorizationException.class, () -> authorizationService.registerUser(req));
 
         // then
-        assertEquals(ApiErrorEnum.USER_EMAIL_INVALID.getHttpStatus(), response.getStatusCode());
-        assertEquals(ApiErrorEnum.USER_EMAIL_INVALID.getMessage(), response.getBody().getMessage());
+        assertEquals(USER_EMAIL_INVALID.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(USER_EMAIL_INVALID.getMessage(), ex.getErrorEnum().getMessage());
     }
 
     @Test
     void shouldFailUserExistsErrorRegisterUser() {
         // given
-        RegistrationReq registrationReq = generateRegistrationReq();
-        doReturn(true).when(userDao).existsByEmail(registrationReq.getEmail());
+        RegistrationReq req = generateRegistrationReq();
+        doReturn(true).when(userDao).existsByEmail(req.getEmail());
 
         // when
-        ResponseEntity<ApiError> response = (ResponseEntity<ApiError>) authorizationService.registerUser(registrationReq);
+        AuthorizationException ex = assertThrows(AuthorizationException.class, () -> authorizationService.registerUser(req));
 
         // then
-        assertEquals(ApiErrorEnum.USER_EXISTS.getHttpStatus(), response.getStatusCode());
-        assertEquals(ApiErrorEnum.USER_EXISTS.getMessage(), response.getBody().getMessage());
+        assertEquals(USER_EXISTS.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(USER_EXISTS.getMessage(), ex.getErrorEnum().getMessage());
     }
 
     @Test
     void shouldSucceedRegisterUser() {
         // given
-        RegistrationReq registrationReq = generateRegistrationReq();
+        RegistrationReq req = generateRegistrationReq();
 
         // when
-        ResponseEntity<?> response = authorizationService.registerUser(registrationReq);
+        ResponseEntity<?> response = authorizationService.registerUser(req);
 
         // then
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertTrue(userDao.existsByEmail(registrationReq.getEmail()));
+        assertTrue(userDao.existsByEmail(req.getEmail()));
     }
 
     @Test
     void shouldFailUserNotExistsErrorLoginStart() {
         // given
-        LoginStartReq loginStartReq = generateLoginStartReq();
-        doReturn(false).when(userDao).existsByEmail(loginStartReq.getEmail());
+        LoginStartReq req = generateLoginStartReq();
+        doReturn(false).when(userDao).existsByEmail(req.getEmail());
 
         // when
-        ResponseEntity<ApiError> response = (ResponseEntity<ApiError>) authorizationService.loginUserStart(loginStartReq);
+        AuthorizationException ex = assertThrows(AuthorizationException.class, () -> authorizationService.loginUserStart(req));
 
         // then
-        assertEquals(ApiErrorEnum.USER_NOT_EXISTS.getHttpStatus(), response.getStatusCode());
-        assertEquals(ApiErrorEnum.USER_NOT_EXISTS.getMessage(), response.getBody().getMessage());
+        assertEquals(USER_NOT_EXISTS.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(USER_NOT_EXISTS.getMessage(), ex.getErrorEnum().getMessage());
     }
 
     @Test
     void shouldFailUserEmailUnverifiedErrorLoginStart() {
         // given
-        LoginStartReq loginStartReq = generateLoginStartReq();
+        LoginStartReq req = generateLoginStartReq();
         UserEntity userEntity = generateUserEntity();
-        doReturn(userEntity).when(userDao).findByEmail(loginStartReq.getEmail());
+        doReturn(userEntity).when(userDao).findByEmail(req.getEmail());
 
         // when
-        ResponseEntity<ApiError> response = (ResponseEntity<ApiError>) authorizationService.loginUserStart(loginStartReq);
+        AuthorizationException ex = assertThrows(AuthorizationException.class, () -> authorizationService.loginUserStart(req));
 
         // then
-        assertEquals(ApiErrorEnum.USER_EMAIL_UNVERIFIED.getHttpStatus(), response.getStatusCode());
-        assertEquals(ApiErrorEnum.USER_EMAIL_UNVERIFIED.getMessage(), response.getBody().getMessage());
+        assertEquals(USER_EMAIL_UNVERIFIED.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(USER_EMAIL_UNVERIFIED.getMessage(), ex.getErrorEnum().getMessage());
     }
 
     @Test
     void shouldSucceedLoginStart() {
         // given
-        LoginStartReq loginStartReq = generateLoginStartReq();
+        LoginStartReq req = generateLoginStartReq();
         UserEntity userEntity = generateUserEntity();
         userEntity.setEmailVerified(true);
-        doReturn(userEntity).when(userDao).findByEmail(loginStartReq.getEmail());
+        doReturn(userEntity).when(userDao).findByEmail(req.getEmail());
 
         // when
-        ResponseEntity<LoginStartResp> response = (ResponseEntity<LoginStartResp>) authorizationService.loginUserStart(loginStartReq);
+        ResponseEntity<LoginStartResp> response = (ResponseEntity<LoginStartResp>) authorizationService.loginUserStart(req);
 
         // then
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -146,65 +145,65 @@ public class AuthorizationServiceIT extends AbstractPostgresIT {
     @Test
     void shouldFailSrpEntityNullLoginEnd() {
         // given
-        LoginCompleteReq loginCompleteReq = generateLoginCompleteReq();
-        doReturn(null).when(srpDao).findByUserEntity_EmailAndDeviceId(loginCompleteReq.getEmail(), loginCompleteReq.getDeviceId());
+        LoginCompleteReq req = generateLoginCompleteReq();
+        doReturn(null).when(srpDao).findByUserEntity_EmailAndDeviceId(req.getEmail(), req.getDeviceId());
 
         // when
-        ResponseEntity<ApiError> response = (ResponseEntity<ApiError>) authorizationService.loginUserEnd(loginCompleteReq);
+        AuthorizationException ex = assertThrows(AuthorizationException.class, () -> authorizationService.loginUserEnd(req));
 
         // then
-        assertEquals(ApiErrorEnum.SRP_SESSION_NOT_FOUND.getHttpStatus(), response.getStatusCode());
-        assertEquals(ApiErrorEnum.SRP_SESSION_NOT_FOUND.getMessage(), response.getBody().getMessage());
+        assertEquals(SRP_SESSION_NOT_FOUND.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(SRP_SESSION_NOT_FOUND.getMessage(), ex.getErrorEnum().getMessage());
     }
 
     @Test
     void shouldFailSrpEntityExpiredLoginEnd() {
         // given
-        LoginCompleteReq loginCompleteReq = generateLoginCompleteReq();
+        LoginCompleteReq req = generateLoginCompleteReq();
         SrpEntity srpEntity = generateSrpEntity();
         srpEntity.setExpiryTime(Instant.now().minus(2, ChronoUnit.MINUTES));
-        doReturn(srpEntity).when(srpDao).findByUserEntity_EmailAndDeviceId(loginCompleteReq.getEmail(), loginCompleteReq.getDeviceId());
+        doReturn(srpEntity).when(srpDao).findByUserEntity_EmailAndDeviceId(req.getEmail(), req.getDeviceId());
         doNothing().when(srpDao).delete(any(SrpEntity.class));
 
         // when
-        ResponseEntity<ApiError> response = (ResponseEntity<ApiError>) authorizationService.loginUserEnd(loginCompleteReq);
+        AuthorizationException ex = assertThrows(AuthorizationException.class, () -> authorizationService.loginUserEnd(req));
 
         // then
-        assertEquals(ApiErrorEnum.SRP_SESSION_EXPIRED.getHttpStatus(), response.getStatusCode());
-        assertEquals(ApiErrorEnum.SRP_SESSION_EXPIRED.getMessage(), response.getBody().getMessage());
+        assertEquals(SRP_SESSION_EXPIRED.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(SRP_SESSION_EXPIRED.getMessage(), ex.getErrorEnum().getMessage());
     }
 
     @Test
     void shouldFailM1MismatchLoginEnd() {
         // given
-        LoginCompleteReq loginCompleteReq = generateLoginCompleteReq();
+        LoginCompleteReq req = generateLoginCompleteReq();
         SrpEntity srpEntity = generateSrpEntity();
-        doReturn(srpEntity).when(srpDao).findByUserEntity_EmailAndDeviceId(loginCompleteReq.getEmail(), loginCompleteReq.getDeviceId());
+        doReturn(srpEntity).when(srpDao).findByUserEntity_EmailAndDeviceId(req.getEmail(), req.getDeviceId());
         doNothing().when(srpDao).delete(any(SrpEntity.class));
         doReturn(BigInteger.ONE).when(srpFlow).calculateM1Server(srpEntity);
 
         // when
-        ResponseEntity<ApiError> response = (ResponseEntity<ApiError>) authorizationService.loginUserEnd(loginCompleteReq);
+        AuthorizationException ex = assertThrows(AuthorizationException.class, () -> authorizationService.loginUserEnd(req));
 
         // then
-        assertEquals(ApiErrorEnum.SRP_VERIFICATION_FAILED.getHttpStatus(), response.getStatusCode());
-        assertEquals(ApiErrorEnum.SRP_VERIFICATION_FAILED.getMessage(), response.getBody().getMessage());
+        assertEquals(SRP_VERIFICATION_FAILED.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(SRP_VERIFICATION_FAILED.getMessage(), ex.getErrorEnum().getMessage());
     }
 
     @Test
     void shouldSucceedLoginEnd() {
         // given
-        LoginCompleteReq loginCompleteReq = generateLoginCompleteReq();
+        LoginCompleteReq req = generateLoginCompleteReq();
         SrpEntity srpEntity = generateSrpEntity();
         UserEntity userEntity = generateUserEntity();
-        doReturn(srpEntity).when(srpDao).findByUserEntity_EmailAndDeviceId(loginCompleteReq.getEmail(), loginCompleteReq.getDeviceId());
+        doReturn(srpEntity).when(srpDao).findByUserEntity_EmailAndDeviceId(req.getEmail(), req.getDeviceId());
         doNothing().when(srpDao).delete(any(SrpEntity.class));
-        doReturn(new BigInteger(1, Base64.getDecoder().decode(loginCompleteReq.getM1()))).when(srpFlow).calculateM1Server(srpEntity);
-        doReturn(userEntity).when(userDao).findByEmail(loginCompleteReq.getEmail());
+        doReturn(new BigInteger(1, Base64.getDecoder().decode(req.getM1()))).when(srpFlow).calculateM1Server(srpEntity);
+        doReturn(userEntity).when(userDao).findByEmail(req.getEmail());
         doReturn(null).when(sessionDao).save(any(SessionEntity.class));
 
         // when
-        ResponseEntity<LoginCompleteResp> response = (ResponseEntity<LoginCompleteResp>) authorizationService.loginUserEnd(loginCompleteReq);
+        ResponseEntity<LoginCompleteResp> response = (ResponseEntity<LoginCompleteResp>) authorizationService.loginUserEnd(req);
 
         // then
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -214,69 +213,69 @@ public class AuthorizationServiceIT extends AbstractPostgresIT {
     @Test
     void shouldFailUserNotExistsRefreshJwt() {
         // given
-        RefreshReq refreshReq = generateRefreshReq();
-        doReturn(false).when(userDao).existsByEmail(refreshReq.getEmail());
+        RefreshReq req = generateRefreshReq();
+        doReturn(false).when(userDao).existsByEmail(req.getEmail());
 
         // when
-        ResponseEntity<ApiError> response = (ResponseEntity<ApiError>) authorizationService.refreshJWT(refreshReq);
+        AuthorizationException ex = assertThrows(AuthorizationException.class, () -> authorizationService.refreshJWT(req));
 
         // then
-        assertEquals(ApiErrorEnum.USER_NOT_EXISTS.getHttpStatus(), response.getStatusCode());
-        assertEquals(ApiErrorEnum.USER_NOT_EXISTS.getMessage(), response.getBody().getMessage());
+        assertEquals(USER_NOT_EXISTS.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(USER_NOT_EXISTS.getMessage(), ex.getErrorEnum().getMessage());
     }
 
     @Test
     void shouldFailSessionIsNullRefreshJwt() {
         // given
-        RefreshReq refreshReq = generateRefreshReq();
+        RefreshReq req = generateRefreshReq();
         UserEntity userEntity = generateUserEntity();
-        doReturn(true).when(userDao).existsByEmail(refreshReq.getEmail());
-        doReturn(userEntity).when(userDao).findByEmail(refreshReq.getEmail());
-        doReturn(null).when(sessionDao).findByUserEntityAndDeviceId(userEntity, refreshReq.getDeviceId());
+        doReturn(true).when(userDao).existsByEmail(req.getEmail());
+        doReturn(userEntity).when(userDao).findByEmail(req.getEmail());
+        doReturn(null).when(sessionDao).findByUserEntityAndDeviceId(userEntity, req.getDeviceId());
 
         // when
-        ResponseEntity<ApiError> response = (ResponseEntity<ApiError>) authorizationService.refreshJWT(refreshReq);
+        AuthorizationException ex = assertThrows(AuthorizationException.class, () -> authorizationService.refreshJWT(req));
 
         // then
-        assertEquals(ApiErrorEnum.TOKEN_EXPIRED.getHttpStatus(), response.getStatusCode());
-        assertEquals(ApiErrorEnum.TOKEN_EXPIRED.getMessage(), response.getBody().getMessage());
+        assertEquals(TOKEN_EXPIRED.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(TOKEN_EXPIRED.getMessage(), ex.getErrorEnum().getMessage());
     }
 
     @Test
     void shouldFailSessionExpiredRefreshJwt() {
         // given
-        RefreshReq refreshReq = generateRefreshReq();
+        RefreshReq req = generateRefreshReq();
         UserEntity userEntity = generateUserEntity();
         SessionEntity sessionEntity = generateSessionEntity();
         sessionEntity.setExpiryTime(Instant.now().minus(2, ChronoUnit.MINUTES));
-        doReturn(true).when(userDao).existsByEmail(refreshReq.getEmail());
-        doReturn(userEntity).when(userDao).findByEmail(refreshReq.getEmail());
-        doReturn(sessionEntity).when(sessionDao).findByUserEntityAndDeviceId(userEntity, refreshReq.getDeviceId());
+        doReturn(true).when(userDao).existsByEmail(req.getEmail());
+        doReturn(userEntity).when(userDao).findByEmail(req.getEmail());
+        doReturn(sessionEntity).when(sessionDao).findByUserEntityAndDeviceId(userEntity, req.getDeviceId());
 
         // when
-        ResponseEntity<ApiError> response = (ResponseEntity<ApiError>) authorizationService.refreshJWT(refreshReq);
+        AuthorizationException ex = assertThrows(AuthorizationException.class, () -> authorizationService.refreshJWT(req));
 
         // then
-        assertEquals(ApiErrorEnum.TOKEN_EXPIRED.getHttpStatus(), response.getStatusCode());
-        assertEquals(ApiErrorEnum.TOKEN_EXPIRED.getMessage(), response.getBody().getMessage());
+        assertEquals(TOKEN_EXPIRED.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(TOKEN_EXPIRED.getMessage(), ex.getErrorEnum().getMessage());
     }
 
     @Test
     void shouldFailTokenUnverifiedRefreshJwt() {
         // given
-        RefreshReq refreshReq = generateRefreshReq();
+        RefreshReq req = generateRefreshReq();
         UserEntity userEntity = generateUserEntity();
         SessionEntity sessionEntity = generateSessionEntity();
-        doReturn(true).when(userDao).existsByEmail(refreshReq.getEmail());
-        doReturn(userEntity).when(userDao).findByEmail(refreshReq.getEmail());
-        doReturn(sessionEntity).when(sessionDao).findByUserEntityAndDeviceId(userEntity, refreshReq.getDeviceId());
+        doReturn(true).when(userDao).existsByEmail(req.getEmail());
+        doReturn(userEntity).when(userDao).findByEmail(req.getEmail());
+        doReturn(sessionEntity).when(sessionDao).findByUserEntityAndDeviceId(userEntity, req.getDeviceId());
 
         // when
-        ResponseEntity<ApiError> response = (ResponseEntity<ApiError>) authorizationService.refreshJWT(refreshReq);
+        AuthorizationException ex = assertThrows(AuthorizationException.class, () -> authorizationService.refreshJWT(req));
 
         // then
-        assertEquals(ApiErrorEnum.TOKEN_VERIFICATION_FAILED.getHttpStatus(), response.getStatusCode());
-        assertEquals(ApiErrorEnum.TOKEN_VERIFICATION_FAILED.getMessage(), response.getBody().getMessage());
+        assertEquals(TOKEN_VERIFICATION_FAILED.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(TOKEN_VERIFICATION_FAILED.getMessage(), ex.getErrorEnum().getMessage());
     }
 
     @Test
@@ -300,43 +299,43 @@ public class AuthorizationServiceIT extends AbstractPostgresIT {
     @Test
     void shouldFailSessionIsNullLogout() {
         // given
-        RefreshReq refreshReq = generateRefreshReq();
-        doReturn(null).when(sessionDao).findByUserEntity_EmailAndDeviceId(refreshReq.getEmail(), refreshReq.getDeviceId());
+        RefreshReq req = generateRefreshReq();
+        doReturn(null).when(sessionDao).findByUserEntity_EmailAndDeviceId(req.getEmail(), req.getDeviceId());
 
         // when
-        ResponseEntity<ApiError> response = (ResponseEntity<ApiError>) authorizationService.logout(refreshReq);
+        AuthorizationException ex = assertThrows(AuthorizationException.class, () -> authorizationService.logout(req));
 
         // then
-        assertEquals(ApiErrorEnum.SESSION_NOT_FOUND.getHttpStatus(), response.getStatusCode());
-        assertEquals(ApiErrorEnum.SESSION_NOT_FOUND.getMessage(), response.getBody().getMessage());
+        assertEquals(SESSION_NOT_FOUND.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(SESSION_NOT_FOUND.getMessage(), ex.getErrorEnum().getMessage());
     }
 
     @Test
     void shouldFailTokenUnverifiedLogout() {
         // given
-        RefreshReq refreshReq = generateRefreshReq();
+        RefreshReq req = generateRefreshReq();
         SessionEntity sessionEntity = generateSessionEntity();
-        doReturn(sessionEntity).when(sessionDao).findByUserEntity_EmailAndDeviceId(refreshReq.getEmail(), refreshReq.getDeviceId());
+        doReturn(sessionEntity).when(sessionDao).findByUserEntity_EmailAndDeviceId(req.getEmail(), req.getDeviceId());
 
         // when
-        ResponseEntity<ApiError> response = (ResponseEntity<ApiError>) authorizationService.logout(refreshReq);
+        AuthorizationException ex = assertThrows(AuthorizationException.class, () -> authorizationService.logout(req));
 
         // then
-        assertEquals(ApiErrorEnum.TOKEN_VERIFICATION_FAILED.getHttpStatus(), response.getStatusCode());
-        assertEquals(ApiErrorEnum.TOKEN_VERIFICATION_FAILED.getMessage(), response.getBody().getMessage());
+        assertEquals(TOKEN_VERIFICATION_FAILED.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(TOKEN_VERIFICATION_FAILED.getMessage(), ex.getErrorEnum().getMessage());
     }
 
     @Test
     void shouldSucceedLogout() {
         // given
-        RefreshReq refreshReq = generateRefreshReq();
+        RefreshReq req = generateRefreshReq();
         SessionEntity sessionEntity = generateSessionEntity();
-        sessionEntity.setRefreshTokenHash(tokenHasher.hashToken(refreshReq.getRefreshToken()));
-        doReturn(sessionEntity).when(sessionDao).findByUserEntity_EmailAndDeviceId(refreshReq.getEmail(), refreshReq.getDeviceId());
+        sessionEntity.setRefreshTokenHash(tokenHasher.hashToken(req.getRefreshToken()));
+        doReturn(sessionEntity).when(sessionDao).findByUserEntity_EmailAndDeviceId(req.getEmail(), req.getDeviceId());
         doNothing().when(sessionDao).delete(any(SessionEntity.class));
 
         // when
-        ResponseEntity<?> response = authorizationService.logout(refreshReq);
+        ResponseEntity<?> response = authorizationService.logout(req);
 
         // then
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -348,11 +347,11 @@ public class AuthorizationServiceIT extends AbstractPostgresIT {
         doReturn(null).when(userDao).findByVerificationString(tokenHasher.generateSha256(emailVerificationToken));
 
         // when
-        ResponseEntity<ApiError> response = (ResponseEntity<ApiError>) authorizationService.verifyEmail(emailVerificationToken);
+        AuthorizationException ex = assertThrows(AuthorizationException.class, () -> authorizationService.verifyEmail(emailVerificationToken));
 
         // then
-        assertEquals(ApiErrorEnum.USER_VERIFICATION_NOT_EXISTS.getHttpStatus(), response.getStatusCode());
-        assertEquals(ApiErrorEnum.USER_VERIFICATION_NOT_EXISTS.getMessage(), response.getBody().getMessage());
+        assertEquals(USER_VERIFICATION_NOT_EXISTS.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(USER_VERIFICATION_NOT_EXISTS.getMessage(), ex.getErrorEnum().getMessage());
     }
 
     @Test
@@ -363,11 +362,11 @@ public class AuthorizationServiceIT extends AbstractPostgresIT {
         doReturn(userEntity).when(userDao).findByVerificationString(tokenHasher.generateSha256(emailVerificationToken));
 
         // when
-        ResponseEntity<ApiError> response = (ResponseEntity<ApiError>) authorizationService.verifyEmail(emailVerificationToken);
+        AuthorizationException ex = assertThrows(AuthorizationException.class, () -> authorizationService.verifyEmail(emailVerificationToken));
 
         // then
-        assertEquals(ApiErrorEnum.USER_VERIFICATION_EXPIRED.getHttpStatus(), response.getStatusCode());
-        assertEquals(ApiErrorEnum.USER_VERIFICATION_EXPIRED.getMessage(), response.getBody().getMessage());
+        assertEquals(USER_VERIFICATION_EXPIRED.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(USER_VERIFICATION_EXPIRED.getMessage(), ex.getErrorEnum().getMessage());
     }
 
     @Test

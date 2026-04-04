@@ -14,32 +14,32 @@ public class AuthorizationController {
     private final AuthorizationService authorizationService;
 
     @PostMapping("/register")
-    public ResponseEntity<?> registerUser(@RequestBody RegistrationReq req) {
+    public ResponseEntity<Void> registerUser(@RequestBody RegistrationReq req) {
         return authorizationService.registerUser(req);
     }
 
     @PostMapping("/login/start")
-    public ResponseEntity<?> loginUserStart(@RequestBody LoginStartReq req) {
+    public ResponseEntity<LoginStartResp> loginUserStart(@RequestBody LoginStartReq req) {
         return authorizationService.loginUserStart(req);
     }
 
     @PostMapping("/login/end")
-    public ResponseEntity<?> loginUserEnd(@RequestBody LoginCompleteReq req) {
+    public ResponseEntity<LoginCompleteResp> loginUserEnd(@RequestBody LoginCompleteReq req) {
         return authorizationService.loginUserEnd(req);
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<?> refreshJWT(@RequestBody RefreshReq req) {
+    public ResponseEntity<RefreshResp> refreshJWT(@RequestBody RefreshReq req) {
         return authorizationService.refreshJWT(req);
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<?> logout(@RequestBody RefreshReq req) {
+    public ResponseEntity<Void> logout(@RequestBody RefreshReq req) {
         return authorizationService.logout(req);
     }
 
     @GetMapping("/verify/{token}")
-    public ResponseEntity<?> verifyEmail(@PathVariable String token) {
+    public ResponseEntity<String> verifyEmail(@PathVariable String token) {
         return authorizationService.verifyEmail(token);
     }
 

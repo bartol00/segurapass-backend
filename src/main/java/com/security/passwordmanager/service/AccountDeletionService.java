@@ -41,7 +41,7 @@ public class AccountDeletionService {
     private final SrpFlow srpFlow;
 
     @Transactional
-    public ResponseEntity<?> startAuthorizedDeletion(String email, AuthorizedDeletionStartReq req) {
+    public ResponseEntity<AuthorizedDeletionStartResp> startAuthorizedDeletion(String email, AuthorizedDeletionStartReq req) {
         UserEntity userEntity = userDao.findByEmail(email);
         if (userEntity == null) {
             throw new AccountDeletionException(USER_NOT_EXISTS);
@@ -63,7 +63,7 @@ public class AccountDeletionService {
     }
 
     @Transactional
-    public ResponseEntity<?> completeAuthorizedDeletion(String email, AuthorizedDeletionCompleteReq req) {
+    public ResponseEntity<Void> completeAuthorizedDeletion(String email, AuthorizedDeletionCompleteReq req) {
         SrpEntity srpEntity = srpDao.findByUserEntity_EmailAndDeviceId(email, req.getDeviceId());
         if (srpEntity == null) {
             throw new AccountDeletionException(SRP_SESSION_NOT_FOUND);
@@ -110,7 +110,7 @@ public class AccountDeletionService {
     }
 
     @Transactional
-    public ResponseEntity<?> completeDeletionEmail(String token) {
+    public ResponseEntity<String> completeDeletionEmail(String token) {
         EmailDeletionEntity emailDeletionEntity = emailDeletionDao.findByToken(tokenHasher.generateSha256(token));
         if (emailDeletionEntity == null) {
             throw new AccountDeletionException(USER_DELETION_NOT_EXISTS);
@@ -121,7 +121,7 @@ public class AccountDeletionService {
 
         userDao.delete(emailDeletionEntity.getUserEntity());
 
-        return ResponseEntity.ok("Account successfully deleted remotely");
+        return ResponseEntity.ok("Account successfully deleted");
     }
 
 }

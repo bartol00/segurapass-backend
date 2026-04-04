@@ -89,7 +89,7 @@ public class AuthorizationServiceTest extends AbstractPostgresIT {
         RegistrationReq req = generateRegistrationReq();
 
         // when
-        ResponseEntity<?> response = authorizationService.registerUser(req);
+        ResponseEntity<Void> response = authorizationService.registerUser(req);
 
         // then
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -134,7 +134,7 @@ public class AuthorizationServiceTest extends AbstractPostgresIT {
         doReturn(userEntity).when(userDao).findByEmail(req.getEmail());
 
         // when
-        ResponseEntity<LoginStartResp> response = (ResponseEntity<LoginStartResp>) authorizationService.loginUserStart(req);
+        ResponseEntity<LoginStartResp> response = authorizationService.loginUserStart(req);
 
         // then
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -203,7 +203,7 @@ public class AuthorizationServiceTest extends AbstractPostgresIT {
         doReturn(null).when(sessionDao).save(any(SessionEntity.class));
 
         // when
-        ResponseEntity<LoginCompleteResp> response = (ResponseEntity<LoginCompleteResp>) authorizationService.loginUserEnd(req);
+        ResponseEntity<LoginCompleteResp> response = authorizationService.loginUserEnd(req);
 
         // then
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -290,7 +290,7 @@ public class AuthorizationServiceTest extends AbstractPostgresIT {
         doReturn(sessionEntity).when(sessionDao).findByUserEntityAndDeviceId(userEntity, refreshReq.getDeviceId());
 
         // when
-        ResponseEntity<?> response = authorizationService.refreshJWT(refreshReq);
+        ResponseEntity<RefreshResp> response = authorizationService.refreshJWT(refreshReq);
 
         // then
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -335,7 +335,7 @@ public class AuthorizationServiceTest extends AbstractPostgresIT {
         doNothing().when(sessionDao).delete(any(SessionEntity.class));
 
         // when
-        ResponseEntity<?> response = authorizationService.logout(req);
+        ResponseEntity<Void> response = authorizationService.logout(req);
 
         // then
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -376,7 +376,7 @@ public class AuthorizationServiceTest extends AbstractPostgresIT {
         doReturn(userEntity).when(userDao).findByVerificationString(tokenHasher.generateSha256(emailVerificationToken));
 
         // when
-        ResponseEntity<?> response = authorizationService.verifyEmail(emailVerificationToken);
+        ResponseEntity<String> response = authorizationService.verifyEmail(emailVerificationToken);
 
         // then
         assertEquals(HttpStatus.OK, response.getStatusCode());

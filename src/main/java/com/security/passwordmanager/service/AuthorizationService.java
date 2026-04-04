@@ -50,7 +50,7 @@ public class AuthorizationService {
     );
 
     @Transactional
-    public ResponseEntity<?> registerUser(RegistrationReq req) {
+    public ResponseEntity<Void> registerUser(RegistrationReq req) {
         if (!isValidEmail(req.getEmail())) {
             throw new AuthorizationException(USER_EMAIL_INVALID);
         }
@@ -76,7 +76,7 @@ public class AuthorizationService {
     }
 
     @Transactional
-    public ResponseEntity<?> loginUserStart(LoginStartReq req) {
+    public ResponseEntity<LoginStartResp> loginUserStart(LoginStartReq req) {
         if (!userDao.existsByEmail(req.getEmail())) {
             throw new AuthorizationException(USER_NOT_EXISTS);
         }
@@ -102,7 +102,7 @@ public class AuthorizationService {
     }
 
     @Transactional
-    public ResponseEntity<?> loginUserEnd(LoginCompleteReq req) {
+    public ResponseEntity<LoginCompleteResp> loginUserEnd(LoginCompleteReq req) {
         SrpEntity srpEntity = srpDao.findByUserEntity_EmailAndDeviceId(req.getEmail(), req.getDeviceId());
         if (srpEntity == null) {
             throw new AuthorizationException(SRP_SESSION_NOT_FOUND);
@@ -150,7 +150,7 @@ public class AuthorizationService {
         return ResponseEntity.ok(resp);
     }
 
-    public ResponseEntity<?> refreshJWT(RefreshReq req) {
+    public ResponseEntity<RefreshResp> refreshJWT(RefreshReq req) {
         if (!userDao.existsByEmail(req.getEmail())) {
             throw new AuthorizationException(USER_NOT_EXISTS);
         }
@@ -176,7 +176,7 @@ public class AuthorizationService {
     }
 
     @Transactional
-    public ResponseEntity<?> logout(RefreshReq req) {
+    public ResponseEntity<Void> logout(RefreshReq req) {
         SessionEntity sessionEntity = sessionDao.findByUserEntity_EmailAndDeviceId(
                 req.getEmail(),
                 req.getDeviceId()
@@ -197,7 +197,7 @@ public class AuthorizationService {
     }
 
     @Transactional
-    public ResponseEntity<?> verifyEmail(String token) {
+    public ResponseEntity<String> verifyEmail(String token) {
         UserEntity userEntity = userDao.findByVerificationString(tokenHasher.generateSha256(token));
 
         if (userEntity == null) {

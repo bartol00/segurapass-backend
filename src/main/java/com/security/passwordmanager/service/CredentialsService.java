@@ -1,6 +1,7 @@
 package com.security.passwordmanager.service;
 
 import com.security.passwordmanager.api.credentials.CredentialsReq;
+import com.security.passwordmanager.api.credentials.CredentialsResp;
 import com.security.passwordmanager.exceptions.CredentialsException;
 import com.security.passwordmanager.mapper.CredentialMapper;
 import com.security.passwordmanager.model.authorization.UserDao;
@@ -30,14 +31,14 @@ public class CredentialsService {
     private final UserDao userDao;
 
     @Transactional
-    public ResponseEntity<?> getCredentials(String email, int page, int size) {
+    public ResponseEntity<Page<CredentialsResp>> getCredentials(String email, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
         Page<CredentialsEntity> credentialsEntityPage = credentialsDao.findByUserEntity_Email(email, pageable);
         return ResponseEntity.ok(mapper.toCredentialsRespPage(credentialsEntityPage));
     }
 
     @Transactional
-    public ResponseEntity<?> getCredentialById(UUID id, String email) {
+    public ResponseEntity<CredentialsResp> getCredentialById(UUID id, String email) {
         CredentialsEntity credentialsEntity = credentialsDao.findByCredentialsIdAndUserEntity_Email(id, email);
         if (credentialsEntity == null) {
             throw new CredentialsException(CREDENTIAL_NOT_EXISTS);
@@ -46,7 +47,7 @@ public class CredentialsService {
     }
 
     @Transactional
-    public ResponseEntity<?> createCredentials(CredentialsReq req, String email) {
+    public ResponseEntity<CredentialsResp> createCredentials(CredentialsReq req, String email) {
         UserEntity userEntity = userDao.findByEmail(email);
 
         CredentialsEntity credentialsEntity = mapper.toCredentialsEntity(req);
@@ -60,7 +61,7 @@ public class CredentialsService {
     }
 
     @Transactional
-    public ResponseEntity<?> updateCredentials(UUID id, CredentialsReq req, String email) {
+    public ResponseEntity<CredentialsResp> updateCredentials(UUID id, CredentialsReq req, String email) {
         CredentialsEntity entity = credentialsDao.findByCredentialsIdAndUserEntity_Email(id, email);
         if (entity == null) {
             throw new CredentialsException(CREDENTIAL_NOT_EXISTS);
@@ -95,7 +96,7 @@ public class CredentialsService {
     }
 
     @Transactional
-    public ResponseEntity<?> deleteCredentials(UUID id, String email) {
+    public ResponseEntity<Void> deleteCredentials(UUID id, String email) {
         CredentialsEntity credentialsEntity = credentialsDao.findByCredentialsIdAndUserEntity_Email(id, email);
         if (credentialsEntity == null) {
             throw new CredentialsException(CREDENTIAL_NOT_EXISTS);

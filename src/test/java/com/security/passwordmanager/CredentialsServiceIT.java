@@ -2,8 +2,7 @@ package com.security.passwordmanager;
 
 import com.security.passwordmanager.api.credentials.CredentialsReq;
 import com.security.passwordmanager.api.credentials.CredentialsResp;
-import com.security.passwordmanager.api.error.ApiError;
-import com.security.passwordmanager.api.error.ApiErrorEnum;
+import com.security.passwordmanager.exceptions.CredentialsException;
 import com.security.passwordmanager.model.authorization.UserDao;
 import com.security.passwordmanager.model.authorization.UserEntity;
 import com.security.passwordmanager.model.credentials.CredentialsDao;
@@ -19,13 +18,13 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+import static com.security.passwordmanager.exceptions.ErrorEnum.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 @Slf4j
@@ -82,11 +81,11 @@ public class CredentialsServiceIT extends AbstractPostgresIT {
         UUID idToFind = UUID.randomUUID();
 
         // when
-        ResponseEntity<ApiError> response = (ResponseEntity<ApiError>) credentialsService.getCredentialById(idToFind, email);
+        CredentialsException ex = assertThrows(CredentialsException.class, () -> credentialsService.getCredentialById(idToFind, email));
 
         // then
-        assertEquals(ApiErrorEnum.CREDENTIAL_NOT_EXISTS.getHttpStatus(), response.getStatusCode());
-        assertEquals(ApiErrorEnum.CREDENTIAL_NOT_EXISTS.getMessage(), response.getBody().getMessage());
+        assertEquals(CREDENTIAL_NOT_EXISTS.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(CREDENTIAL_NOT_EXISTS.getMessage(), ex.getErrorEnum().getMessage());
     }
 
     @Test
@@ -109,32 +108,32 @@ public class CredentialsServiceIT extends AbstractPostgresIT {
     @Test
     void shouldSucceedCreateCredentials() {
         // given
-        CredentialsReq credentialsReq = generateCredentialsReq();
+        CredentialsReq req = generateCredentialsReq();
         long count = credentialsDao.count();
 
         // when
-        ResponseEntity<CredentialsResp> response = (ResponseEntity<CredentialsResp>) credentialsService.createCredentials(credentialsReq, email);
+        ResponseEntity<CredentialsResp> response = (ResponseEntity<CredentialsResp>) credentialsService.createCredentials(req, email);
         CredentialsResp resp = response.getBody();
 
         // then
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(count + 1, credentialsDao.count());
-        assertEquals(resp.getWebsite(), credentialsReq.getWebsite());
-        assertEquals(resp.getIvWebsite(), credentialsReq.getIvWebsite());
+        assertEquals(resp.getWebsite(), req.getWebsite());
+        assertEquals(resp.getIvWebsite(), req.getIvWebsite());
     }
 
     @Test
     void shouldFailCredentialIsNullUpdateCredentials() {
         // given
         UUID idToFind = UUID.randomUUID();
-        CredentialsReq credentialsReq = generateCredentialsReq();
+        CredentialsReq req = generateCredentialsReq();
 
         // when
-        ResponseEntity<ApiError> response = (ResponseEntity<ApiError>) credentialsService.updateCredentials(idToFind, credentialsReq, email);
+        CredentialsException ex = assertThrows(CredentialsException.class, () -> credentialsService.updateCredentials(idToFind, req, email));
 
         // then
-        assertEquals(ApiErrorEnum.CREDENTIAL_NOT_EXISTS.getHttpStatus(), response.getStatusCode());
-        assertEquals(ApiErrorEnum.CREDENTIAL_NOT_EXISTS.getMessage(), response.getBody().getMessage());
+        assertEquals(CREDENTIAL_NOT_EXISTS.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(CREDENTIAL_NOT_EXISTS.getMessage(), ex.getErrorEnum().getMessage());
     }
 
     @Test
@@ -142,15 +141,15 @@ public class CredentialsServiceIT extends AbstractPostgresIT {
         // given
         List<CredentialsEntity> credentialsEntityList = credentialsDao.findAll();
         CredentialsEntity credentialsEntity = credentialsEntityList.get(0);
-        CredentialsReq credentialsReq = generateCredentialsReq();
-        credentialsReq.setIvWebsite(null);
+        CredentialsReq req = generateCredentialsReq();
+        req.setIvWebsite(null);
 
         // when
-        ResponseEntity<ApiError> response = (ResponseEntity<ApiError>) credentialsService.updateCredentials(credentialsEntity.getCredentialsId(), credentialsReq, email);
+        CredentialsException ex = assertThrows(CredentialsException.class, () -> credentialsService.updateCredentials(credentialsEntity.getCredentialsId(), req, email));
 
         // then
-        assertEquals(ApiErrorEnum.CREDENTIAL_UPDATE_IV_MISSING.getHttpStatus(), response.getStatusCode());
-        assertEquals(ApiErrorEnum.CREDENTIAL_UPDATE_IV_MISSING.getMessage(), response.getBody().getMessage());
+        assertEquals(CREDENTIAL_UPDATE_IV_MISSING.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(CREDENTIAL_UPDATE_IV_MISSING.getMessage(), ex.getErrorEnum().getMessage());
     }
 
     @Test
@@ -158,10 +157,10 @@ public class CredentialsServiceIT extends AbstractPostgresIT {
         // given
         List<CredentialsEntity> credentialsEntityList = credentialsDao.findAll();
         CredentialsEntity credentialsEntity = credentialsEntityList.get(0);
-        CredentialsReq credentialsReq = generateCredentialsReq();
+        CredentialsReq req = generateCredentialsReq();
 
         // when
-        ResponseEntity<CredentialsResp> response = (ResponseEntity<CredentialsResp>) credentialsService.updateCredentials(credentialsEntity.getCredentialsId(), credentialsReq, email);
+        ResponseEntity<CredentialsResp> response = (ResponseEntity<CredentialsResp>) credentialsService.updateCredentials(credentialsEntity.getCredentialsId(), req, email);
         CredentialsResp resp = response.getBody();
 
         // then
@@ -177,11 +176,11 @@ public class CredentialsServiceIT extends AbstractPostgresIT {
         UUID idToFind = UUID.randomUUID();
 
         // when
-        ResponseEntity<ApiError> response = (ResponseEntity<ApiError>) credentialsService.deleteCredentials(idToFind, email);
+        CredentialsException ex = assertThrows(CredentialsException.class, () -> credentialsService.deleteCredentials(idToFind, email));
 
         // then
-        assertEquals(ApiErrorEnum.CREDENTIAL_NOT_EXISTS.getHttpStatus(), response.getStatusCode());
-        assertEquals(ApiErrorEnum.CREDENTIAL_NOT_EXISTS.getMessage(), response.getBody().getMessage());
+        assertEquals(CREDENTIAL_NOT_EXISTS.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(CREDENTIAL_NOT_EXISTS.getMessage(), ex.getErrorEnum().getMessage());
     }
 
     @Test

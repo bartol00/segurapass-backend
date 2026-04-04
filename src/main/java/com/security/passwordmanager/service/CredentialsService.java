@@ -1,8 +1,7 @@
 package com.security.passwordmanager.service;
 
 import com.security.passwordmanager.api.credentials.CredentialsReq;
-import com.security.passwordmanager.api.error.ApiError;
-import com.security.passwordmanager.api.error.ApiErrorEnum;
+import com.security.passwordmanager.exceptions.CredentialsException;
 import com.security.passwordmanager.mapper.CredentialMapper;
 import com.security.passwordmanager.model.authorization.UserDao;
 import com.security.passwordmanager.model.authorization.UserEntity;
@@ -13,12 +12,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.UUID;
+
+import static com.security.passwordmanager.exceptions.ErrorEnum.*;
 
 @Service
 @RequiredArgsConstructor
@@ -40,8 +40,7 @@ public class CredentialsService {
     public ResponseEntity<?> getCredentialById(UUID id, String email) {
         CredentialsEntity credentialsEntity = credentialsDao.findByCredentialsIdAndUserEntity_Email(id, email);
         if (credentialsEntity == null) {
-            ApiError apiError = new ApiError(ApiErrorEnum.CREDENTIAL_NOT_EXISTS);
-            return ResponseEntity.status(apiError.getHttpStatus()).body(apiError);
+            throw new CredentialsException(CREDENTIAL_NOT_EXISTS);
         }
         return ResponseEntity.ok(mapper.toCredentialsResp(credentialsEntity));
     }
@@ -64,30 +63,26 @@ public class CredentialsService {
     public ResponseEntity<?> updateCredentials(UUID id, CredentialsReq req, String email) {
         CredentialsEntity entity = credentialsDao.findByCredentialsIdAndUserEntity_Email(id, email);
         if (entity == null) {
-            ApiError apiError = new ApiError(ApiErrorEnum.CREDENTIAL_NOT_EXISTS);
-            return ResponseEntity.status(apiError.getHttpStatus()).body(apiError);
+            throw new CredentialsException(CREDENTIAL_NOT_EXISTS);
         }
 
         if (req.getWebsite() != null && !req.getWebsite().isBlank()) {
             if (req.getIvWebsite() == null || req.getIvWebsite().isBlank()) {
-                ApiError apiError = new ApiError(ApiErrorEnum.CREDENTIAL_UPDATE_IV_MISSING);
-                return ResponseEntity.status(apiError.getHttpStatus()).body(apiError);
+                throw new CredentialsException(CREDENTIAL_UPDATE_IV_MISSING);
             }
             entity.setWebsite(req.getWebsite());
             entity.setIvWebsite(req.getIvWebsite());
         }
         if (req.getUsername() != null && !req.getUsername().isBlank()) {
             if (req.getIvUsername() == null || req.getIvUsername().isBlank()) {
-                ApiError apiError = new ApiError(ApiErrorEnum.CREDENTIAL_UPDATE_IV_MISSING);
-                return ResponseEntity.status(apiError.getHttpStatus()).body(apiError);
+                throw new CredentialsException(CREDENTIAL_UPDATE_IV_MISSING);
             }
             entity.setUsername(req.getUsername());
             entity.setIvUsername(req.getIvUsername());
         }
         if (req.getPassword() != null && !req.getPassword().isBlank()) {
             if (req.getIvPassword() == null || req.getIvPassword().isBlank()) {
-                ApiError apiError = new ApiError(ApiErrorEnum.CREDENTIAL_UPDATE_IV_MISSING);
-                return ResponseEntity.status(apiError.getHttpStatus()).body(apiError);
+                throw new CredentialsException(CREDENTIAL_UPDATE_IV_MISSING);
             }
             entity.setPassword(req.getPassword());
             entity.setIvPassword(req.getIvPassword());
@@ -103,8 +98,7 @@ public class CredentialsService {
     public ResponseEntity<?> deleteCredentials(UUID id, String email) {
         CredentialsEntity credentialsEntity = credentialsDao.findByCredentialsIdAndUserEntity_Email(id, email);
         if (credentialsEntity == null) {
-            ApiError apiError = new ApiError(ApiErrorEnum.CREDENTIAL_NOT_EXISTS);
-            return ResponseEntity.status(apiError.getHttpStatus()).body(apiError);
+            throw new CredentialsException(CREDENTIAL_NOT_EXISTS);
         }
 
         credentialsDao.delete(credentialsEntity);

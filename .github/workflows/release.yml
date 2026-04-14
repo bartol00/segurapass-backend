@@ -1,0 +1,49 @@
+name: Release
+
+on:
+  pull_request:
+    types: [closed]
+
+concurrency:
+  group: release-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  resolve-bump:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    outputs:
+      bump: ${{ steps.bump.outputs.type }}
+
+    steps:
+      - id: bump
+        run: |
+          LABELS='${{ toJson(github.event.pull_request.labels.*.name) }}'
+
+          COUNT=0
+          for type in major minor patch; do
+            if echo "$LABELS" | grep -wq "$type"; then
+              FOUND=$type
+              COUNT=$((COUNT+1))
+            fi
+          done
+
+          if [ "$COUNT" -ne 1 ]; then
+            echo "ERROR: Exactly one of [major, minor, patch] required"
+            exit 1
+          fi
+
+          echo "type=$FOUND" >> $GITHUB_OUTPUT
+
+  release:
+    needs: resolve-bump
+    if: github.event.pull_request.merged == true
+
+    permissions:
+      contents: write
+
+    uses: bartol00/spring-boot-ci/.github/workflows/release.yml@v1
+
+    with:
+      bump-type: ${{ needs.resolve-bump.outputs.bump }}
+      java-version: "17"

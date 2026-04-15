@@ -30,7 +30,7 @@ import static com.security.passwordmanager.exceptions.ErrorEnum.*;
 @Slf4j
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public class AuthorizationServiceTest extends AbstractPostgresIT {
+public class AuthorizationServiceTest extends AbstractTestInitializer {
 
     private final String email = "me@gmail.com";
     private final String emailVerificationToken = "verification token";

@@ -4,6 +4,7 @@ import org.bouncycastle.util.io.pem.PemReader;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 
 import java.io.FileReader;
 import java.security.KeyFactory;
@@ -13,6 +14,7 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 
 @Configuration
+@Profile("!test")
 public class KeyLoaderBC {
 
     @Value("${app.security.private-key-path}")

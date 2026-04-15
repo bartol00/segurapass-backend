@@ -39,7 +39,7 @@ import static com.security.passwordmanager.exceptions.ErrorEnum.*;
 @Slf4j
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public class AccountDeletionServiceTest extends AbstractPostgresIT {
+public class AccountDeletionServiceTest extends AbstractTestInitializer {
 
     private final String email = "me@gmail.com";
     private final String token = "random token";

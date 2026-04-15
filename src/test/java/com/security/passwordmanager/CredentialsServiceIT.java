@@ -30,7 +30,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @Slf4j
 @SpringBootTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public class CredentialsServiceIT extends AbstractPostgresIT {
+public class CredentialsServiceIT extends AbstractTestInitializer {
 
     private final String email = "me@gmail.com";
 

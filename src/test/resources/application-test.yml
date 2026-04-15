@@ -10,8 +10,3 @@ spring:
         hibernate.hbm2ddl.auto: create-drop
   datasource:
     driver-class-name: org.postgresql.Driver
-
-app:
-  security:
-    private-key-path: src/main/resources/keys/private.pem
-    public-key-path: src/main/resources/keys/public.pem

@@ -10,10 +10,10 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @Configuration
 public class SecurityConfig {
 
-    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final RequestFilter requestFilter;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
-        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+    public SecurityConfig(RequestFilter requestFilter) {
+        this.requestFilter = requestFilter;
     }
 
     @Bean
@@ -25,7 +25,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/deletion/authorized/**").authenticated()
                         .anyRequest().permitAll()
                 )
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);;
+                .addFilterBefore(requestFilter, UsernamePasswordAuthenticationFilter.class);;
         return http.build();
     }
 }

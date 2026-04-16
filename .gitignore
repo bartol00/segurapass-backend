@@ -34,3 +34,4 @@ build/
 
 ### Proprietary ###
 /src/main/resources/keys/
+/logs/

@@ -17,6 +17,7 @@ import com.security.passwordmanager.model.deletion.EmailDeletionDao;
 import com.security.passwordmanager.model.deletion.EmailDeletionEntity;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
@@ -29,6 +30,7 @@ import static com.security.passwordmanager.exceptions.ErrorEnum.*;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AccountDeletionService {
 
     private final UserDao userDao;
@@ -46,6 +48,8 @@ public class AccountDeletionService {
         if (userEntity == null) {
             throw new AccountDeletionException(USER_NOT_EXISTS);
         }
+
+        log.info("Start Account Deletion for user {} - Service", userEntity.getUserId().toString());
 
         SrpEntity srpEntity = srpFlow.beginFlow(req.getA(), req.getDeviceId(), userEntity);
 
@@ -75,6 +79,8 @@ public class AccountDeletionService {
             throw new AccountDeletionException(SRP_SESSION_EXPIRED);
         }
 
+        log.info("Complete Account Deletion for user {} - Service", srpEntity.getUserEntity().getUserId().toString());
+
         BigInteger M1Server = srpFlow.calculateM1Server(srpEntity);
         BigInteger M1Client = new BigInteger(1, Base64.getDecoder().decode(req.getM1()));
 
@@ -97,6 +103,8 @@ public class AccountDeletionService {
             return;
         }
 
+        log.info("Start Email Deletion for user {} - Service", userEntity.getUserId().toString());
+
         String deletionToken = tokenGenerator.generateEmailVerifier();
 
         EmailDeletionEntity emailDeletionEntity = new EmailDeletionEntity();
@@ -118,6 +126,8 @@ public class AccountDeletionService {
         if (emailDeletionEntity.getTokenExpiry().isBefore(Instant.now())) {
             throw new AccountDeletionException(USER_DELETION_EXPIRED);
         }
+
+        log.info("Complete Email Deletion for user {} - Service", emailDeletionEntity.getUserEntity().getUserId().toString());
 
         userDao.delete(emailDeletionEntity.getUserEntity());
 

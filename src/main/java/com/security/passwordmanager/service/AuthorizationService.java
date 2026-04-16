@@ -10,6 +10,7 @@ import com.security.passwordmanager.mapper.UserMapper;
 import com.security.passwordmanager.model.authorization.*;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
@@ -23,6 +24,7 @@ import static com.security.passwordmanager.exceptions.ErrorEnum.*;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AuthorizationService {
 
     private final UserMapper userMapper;
@@ -58,6 +60,8 @@ public class AuthorizationService {
             throw new AuthorizationException(USER_EXISTS);
         }
 
+        log.info("Register User for email {} - Service", req.getEmail());
+
         String verificationToken = tokenGenerator.generateEmailVerifier();
 
         UserEntity userEntity = userMapper.toUserEntity(req);
@@ -85,6 +89,8 @@ public class AuthorizationService {
         if (!userEntity.getEmailVerified()) {
             throw new AuthorizationException(USER_EMAIL_UNVERIFIED);
         }
+
+        log.info("Login Start for user {} - Service", userEntity.getUserId().toString());
 
         SrpEntity srpEntity = srpFlow.beginFlow(req.getA(), req.getDeviceId(), userEntity);
 
@@ -120,6 +126,8 @@ public class AuthorizationService {
         if (!M1Server.equals(M1Client)) {
             throw new AuthorizationException(SRP_VERIFICATION_FAILED);
         }
+
+        log.info("Login Complete for user {} - Service", srpEntity.getUserEntity().getUserId().toString());
 
         BigInteger M2Server = srpFlow.calculateM2Server(srpEntity, M1Client);
 
@@ -169,6 +177,8 @@ public class AuthorizationService {
             throw new AuthorizationException(TOKEN_VERIFICATION_FAILED);
         }
 
+        log.info("JWT Refresh for user {} - Service", userEntity.getUserId().toString());
+
         RefreshResp resp = new RefreshResp();
         resp.setAccessToken(generateJwt(req.getEmail(), req.getDeviceId()));
 
@@ -191,6 +201,8 @@ public class AuthorizationService {
             throw new AuthorizationException(TOKEN_VERIFICATION_FAILED);
         }
 
+        log.info("Logout for user {} - Service", sessionEntity.getUserEntity().getUserId().toString());
+
         sessionDao.delete(sessionEntity);
 
         return ResponseEntity.ok(null);
@@ -206,6 +218,8 @@ public class AuthorizationService {
         if (userEntity.getVerificationExpiryTime().isBefore(Instant.now())) {
             throw new AuthorizationException(USER_VERIFICATION_EXPIRED);
         }
+
+        log.info("Email Verification for email {} - Service", userEntity.getEmail());
 
         userEntity.setVerificationString(null);
         userEntity.setVerificationExpiryTime(null);

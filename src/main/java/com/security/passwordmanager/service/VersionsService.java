@@ -1,6 +1,7 @@
 package com.security.passwordmanager.service;
 
 import com.security.passwordmanager.api.versions.VersionInfo;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -8,6 +9,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 
 @Service
+@Slf4j
 public class VersionsService {
 
     @Value("${app.latest.version}")
@@ -23,6 +25,8 @@ public class VersionsService {
     private String downloadUrl;
 
     public ResponseEntity<VersionInfo> getLatestVersion() {
+        log.info("Get Latest Version - Service");
+
         VersionInfo versionInfo = new VersionInfo();
         versionInfo.setVersionNumber(versionNumber);
         versionInfo.setVersionDescription(versionDescription);

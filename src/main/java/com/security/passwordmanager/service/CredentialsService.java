@@ -3,6 +3,7 @@ package com.security.passwordmanager.service;
 import com.security.passwordmanager.api.credentials.CredentialsReq;
 import com.security.passwordmanager.api.credentials.CredentialsResp;
 import com.security.passwordmanager.exceptions.CredentialsException;
+import com.security.passwordmanager.helpers.TokenHasher;
 import com.security.passwordmanager.mapper.CredentialMapper;
 import com.security.passwordmanager.model.authorization.UserDao;
 import com.security.passwordmanager.model.authorization.UserEntity;
@@ -31,10 +32,11 @@ public class CredentialsService {
 
     private final CredentialsDao credentialsDao;
     private final UserDao userDao;
+    private final TokenHasher tokenHasher;
 
     @Transactional
     public ResponseEntity<Page<CredentialsResp>> getCredentials(String email, int page, int size) {
-        log.info("Get Credentials - Service");
+        log.info("Get Credentials for user {} - Service", tokenHasher.generateSha256Email(email));
 
         Pageable pageable = PageRequest.of(page, size);
         Page<CredentialsEntity> credentialsEntityPage = credentialsDao.findByUserEntity_Email(email, pageable);
@@ -43,7 +45,7 @@ public class CredentialsService {
 
     @Transactional
     public ResponseEntity<CredentialsResp> getCredentialById(UUID id, String email) {
-        log.info("Get Credentials By ID - Service");
+        log.info("Get Credentials By ID for user {} - Service", tokenHasher.generateSha256Email(email));
 
         CredentialsEntity credentialsEntity = credentialsDao.findByCredentialsIdAndUserEntity_Email(id, email);
         if (credentialsEntity == null) {
@@ -54,7 +56,7 @@ public class CredentialsService {
 
     @Transactional
     public ResponseEntity<CredentialsResp> createCredentials(CredentialsReq req, String email) {
-        log.info("Create Credentials - Service");
+        log.info("Create Credentials for user {} - Service", tokenHasher.generateSha256Email(email));
 
         UserEntity userEntity = userDao.findByEmail(email);
 
@@ -70,7 +72,7 @@ public class CredentialsService {
 
     @Transactional
     public ResponseEntity<CredentialsResp> updateCredentials(UUID id, CredentialsReq req, String email) {
-        log.info("Update Credentials - Service");
+        log.info("Update Credentials for user {} - Service", tokenHasher.generateSha256Email(email));
 
         CredentialsEntity entity = credentialsDao.findByCredentialsIdAndUserEntity_Email(id, email);
         if (entity == null) {
@@ -107,7 +109,7 @@ public class CredentialsService {
 
     @Transactional
     public ResponseEntity<Void> deleteCredentials(UUID id, String email) {
-        log.info("Delete Credentials - Service");
+        log.info("Delete Credentials for user {} - Service", tokenHasher.generateSha256Email(email));
 
         CredentialsEntity credentialsEntity = credentialsDao.findByCredentialsIdAndUserEntity_Email(id, email);
         if (credentialsEntity == null) {

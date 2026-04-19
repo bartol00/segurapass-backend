@@ -1,6 +1,6 @@
 package com.security.passwordmanager;
 
-import com.security.passwordmanager.components.TestKeyLoaderComponent;
+import com.security.passwordmanager.components.AppSecurityTestConfig;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -10,7 +10,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 @ActiveProfiles("test")
 @Testcontainers
-@Import(TestKeyLoaderComponent.class)
+@Import(AppSecurityTestConfig.class)
 public abstract class AbstractTestInitializer {
 
     static final PostgreSQLContainer<?> POSTGRES =

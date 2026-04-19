@@ -60,7 +60,7 @@ public class AuthorizationService {
             throw new AuthorizationException(USER_EXISTS);
         }
 
-        log.info("Register User for email {} - Service", req.getEmail());
+        log.info("Register User for user {} - Service", tokenHasher.generateSha256Email(req.getEmail()));
 
         String verificationToken = tokenGenerator.generateEmailVerifier();
 
@@ -90,7 +90,7 @@ public class AuthorizationService {
             throw new AuthorizationException(USER_EMAIL_UNVERIFIED);
         }
 
-        log.info("Login Start for user {} - Service", userEntity.getUserId().toString());
+        log.info("Login Start for user {} - Service", tokenHasher.generateSha256Email(userEntity.getEmail()));
 
         SrpEntity srpEntity = srpFlow.beginFlow(req.getA(), req.getDeviceId(), userEntity);
 
@@ -127,7 +127,7 @@ public class AuthorizationService {
             throw new AuthorizationException(SRP_VERIFICATION_FAILED);
         }
 
-        log.info("Login Complete for user {} - Service", srpEntity.getUserEntity().getUserId().toString());
+        log.info("Login Complete for user {} - Service", tokenHasher.generateSha256Email(srpEntity.getUserEntity().getEmail()));
 
         BigInteger M2Server = srpFlow.calculateM2Server(srpEntity, M1Client);
 
@@ -177,7 +177,7 @@ public class AuthorizationService {
             throw new AuthorizationException(TOKEN_VERIFICATION_FAILED);
         }
 
-        log.info("JWT Refresh for user {} - Service", userEntity.getUserId().toString());
+        log.info("JWT Refresh for user {} - Service", tokenHasher.generateSha256Email(userEntity.getEmail()));
 
         RefreshResp resp = new RefreshResp();
         resp.setAccessToken(generateJwt(req.getEmail(), req.getDeviceId()));
@@ -201,7 +201,7 @@ public class AuthorizationService {
             throw new AuthorizationException(TOKEN_VERIFICATION_FAILED);
         }
 
-        log.info("Logout for user {} - Service", sessionEntity.getUserEntity().getUserId().toString());
+        log.info("Logout for user {} - Service", tokenHasher.generateSha256Email(sessionEntity.getUserEntity().getEmail()));
 
         sessionDao.delete(sessionEntity);
 
@@ -219,7 +219,7 @@ public class AuthorizationService {
             throw new AuthorizationException(USER_VERIFICATION_EXPIRED);
         }
 
-        log.info("Email Verification for email {} - Service", userEntity.getEmail());
+        log.info("Email Verification for user {} - Service", tokenHasher.generateSha256Email(userEntity.getEmail()));
 
         userEntity.setVerificationString(null);
         userEntity.setVerificationExpiryTime(null);

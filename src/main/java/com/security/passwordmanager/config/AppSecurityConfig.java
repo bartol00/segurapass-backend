@@ -1,6 +1,7 @@
 package com.security.passwordmanager.config;
 
 import org.bouncycastle.util.io.pem.PemReader;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,13 +16,16 @@ import java.security.spec.X509EncodedKeySpec;
 
 @Configuration
 @Profile("!test")
-public class KeyLoaderBC {
+public class AppSecurityConfig {
 
     @Value("${app.security.private-key-path}")
     private String privateKeyPath;
 
     @Value("${app.security.public-key-path}")
     private String publicKeyPath;
+
+    @Value("${app.security.email-hash-salt}")
+    private String emailHashSalt;
 
     @Bean
     public PrivateKey privateKey() throws Exception {
@@ -39,5 +43,11 @@ public class KeyLoaderBC {
             X509EncodedKeySpec spec = new X509EncodedKeySpec(content);
             return KeyFactory.getInstance("RSA").generatePublic(spec);
         }
+    }
+
+    @Bean
+    @Qualifier("emailHashSalt")
+    public String emailHashSalt() {
+        return emailHashSalt;
     }
 }

@@ -49,7 +49,7 @@ public class AccountDeletionService {
             throw new AccountDeletionException(USER_NOT_EXISTS);
         }
 
-        log.info("Start Account Deletion for user {} - Service", userEntity.getUserId().toString());
+        log.info("Start Account Deletion for user {} - Service", tokenHasher.generateSha256Email(email));
 
         SrpEntity srpEntity = srpFlow.beginFlow(req.getA(), req.getDeviceId(), userEntity);
 
@@ -79,7 +79,7 @@ public class AccountDeletionService {
             throw new AccountDeletionException(SRP_SESSION_EXPIRED);
         }
 
-        log.info("Complete Account Deletion for user {} - Service", srpEntity.getUserEntity().getUserId().toString());
+        log.info("Complete Account Deletion for user {} - Service", tokenHasher.generateSha256Email(email));
 
         BigInteger M1Server = srpFlow.calculateM1Server(srpEntity);
         BigInteger M1Client = new BigInteger(1, Base64.getDecoder().decode(req.getM1()));
@@ -103,7 +103,7 @@ public class AccountDeletionService {
             return;
         }
 
-        log.info("Start Email Deletion for user {} - Service", userEntity.getUserId().toString());
+        log.info("Start Email Deletion for user {} - Service", tokenHasher.generateSha256Email(req.getEmail()));
 
         String deletionToken = tokenGenerator.generateEmailVerifier();
 
@@ -127,7 +127,7 @@ public class AccountDeletionService {
             throw new AccountDeletionException(USER_DELETION_EXPIRED);
         }
 
-        log.info("Complete Email Deletion for user {} - Service", emailDeletionEntity.getUserEntity().getUserId().toString());
+        log.info("Complete Email Deletion for user {} - Service", tokenHasher.generateSha256Email(emailDeletionEntity.getUserEntity().getEmail()));
 
         userDao.delete(emailDeletionEntity.getUserEntity());
 

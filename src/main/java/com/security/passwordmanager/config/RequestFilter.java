@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.security.PublicKey;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
@@ -39,6 +40,10 @@ public class RequestFilter extends OncePerRequestFilter {
 
         String ip = extractClientIp(request);
         MDC.put("clientIp", ip);
+        String requestId = extractRequestId(request);
+        MDC.put("requestId", requestId);
+
+        response.setHeader("X-Request-ID", requestId);
 
         try {
             String path = request.getRequestURI();
@@ -87,6 +92,7 @@ public class RequestFilter extends OncePerRequestFilter {
             response.getWriter().write("{\"error\": \"Invalid JWT token\"}");
         } finally {
             MDC.remove("clientIp");
+            MDC.remove("requestId");
         }
     }
 
@@ -98,5 +104,15 @@ public class RequestFilter extends OncePerRequestFilter {
         }
 
         return request.getRemoteAddr();
+    }
+
+    private String extractRequestId(HttpServletRequest request) {
+        String requestIdHeader = request.getHeader("X-Request-ID");
+
+        if (requestIdHeader != null && !requestIdHeader.isEmpty() && requestIdHeader.length() <= 100) {
+            return requestIdHeader;
+        }
+
+        return UUID.randomUUID().toString();
     }
 }

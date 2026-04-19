@@ -20,6 +20,7 @@ app:
   security:
     private-key-path: ${PRIVATE_KEY_PATH}
     public-key-path: ${PUBLIC_KEY_PATH}
+    email-hash-salt: ${EMAIL_HASH_SALT}
 
 aws:
   accessKey: ${AWS_ACCESSKEY:accesskey}

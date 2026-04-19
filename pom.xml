@@ -5,38 +5,27 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.5.6</version>
-		<relativePath/> <!-- lookup parent from repository -->
+		<version>3.5.13</version>
+		<relativePath/>
 	</parent>
-	<groupId>com.security</groupId>
-	<artifactId>passwordmanager</artifactId>
+	<groupId>xyz.segurapass</groupId>
+	<artifactId>segurapass-backend</artifactId>
 	<version>1.2.1-SNAPSHOT</version>
-	<name>passwordmanager</name>
-	<description>Password manager project</description>
-	<url/>
-	<licenses>
-		<license/>
-	</licenses>
-	<developers>
-		<developer/>
-	</developers>
-	<scm>
-		<connection/>
-		<developerConnection/>
-		<tag/>
-		<url/>
-	</scm>
+	<name>segurapass-backend</name>
+	<description>SeguraPass backend component</description>
+
 	<properties>
 		<java.version>17</java.version>
-        <springframework-security.version>6.5.5</springframework-security.version>
-        <jjwt.version>0.12.7</jjwt.version>
+        <springframework-security.version>6.5.9</springframework-security.version>
+        <jjwt.version>0.13.0</jjwt.version>
         <postgresql.version>42.7.8</postgresql.version>
         <lombok.version>1.18.42</lombok.version>
         <mapstruct.version>1.6.3</mapstruct.version>
         <bcprov-jdk18on.version>1.82</bcprov-jdk18on.version>
-        <awssdk.version>2.41.17</awssdk.version>
-        <liquibase.version>5.0.1</liquibase.version>
+        <awssdk.version>2.42.36</awssdk.version>
+        <liquibase.version>5.0.2</liquibase.version>
 	</properties>
+
 	<dependencies>
         <!--SPRINGFRAMEWORK BOOT DEPENDENCIES-->
 		<dependency>

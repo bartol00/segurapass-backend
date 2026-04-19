@@ -1,6 +1,7 @@
 package com.security.passwordmanager.helpers.impl;
 
 import com.security.passwordmanager.helpers.TokenHasher;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -9,6 +10,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 
 @Component
+@Slf4j
 public class TokenHasherImpl implements TokenHasher {
 
     private final Argon2PasswordEncoder encoder;
@@ -24,7 +26,12 @@ public class TokenHasherImpl implements TokenHasher {
     }
 
     public boolean verifyToken(String token, String storedHash) {
-        return encoder.matches(token, storedHash);
+        try {
+            return encoder.matches(token, storedHash);
+        } catch (Exception e) {
+            log.warn("Invalid Argon2 hash format during token verification");
+            return false;
+        }
     }
 
     public String generateSha256(String input) {

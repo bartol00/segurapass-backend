@@ -32,7 +32,8 @@ public class RequestFilter extends OncePerRequestFilter {
             "/api/authorization",
             "/api/versions",
             "/api/deletion/email",
-            "/api/uptime");
+            "/api/uptime",
+            "/.well-known");
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,

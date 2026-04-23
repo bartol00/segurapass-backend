@@ -13,6 +13,7 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
+import java.util.Base64;
 
 @Configuration
 @Profile("!test")
@@ -41,7 +42,9 @@ public class AppSecurityConfig {
         try (PemReader pemReader = new PemReader(new FileReader(publicKeyPath))) {
             byte[] content = pemReader.readPemObject().getContent();
             X509EncodedKeySpec spec = new X509EncodedKeySpec(content);
-            return KeyFactory.getInstance("RSA").generatePublic(spec);
+            PublicKey publicKey = KeyFactory.getInstance("RSA").generatePublic(spec);
+            System.out.println("PUBLIC KEY: " + Base64.getEncoder().encodeToString(publicKey.getEncoded()));
+            return publicKey;
         }
     }
 

@@ -21,9 +21,5 @@ app:
     private-key-path: ${PRIVATE_KEY_PATH}
     public-key-path: ${PUBLIC_KEY_PATH}
     email-hash-salt: ${EMAIL_HASH_SALT}
-
-aws:
-  accessKey: ${AWS_ACCESSKEY:accesskey}
-  secretKey: ${AWS_SECRETKEY:secretkey}
-  region: ${AWS_REGION:region}
-  fromEmail: verification@segurapass.xyz
+  email:
+    url: ${EMAIL_SERVICE_URL}

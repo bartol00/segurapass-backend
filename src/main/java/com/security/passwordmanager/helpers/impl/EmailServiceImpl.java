@@ -1,24 +1,22 @@
 package com.security.passwordmanager.helpers.impl;
 
+import com.security.passwordmanager.api.email.EmailReq;
+import com.security.passwordmanager.config.EmailClient;
 import com.security.passwordmanager.helpers.EmailService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import software.amazon.awssdk.services.ses.SesClient;
 import software.amazon.awssdk.services.ses.model.*;
 
 @Component
 public class EmailServiceImpl implements EmailService {
 
-    private final SesClient sesClient;
-
-    @Value("${aws.fromEmail}")
-    private String fromEmail;
+    private final EmailClient emailClient;
 
     @Value("${app.base.url}")
     private String baseUrl;
 
-    public EmailServiceImpl(SesClient sesClient) {
-        this.sesClient = sesClient;
+    public EmailServiceImpl(EmailClient emailClient) {
+        this.emailClient = emailClient;
     }
 
     public void sendVerificationEmail(String to, String verificationToken) {
@@ -43,19 +41,13 @@ public class EmailServiceImpl implements EmailService {
         """, verificationLink);
 
         try {
-            SendEmailRequest emailRequest = SendEmailRequest.builder()
-                    .source(fromEmail)
-                    .destination(Destination.builder().toAddresses(to).build())
-                    .message(Message.builder()
-                            .subject(Content.builder().data(subject).charset("UTF-8").build())
-                            .body(Body.builder()
-                                    .html(Content.builder().data(htmlBody).charset("UTF-8").build())
-                                    .text(Content.builder().data(textBody).charset("UTF-8").build())
-                                    .build())
-                            .build())
-                    .build();
+            EmailReq emailReq = new EmailReq();
+            emailReq.setTo(to);
+            emailReq.setSubject(subject);
+            emailReq.setText(textBody);
+            emailReq.setHtml(htmlBody);
 
-            sesClient.sendEmail(emailRequest);
+            emailClient.sendEmail(emailReq);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -84,19 +76,13 @@ public class EmailServiceImpl implements EmailService {
         """, verificationLink);
 
         try {
-            SendEmailRequest emailRequest = SendEmailRequest.builder()
-                    .source(fromEmail)
-                    .destination(Destination.builder().toAddresses(to).build())
-                    .message(Message.builder()
-                            .subject(Content.builder().data(subject).charset("UTF-8").build())
-                            .body(Body.builder()
-                                    .html(Content.builder().data(htmlBody).charset("UTF-8").build())
-                                    .text(Content.builder().data(textBody).charset("UTF-8").build())
-                                    .build())
-                            .build())
-                    .build();
+            EmailReq emailReq = new EmailReq();
+            emailReq.setTo(to);
+            emailReq.setSubject(subject);
+            emailReq.setText(textBody);
+            emailReq.setHtml(htmlBody);
 
-            sesClient.sendEmail(emailRequest);
+            emailClient.sendEmail(emailReq);
 
         } catch (Exception e) {
             e.printStackTrace();

@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.5.13</version>
+		<version>3.5.14</version>
 		<relativePath/>
 	</parent>
 	<groupId>xyz.segurapass</groupId>
@@ -44,6 +44,10 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webflux</artifactId>
         </dependency>
         <!--SPRINGFRAMEWORK BOOT DEPENDENCIES-->
 

@@ -42,9 +42,7 @@ public class AppSecurityConfig {
         try (PemReader pemReader = new PemReader(new FileReader(publicKeyPath))) {
             byte[] content = pemReader.readPemObject().getContent();
             X509EncodedKeySpec spec = new X509EncodedKeySpec(content);
-            PublicKey publicKey = KeyFactory.getInstance("RSA").generatePublic(spec);
-            System.out.println("PUBLIC KEY: " + Base64.getEncoder().encodeToString(publicKey.getEncoded()));
-            return publicKey;
+            return KeyFactory.getInstance("RSA").generatePublic(spec);
         }
     }
 

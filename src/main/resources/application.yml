@@ -22,4 +22,4 @@ app:
     public-key-path: ${PUBLIC_KEY_PATH}
     email-hash-salt: ${EMAIL_HASH_SALT}
   email:
-    url: ${EMAIL_SERVICE_URL}
+    url: ${EMAIL_SERVICE_URL:emailServiceUrl}

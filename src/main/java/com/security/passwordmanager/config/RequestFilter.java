@@ -31,7 +31,9 @@ public class RequestFilter extends OncePerRequestFilter {
     private final List<String> whitelistStartsWith = List.of(
             "/api/authorization",
             "/api/versions",
-            "/api/deletion/email");
+            "/api/deletion/email",
+            "/api/uptime",
+            "/.well-known");
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,

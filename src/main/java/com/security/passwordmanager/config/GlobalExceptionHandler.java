@@ -33,6 +33,13 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(errorEnum.getHttpStatus()).body(errorEnum.getMessage());
     }
 
+    @ExceptionHandler(KeysException.class)
+    public ResponseEntity<String> handleKeysException(KeysException ex) {
+        ErrorEnum errorEnum = ex.getErrorEnum();
+        log.error("Keys Exception: {}", errorEnum.getMessage());
+        return ResponseEntity.status(errorEnum.getHttpStatus()).body(errorEnum.getMessage());
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<String> handleGenericException(Exception ex) {
         log.error("Exception: {}", ex.getMessage());

@@ -5,12 +5,12 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.5.13</version>
+		<version>3.5.14</version>
 		<relativePath/>
 	</parent>
 	<groupId>xyz.segurapass</groupId>
 	<artifactId>segurapass-backend</artifactId>
-	<version>1.2.2-SNAPSHOT</version>
+	<version>1.4.2-SNAPSHOT</version>
 	<name>segurapass-backend</name>
 	<description>SeguraPass backend component</description>
 
@@ -44,6 +44,10 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webflux</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>

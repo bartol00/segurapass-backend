@@ -8,6 +8,10 @@ spring:
     liquibase-schema: password_manager
   profiles:
     active: prod
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
 
 app:
   base:
@@ -23,3 +27,6 @@ app:
     email-hash-salt: ${EMAIL_HASH_SALT}
   email:
     url: ${EMAIL_SERVICE_URL:emailServiceUrl}
+  rate-limiting:
+    ip-enabled: ${IP_LIMITING_ENABLED:false}
+    default-window-seconds: ${DEFAULT_LIMITING_SECONDS:60}

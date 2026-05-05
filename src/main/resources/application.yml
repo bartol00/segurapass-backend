@@ -29,3 +29,4 @@ app:
     url: ${EMAIL_SERVICE_URL:emailServiceUrl}
   rate-limiting:
     ip-enabled: ${IP_LIMITING_ENABLED:false}
+    default-window-seconds: ${DEFAULT_LIMITING_SECONDS:60}

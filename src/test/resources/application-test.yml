@@ -10,3 +10,8 @@ spring:
         hibernate.hbm2ddl.auto: create-drop
   datasource:
     driver-class-name: org.postgresql.Driver
+
+app:
+  rate-limiting:
+    ip-enabled: true
+    default-window-seconds: 2

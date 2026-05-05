@@ -1,6 +1,9 @@
 package com.security.passwordmanager.config;
 
-import com.security.passwordmanager.model.authorization.UserDao;
+import com.security.passwordmanager.config.rate_limiting.LimitType;
+import com.security.passwordmanager.config.rate_limiting.RateLimitRule;
+import com.security.passwordmanager.config.rate_limiting.RateLimitRuleMatcher;
+import com.security.passwordmanager.config.rate_limiting.RateLimitService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
@@ -26,14 +29,8 @@ import java.util.UUID;
 public class RequestFilter extends OncePerRequestFilter {
 
     private final PublicKey publicKey;
-    private final UserDao userDao;
-
-    private final List<String> whitelistStartsWith = List.of(
-            "/api/authorization",
-            "/api/versions",
-            "/api/deletion/email",
-            "/api/uptime",
-            "/.well-known");
+    private final RateLimitRuleMatcher matcher;
+    private final RateLimitService rateLimitService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -49,49 +46,54 @@ public class RequestFilter extends OncePerRequestFilter {
 
         try {
             String path = request.getRequestURI();
-            if (whitelistStartsWith.stream().anyMatch(path::startsWith)) {
+            List<RateLimitRule> rules = matcher.match(path);
+
+            if (rules.isEmpty()) {
                 filterChain.doFilter(request, response);
                 return;
             }
 
-            String authHeader = request.getHeader("Authorization");
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.setContentType("application/json");
-                response.getWriter().write("{\"error\": \"Missing or invalid Authorization header\"}");
+            boolean requiresAuth = rules.stream()
+                    .anyMatch(RateLimitRule::isRequiresAuth);
+
+            if (!isAllowedIp(rules, ip)) {
+                respond429(response);
                 return;
             }
 
-            String token = authHeader.substring(7);
+            if (requiresAuth) {
+                String authHeader = request.getHeader("Authorization");
+                if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                    respond401(response, "{\"error\": \"Missing or invalid Authorization header\"}");
+                    return;
+                }
 
-            Jws<Claims> jws = Jwts.parser()
-                    .verifyWith(publicKey)
-                    .build()
-                    .parseSignedClaims(token);
+                String token = authHeader.substring(7);
 
-            Claims claims = jws.getPayload();
+                Jws<Claims> jws = Jwts.parser()
+                        .verifyWith(publicKey)
+                        .build()
+                        .parseSignedClaims(token);
 
-            String email = claims.getSubject();
+                Claims claims = jws.getPayload();
+                String email = claims.getSubject();
 
-            if (!userDao.existsByEmail(email)) {
-                SecurityContextHolder.clearContext();
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.setContentType("application/json");
-                response.getWriter().write("{\"error\": \"User not found\"}");
-                return;
+                if (!isAllowedUser(rules, email)) {
+                    respond429(response);
+                    return;
+                }
+
+                UsernamePasswordAuthenticationToken authentication =
+                        new UsernamePasswordAuthenticationToken(email, null, Collections.emptyList());
+
+                SecurityContextHolder.getContext().setAuthentication(authentication);
             }
-
-            UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(email, null, Collections.emptyList());
-
-            SecurityContextHolder.getContext().setAuthentication(authentication);
 
             filterChain.doFilter(request, response);
+
         } catch (Exception e) {
             SecurityContextHolder.clearContext();
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.setContentType("application/json");
-            response.getWriter().write("{\"error\": \"Invalid JWT token\"}");
+            respond401(response, "{\"error\": \"Invalid JWT token\"}");
         } finally {
             MDC.remove("clientIp");
             MDC.remove("requestId");
@@ -116,5 +118,41 @@ public class RequestFilter extends OncePerRequestFilter {
         }
 
         return UUID.randomUUID().toString();
+    }
+
+    private boolean isAllowedIp(List<RateLimitRule> rules, String ip) {
+        for (RateLimitRule rule : rules) {
+            if (rule.getLimitType() == LimitType.IP) {
+                String key = "segurapass:rate_limit:ip:" + ip + ":" + rule.getPattern();
+                if (!rateLimitService.isAllowed(key, rule.getLimit(), rule.getWindowSeconds())) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    private boolean isAllowedUser(List<RateLimitRule> rules, String email) {
+        for (RateLimitRule rule : rules) {
+            if (rule.getLimitType() == LimitType.USER) {
+                String key = "segurapass:rate_limit:user:" + email + ":" + rule.getPattern();
+                if (!rateLimitService.isAllowed(key, rule.getLimit(), rule.getWindowSeconds())) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    private void respond401(HttpServletResponse response, String error) throws IOException {
+        response.setStatus(401);
+        response.setContentType("application/json");
+        response.getWriter().write(error);
+    }
+
+    private void respond429(HttpServletResponse response) throws IOException {
+        response.setStatus(429);
+        response.setContentType("application/json");
+        response.getWriter().write("{\"error\": \"Rate limit exceeded\"}");
     }
 }

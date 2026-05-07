@@ -7,10 +7,14 @@ import com.security.passwordmanager.helpers.SrpFlow;
 import com.security.passwordmanager.helpers.TokenGenerator;
 import com.security.passwordmanager.helpers.TokenHasher;
 import com.security.passwordmanager.mapper.UserMapper;
+import com.security.passwordmanager.model.audit.AuditAction;
+import com.security.passwordmanager.model.audit.AuditLogDao;
+import com.security.passwordmanager.model.audit.AuditLogEntity;
 import com.security.passwordmanager.model.authorization.*;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
@@ -32,6 +36,7 @@ public class AuthorizationService {
     private final UserDao userDao;
     private final SessionDao sessionDao;
     private final SrpDao srpDao;
+    private final AuditLogDao auditLogDao;
     private final EmailService emailService;
     private final SrpFlow srpFlow;
     private final TokenGenerator tokenGenerator;
@@ -147,6 +152,14 @@ public class AuthorizationService {
         sessionEntity.setRefreshTokenHash(tokenHasher.hashToken(refreshToken));
         sessionEntity.setExpiryTime(refreshExpiry);
         sessionDao.save(sessionEntity);
+
+        AuditLogEntity auditLogEntity = new AuditLogEntity();
+        auditLogEntity.setUserId(user.getUserId());
+        auditLogEntity.setTimestamp(Instant.now());
+        auditLogEntity.setAction(AuditAction.LOGIN_SUCCESS);
+        auditLogEntity.setIpAddress(MDC.get("clientIp"));
+        auditLogEntity.setSuccess(true);
+        auditLogDao.save(auditLogEntity);
 
         LoginCompleteResp resp = new LoginCompleteResp();
         resp.setM2(Base64.getEncoder().encodeToString(M2Server.toByteArray()));

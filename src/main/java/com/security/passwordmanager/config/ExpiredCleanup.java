@@ -1,5 +1,6 @@
 package com.security.passwordmanager.config;
 
+import com.security.passwordmanager.model.audit.AuditLogDao;
 import com.security.passwordmanager.model.authorization.*;
 import com.security.passwordmanager.model.deletion.EmailDeletionDao;
 import jakarta.transaction.Transactional;
@@ -23,6 +24,8 @@ public class ExpiredCleanup {
     private SrpDao srpDao;
     @Autowired
     private EmailDeletionDao emailDeletionDao;
+    @Autowired
+    private AuditLogDao auditLogDao;
 
     @Transactional
     @Scheduled(cron = "0 */2 * * * *")
@@ -33,6 +36,13 @@ public class ExpiredCleanup {
         srpDao.deleteByExpiryTimeLessThan(now);
         emailDeletionDao.deleteByTokenExpiryLessThan(now);
         log.info("Deleted expired entities");
+    }
+
+    @Transactional
+    @Scheduled(cron = "0 5 2,14 * * *")
+    public void deleteOldAuditLogs() {
+        auditLogDao.deleteByTimestampLessThan(Instant.now().minus(180, ChronoUnit.DAYS));
+        log.info("Deleted old audit logs");
     }
 
     @Transactional

@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
@@ -193,6 +194,7 @@ public class AuthorizationServiceTest extends AbstractTestInitializer {
     @Test
     void shouldSucceedLoginEnd() {
         // given
+        MDC.put("clientIp", "127.0.0.1");
         LoginCompleteReq req = generateLoginCompleteReq();
         SrpEntity srpEntity = generateSrpEntity();
         UserEntity userEntity = generateUserEntity();
@@ -208,6 +210,8 @@ public class AuthorizationServiceTest extends AbstractTestInitializer {
         // then
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(userEntity.getSaltKey(), response.getBody().getSaltKey());
+
+        MDC.clear();
     }
 
     @Test

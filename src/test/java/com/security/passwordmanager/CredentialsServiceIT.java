@@ -13,6 +13,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Page;
@@ -108,6 +109,7 @@ public class CredentialsServiceIT extends AbstractTestInitializer {
     @Test
     void shouldSucceedCreateCredentials() {
         // given
+        MDC.put("clientIp", "127.0.0.1");
         CredentialsReq req = generateCredentialsReq();
         long count = credentialsDao.count();
 
@@ -120,6 +122,8 @@ public class CredentialsServiceIT extends AbstractTestInitializer {
         assertEquals(count + 1, credentialsDao.count());
         assertEquals(resp.getWebsite(), req.getWebsite());
         assertEquals(resp.getIvWebsite(), req.getIvWebsite());
+
+        MDC.clear();
     }
 
     @Test
@@ -155,6 +159,7 @@ public class CredentialsServiceIT extends AbstractTestInitializer {
     @Test
     void shouldSucceedUpdateCredentials() {
         // given
+        MDC.put("clientIp", "127.0.0.1");
         List<CredentialsEntity> credentialsEntityList = credentialsDao.findAll();
         CredentialsEntity credentialsEntity = credentialsEntityList.get(0);
         CredentialsReq req = generateCredentialsReq();
@@ -168,6 +173,8 @@ public class CredentialsServiceIT extends AbstractTestInitializer {
         assertNotEquals(credentialsEntity.getIvWebsite(), resp.getIvWebsite());
         assertNotEquals(credentialsEntity.getIvUsername(), resp.getIvUsername());
         assertNotEquals(credentialsEntity.getIvPassword(), resp.getIvUsername());
+
+        MDC.clear();
     }
 
     @Test
@@ -186,6 +193,7 @@ public class CredentialsServiceIT extends AbstractTestInitializer {
     @Test
     void shouldSucceedDeleteCredentials() {
         // given
+        MDC.put("clientIp", "127.0.0.1");
         List<CredentialsEntity> credentialsEntityList = credentialsDao.findAll();
         CredentialsEntity credentialsEntity = credentialsEntityList.get(0);
         long count = credentialsDao.count();
@@ -197,6 +205,8 @@ public class CredentialsServiceIT extends AbstractTestInitializer {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(count - 1, credentialsDao.count());
         assertTrue(credentialsDao.findById(credentialsEntity.getId()).isEmpty());
+
+        MDC.clear();
     }
 
 

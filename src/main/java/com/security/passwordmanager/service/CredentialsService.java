@@ -5,6 +5,9 @@ import com.security.passwordmanager.api.credentials.CredentialsResp;
 import com.security.passwordmanager.exceptions.CredentialsException;
 import com.security.passwordmanager.helpers.TokenHasher;
 import com.security.passwordmanager.mapper.CredentialMapper;
+import com.security.passwordmanager.model.audit.AuditAction;
+import com.security.passwordmanager.model.audit.AuditLogDao;
+import com.security.passwordmanager.model.audit.AuditLogEntity;
 import com.security.passwordmanager.model.authorization.UserDao;
 import com.security.passwordmanager.model.authorization.UserEntity;
 import com.security.passwordmanager.model.credentials.CredentialsDao;
@@ -12,6 +15,7 @@ import com.security.passwordmanager.model.credentials.CredentialsEntity;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -32,6 +36,7 @@ public class CredentialsService {
 
     private final CredentialsDao credentialsDao;
     private final UserDao userDao;
+    private final AuditLogDao auditLogDao;
     private final TokenHasher tokenHasher;
 
     @Transactional
@@ -66,6 +71,15 @@ public class CredentialsService {
         credentialsEntity.setLastUpdated(Instant.now());
 
         credentialsEntity = credentialsDao.save(credentialsEntity);
+
+        AuditLogEntity auditLogEntity = new AuditLogEntity();
+        auditLogEntity.setUserId(userEntity.getUserId());
+        auditLogEntity.setTimestamp(Instant.now());
+        auditLogEntity.setAction(AuditAction.CREDENTIAL_CREATED);
+        auditLogEntity.setIpAddress(MDC.get("clientIp"));
+        auditLogEntity.setSuccess(true);
+        auditLogEntity.setComment("Created credential with ID: " + credentialsEntity.getCredentialsId());
+        auditLogDao.save(auditLogEntity);
 
         return ResponseEntity.ok(mapper.toCredentialsResp(credentialsEntity));
     }
@@ -104,6 +118,15 @@ public class CredentialsService {
 
         entity = credentialsDao.save(entity);
 
+        AuditLogEntity auditLogEntity = new AuditLogEntity();
+        auditLogEntity.setUserId(userDao.findByEmail(email).getUserId());
+        auditLogEntity.setTimestamp(Instant.now());
+        auditLogEntity.setAction(AuditAction.CREDENTIAL_UPDATED);
+        auditLogEntity.setIpAddress(MDC.get("clientIp"));
+        auditLogEntity.setSuccess(true);
+        auditLogEntity.setComment("Updated credential with ID: " + entity.getCredentialsId());
+        auditLogDao.save(auditLogEntity);
+
         return ResponseEntity.ok(mapper.toCredentialsResp(entity));
     }
 
@@ -117,6 +140,15 @@ public class CredentialsService {
         }
 
         credentialsDao.delete(credentialsEntity);
+
+        AuditLogEntity auditLogEntity = new AuditLogEntity();
+        auditLogEntity.setUserId(userDao.findByEmail(email).getUserId());
+        auditLogEntity.setTimestamp(Instant.now());
+        auditLogEntity.setAction(AuditAction.CREDENTIAL_DELETED);
+        auditLogEntity.setIpAddress(MDC.get("clientIp"));
+        auditLogEntity.setSuccess(true);
+        auditLogEntity.setComment("Deleted credential with ID: " + credentialsEntity.getCredentialsId());
+        auditLogDao.save(auditLogEntity);
 
         return ResponseEntity.ok(null);
     }

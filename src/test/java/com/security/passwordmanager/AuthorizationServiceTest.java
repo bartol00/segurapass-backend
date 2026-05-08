@@ -1,6 +1,6 @@
 package com.security.passwordmanager;
 
-import com.security.passwordmanager.api.authorization.*;
+import xyz.segurapass.api.authorization.*;
 import com.security.passwordmanager.exceptions.AuthorizationException;
 import com.security.passwordmanager.helpers.EmailService;
 import com.security.passwordmanager.helpers.SrpFlow;

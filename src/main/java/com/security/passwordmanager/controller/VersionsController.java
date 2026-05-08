@@ -1,6 +1,6 @@
 package com.security.passwordmanager.controller;
 
-import com.security.passwordmanager.api.versions.VersionInfo;
+import xyz.segurapass.api.versions.VersionInfo;
 import com.security.passwordmanager.service.VersionsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

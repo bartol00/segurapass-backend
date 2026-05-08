@@ -1,6 +1,6 @@
 package com.security.passwordmanager.helpers.impl;
 
-import com.security.passwordmanager.api.email.EmailReq;
+import xyz.segurapass.api.email.EmailReq;
 import com.security.passwordmanager.config.EmailClient;
 import com.security.passwordmanager.helpers.EmailService;
 import org.springframework.beans.factory.annotation.Value;

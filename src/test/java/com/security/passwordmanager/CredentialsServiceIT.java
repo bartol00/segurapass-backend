@@ -1,7 +1,6 @@
 package com.security.passwordmanager;
 
-import com.security.passwordmanager.api.credentials.CredentialsReq;
-import com.security.passwordmanager.api.credentials.CredentialsResp;
+import xyz.segurapass.api.credentials.*;
 import com.security.passwordmanager.exceptions.CredentialsException;
 import com.security.passwordmanager.model.authorization.UserDao;
 import com.security.passwordmanager.model.authorization.UserEntity;

@@ -1,7 +1,6 @@
 package com.security.passwordmanager.mapper;
 
-import com.security.passwordmanager.api.credentials.CredentialsReq;
-import com.security.passwordmanager.api.credentials.CredentialsResp;
+import xyz.segurapass.api.credentials.*;
 import com.security.passwordmanager.model.credentials.CredentialsEntity;
 import org.mapstruct.Mapper;
 import org.springframework.data.domain.Page;

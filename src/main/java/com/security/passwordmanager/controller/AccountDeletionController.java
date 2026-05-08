@@ -1,9 +1,6 @@
 package com.security.passwordmanager.controller;
 
-import com.security.passwordmanager.api.deletion.AuthorizedDeletionCompleteReq;
-import com.security.passwordmanager.api.deletion.AuthorizedDeletionStartReq;
-import com.security.passwordmanager.api.deletion.AuthorizedDeletionStartResp;
-import com.security.passwordmanager.api.deletion.EmailDeletionStartReq;
+import xyz.segurapass.api.deletion.*;
 import com.security.passwordmanager.service.AccountDeletionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

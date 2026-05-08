@@ -1,6 +1,6 @@
 package com.security.passwordmanager.config;
 
-import com.security.passwordmanager.api.email.EmailReq;
+import xyz.segurapass.api.email.EmailReq;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.reactive.function.client.WebClient;

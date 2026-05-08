@@ -1,9 +1,6 @@
 package com.security.passwordmanager.service;
 
-import com.security.passwordmanager.api.deletion.AuthorizedDeletionCompleteReq;
-import com.security.passwordmanager.api.deletion.AuthorizedDeletionStartReq;
-import com.security.passwordmanager.api.deletion.AuthorizedDeletionStartResp;
-import com.security.passwordmanager.api.deletion.EmailDeletionStartReq;
+import xyz.segurapass.api.deletion.*;
 import com.security.passwordmanager.exceptions.AccountDeletionException;
 import com.security.passwordmanager.helpers.EmailService;
 import com.security.passwordmanager.helpers.SrpFlow;

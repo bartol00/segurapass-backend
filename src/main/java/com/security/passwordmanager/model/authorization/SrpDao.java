@@ -7,6 +7,6 @@ import java.util.UUID;
 
 public interface SrpDao extends JpaRepository<SrpEntity, Long> {
     SrpEntity findByUserEntity_EmailAndDeviceId(String email, UUID deviceId);
-    // List<SrpEntity> findByExpiryTimeLessThan(Instant expiryTime);
     void deleteByExpiryTimeLessThan(Instant expiryTime);
+    SrpEntity findByUserEntity_UserIdAndDeviceId(UUID userId, UUID deviceId);
 }

@@ -22,14 +22,14 @@ public class JwtService {
         this.publicKey = publicKey;
     }
 
-    public String generateToken(String email, Map<String, Object> additionalClaims, long expirationSeconds) {
+    public String generateToken(String userIdString, Map<String, Object> additionalClaims, long expirationSeconds) {
         Instant now = Instant.now();
         return Jwts.builder()
-                .setClaims(additionalClaims)
-                .setSubject(email)
-                .setIssuedAt(Date.from(now))
-                .setExpiration(Date.from(now.plusSeconds(expirationSeconds)))
-                .signWith(privateKey, SignatureAlgorithm.RS256)
+                .claims(additionalClaims)
+                .subject(userIdString)
+                .issuedAt(Date.from(now))
+                .expiration(Date.from(now.plusSeconds(expirationSeconds)))
+                .signWith(privateKey, Jwts.SIG.RS256)
                 .compact();
     }
 

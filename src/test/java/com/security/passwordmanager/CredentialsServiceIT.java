@@ -33,6 +33,7 @@ import static org.junit.jupiter.api.Assertions.*;
 public class CredentialsServiceIT extends AbstractTestInitializer {
 
     private final String email = "me@gmail.com";
+    private final UUID userId = UUID.fromString("5aef2ede-f0f1-487f-af5a-00a455f49a30");
 
     @Autowired
     private CredentialsService credentialsService;
@@ -68,7 +69,7 @@ public class CredentialsServiceIT extends AbstractTestInitializer {
     @Test
     void shouldSucceedGetCredentials() {
         // when
-        ResponseEntity<Page<CredentialsResp>> response = credentialsService.getCredentials(email, 0, 20);
+        ResponseEntity<Page<CredentialsResp>> response = credentialsService.getCredentials(userId, 0, 20);
 
         // then
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -81,7 +82,7 @@ public class CredentialsServiceIT extends AbstractTestInitializer {
         UUID idToFind = UUID.randomUUID();
 
         // when
-        CredentialsException ex = assertThrows(CredentialsException.class, () -> credentialsService.getCredentialById(idToFind, email));
+        CredentialsException ex = assertThrows(CredentialsException.class, () -> credentialsService.getCredentialById(idToFind, userId));
 
         // then
         assertEquals(CREDENTIAL_NOT_EXISTS.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
@@ -92,10 +93,10 @@ public class CredentialsServiceIT extends AbstractTestInitializer {
     void shouldSucceedGetCredentialById() {
         // given
         List<CredentialsEntity> credentialsEntityList = credentialsDao.findAll();
-        CredentialsEntity credentialsEntity = credentialsEntityList.get(0);
+        CredentialsEntity credentialsEntity = credentialsEntityList.getFirst();
 
         // when
-        ResponseEntity<CredentialsResp> response = credentialsService.getCredentialById(credentialsEntity.getCredentialsId(), email);
+        ResponseEntity<CredentialsResp> response = credentialsService.getCredentialById(credentialsEntity.getCredentialsId(), userId);
         CredentialsResp resp = response.getBody();
 
         // then
@@ -113,7 +114,7 @@ public class CredentialsServiceIT extends AbstractTestInitializer {
         long count = credentialsDao.count();
 
         // when
-        ResponseEntity<CredentialsResp> response = credentialsService.createCredentials(req, email);
+        ResponseEntity<CredentialsResp> response = credentialsService.createCredentials(req, userId);
         CredentialsResp resp = response.getBody();
 
         // then
@@ -132,7 +133,7 @@ public class CredentialsServiceIT extends AbstractTestInitializer {
         CredentialsReq req = generateCredentialsReq();
 
         // when
-        CredentialsException ex = assertThrows(CredentialsException.class, () -> credentialsService.updateCredentials(idToFind, req, email));
+        CredentialsException ex = assertThrows(CredentialsException.class, () -> credentialsService.updateCredentials(idToFind, req, userId));
 
         // then
         assertEquals(CREDENTIAL_NOT_EXISTS.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
@@ -143,12 +144,12 @@ public class CredentialsServiceIT extends AbstractTestInitializer {
     void shouldFailMissingIvUpdateCredentials() {
         // given
         List<CredentialsEntity> credentialsEntityList = credentialsDao.findAll();
-        CredentialsEntity credentialsEntity = credentialsEntityList.get(0);
+        CredentialsEntity credentialsEntity = credentialsEntityList.getFirst();
         CredentialsReq req = generateCredentialsReq();
         req.setIvWebsite(null);
 
         // when
-        CredentialsException ex = assertThrows(CredentialsException.class, () -> credentialsService.updateCredentials(credentialsEntity.getCredentialsId(), req, email));
+        CredentialsException ex = assertThrows(CredentialsException.class, () -> credentialsService.updateCredentials(credentialsEntity.getCredentialsId(), req, userId));
 
         // then
         assertEquals(CREDENTIAL_UPDATE_IV_MISSING.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
@@ -160,11 +161,11 @@ public class CredentialsServiceIT extends AbstractTestInitializer {
         // given
         MDC.put("clientIp", "127.0.0.1");
         List<CredentialsEntity> credentialsEntityList = credentialsDao.findAll();
-        CredentialsEntity credentialsEntity = credentialsEntityList.get(0);
+        CredentialsEntity credentialsEntity = credentialsEntityList.getFirst();
         CredentialsReq req = generateCredentialsReq();
 
         // when
-        ResponseEntity<CredentialsResp> response = credentialsService.updateCredentials(credentialsEntity.getCredentialsId(), req, email);
+        ResponseEntity<CredentialsResp> response = credentialsService.updateCredentials(credentialsEntity.getCredentialsId(), req, userId);
         CredentialsResp resp = response.getBody();
 
         // then
@@ -182,7 +183,7 @@ public class CredentialsServiceIT extends AbstractTestInitializer {
         UUID idToFind = UUID.randomUUID();
 
         // when
-        CredentialsException ex = assertThrows(CredentialsException.class, () -> credentialsService.deleteCredentials(idToFind, email));
+        CredentialsException ex = assertThrows(CredentialsException.class, () -> credentialsService.deleteCredentials(idToFind, userId));
 
         // then
         assertEquals(CREDENTIAL_NOT_EXISTS.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
@@ -194,11 +195,11 @@ public class CredentialsServiceIT extends AbstractTestInitializer {
         // given
         MDC.put("clientIp", "127.0.0.1");
         List<CredentialsEntity> credentialsEntityList = credentialsDao.findAll();
-        CredentialsEntity credentialsEntity = credentialsEntityList.get(0);
+        CredentialsEntity credentialsEntity = credentialsEntityList.getFirst();
         long count = credentialsDao.count();
 
         // when
-        ResponseEntity<Void> response = credentialsService.deleteCredentials(credentialsEntity.getCredentialsId(), email);
+        ResponseEntity<Void> response = credentialsService.deleteCredentials(credentialsEntity.getCredentialsId(), userId);
 
         // then
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -222,7 +223,7 @@ public class CredentialsServiceIT extends AbstractTestInitializer {
 
     private UserEntity generateUserEntity() {
         UserEntity userEntity = new UserEntity();
-        userEntity.setUserId(UUID.randomUUID());
+        userEntity.setUserId(userId);
         userEntity.setEmail(email);
         userEntity.setSaltAuth("saltAuth");
         userEntity.setVerifier("verifier");

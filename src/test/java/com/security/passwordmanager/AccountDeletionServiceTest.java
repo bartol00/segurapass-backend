@@ -1,5 +1,6 @@
 package com.security.passwordmanager;
 
+import org.junit.jupiter.api.*;
 import xyz.segurapass.api.deletion.*;
 import com.security.passwordmanager.exceptions.AccountDeletionException;
 import com.security.passwordmanager.helpers.EmailService;
@@ -13,9 +14,6 @@ import com.security.passwordmanager.model.deletion.EmailDeletionDao;
 import com.security.passwordmanager.model.deletion.EmailDeletionEntity;
 import com.security.passwordmanager.service.AccountDeletionService;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
@@ -35,14 +33,14 @@ import static com.security.passwordmanager.exceptions.ErrorEnum.*;
 
 @Slf4j
 @SpringBootTest
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class AccountDeletionServiceTest extends AbstractTestInitializer {
 
     private final String email = "me@gmail.com";
     private final String token = "random token";
     private final String authorizedEmail = "authorized@gmail.com";
     private final UUID authorizedDeviceId = UUID.fromString("9a55c43b-52b3-4efb-b77c-3747b115e551");
-
+    private final UUID userId = UUID.fromString("14bd3b93-3413-4108-a68b-416cb71e6c70");
+    private final UUID authorizedUserId = UUID.fromString("decc9437-bf41-403c-9ee4-d3f9c308115a");
 
     @Autowired
     private AccountDeletionService accountDeletionService;
@@ -59,28 +57,32 @@ public class AccountDeletionServiceTest extends AbstractTestInitializer {
     @MockitoBean
     private EmailService emailService;
 
-    @BeforeAll
+    @BeforeEach
     void setup() {
-        userDao.deleteAll();
-        UserEntity userEntity = generateUserEntity();
+        UserEntity userEntity = generateUserEntity(userId);
         userEntity = userDao.save(userEntity);
         EmailDeletionEntity emailDeletionEntity = generateEmailDeletionEntity();
         emailDeletionEntity.setUserEntity(userEntity);
         emailDeletionDao.save(emailDeletionEntity);
-        UserEntity authorizedUser = generateUserEntity();
+        UserEntity authorizedUser = generateUserEntity(authorizedUserId);
         authorizedUser.setEmail(authorizedEmail);
         authorizedUser.setVerifier("authorizedVerifier");
         userDao.save(authorizedUser);
     }
 
+    @AfterEach
+    void cleanup() {
+        userDao.deleteAll();
+    }
+
     @Test
     void shouldFailUserIsNullStartAuthorizedDeletion() {
         // given
-        String randomEmail = "random@gmail.com";
+        UUID randomUserId = UUID.randomUUID();
         AuthorizedDeletionStartReq req = generateAuthorizedDeletionStartReq();
 
         // when
-        AccountDeletionException ex = assertThrows(AccountDeletionException.class, () -> accountDeletionService.startAuthorizedDeletion(randomEmail, req));
+        AccountDeletionException ex = assertThrows(AccountDeletionException.class, () -> accountDeletionService.startAuthorizedDeletion(randomUserId, req));
 
         // then
         assertEquals(USER_NOT_EXISTS.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
@@ -94,7 +96,7 @@ public class AccountDeletionServiceTest extends AbstractTestInitializer {
         AuthorizedDeletionStartReq req = generateAuthorizedDeletionStartReq();
 
         // when
-        ResponseEntity<AuthorizedDeletionStartResp> response = accountDeletionService.startAuthorizedDeletion(authorizedEmail, req);
+        ResponseEntity<AuthorizedDeletionStartResp> response = accountDeletionService.startAuthorizedDeletion(authorizedUserId, req);
 
         // then
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -104,11 +106,11 @@ public class AccountDeletionServiceTest extends AbstractTestInitializer {
     @Test
     void shouldFailSrpIsNullCompleteAuthorizedDeletion() {
         // given
-        doReturn(null).when(srpDao).findByUserEntity_EmailAndDeviceId(authorizedEmail, authorizedDeviceId);
+        doReturn(null).when(srpDao).findByUserEntity_UserIdAndDeviceId(authorizedUserId, authorizedDeviceId);
         AuthorizedDeletionCompleteReq req = generateAuthorizedDeletionCompleteReq();
 
         // when
-        AccountDeletionException ex = assertThrows(AccountDeletionException.class, () -> accountDeletionService.completeAuthorizedDeletion(authorizedEmail, req));
+        AccountDeletionException ex = assertThrows(AccountDeletionException.class, () -> accountDeletionService.completeAuthorizedDeletion(authorizedUserId, req));
 
         // then
         assertEquals(SRP_SESSION_NOT_FOUND.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
@@ -121,11 +123,11 @@ public class AccountDeletionServiceTest extends AbstractTestInitializer {
         SrpEntity srpEntity = generateSrpEntity();
         srpEntity.setExpiryTime(Instant.now().minus(1, ChronoUnit.MINUTES));
         AuthorizedDeletionCompleteReq req = generateAuthorizedDeletionCompleteReq();
-        doReturn(srpEntity).when(srpDao).findByUserEntity_EmailAndDeviceId(authorizedEmail, authorizedDeviceId);
+        doReturn(srpEntity).when(srpDao).findByUserEntity_UserIdAndDeviceId(authorizedUserId, authorizedDeviceId);
         doNothing().when(srpDao).delete(srpEntity);
 
         // when
-        AccountDeletionException ex = assertThrows(AccountDeletionException.class, () -> accountDeletionService.completeAuthorizedDeletion(authorizedEmail, req));
+        AccountDeletionException ex = assertThrows(AccountDeletionException.class, () -> accountDeletionService.completeAuthorizedDeletion(authorizedUserId, req));
 
         // then
         assertEquals(SRP_SESSION_EXPIRED.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
@@ -137,11 +139,11 @@ public class AccountDeletionServiceTest extends AbstractTestInitializer {
         // given
         SrpEntity srpEntity = generateSrpEntity();
         AuthorizedDeletionCompleteReq req = generateAuthorizedDeletionCompleteReq();
-        doReturn(srpEntity).when(srpDao).findByUserEntity_EmailAndDeviceId(authorizedEmail, authorizedDeviceId);
+        doReturn(srpEntity).when(srpDao).findByUserEntity_UserIdAndDeviceId(authorizedUserId, authorizedDeviceId);
         doNothing().when(srpDao).delete(srpEntity);
 
         // when
-        AccountDeletionException ex = assertThrows(AccountDeletionException.class, () -> accountDeletionService.completeAuthorizedDeletion(authorizedEmail, req));
+        AccountDeletionException ex = assertThrows(AccountDeletionException.class, () -> accountDeletionService.completeAuthorizedDeletion(authorizedUserId, req));
 
         // then
         assertEquals(SRP_VERIFICATION_FAILED.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
@@ -153,13 +155,13 @@ public class AccountDeletionServiceTest extends AbstractTestInitializer {
         // given
         SrpEntity srpEntity = generateSrpEntity();
         AuthorizedDeletionCompleteReq req = generateAuthorizedDeletionCompleteReq();
-        doReturn(srpEntity).when(srpDao).findByUserEntity_EmailAndDeviceId(authorizedEmail, authorizedDeviceId);
+        doReturn(srpEntity).when(srpDao).findByUserEntity_UserIdAndDeviceId(authorizedUserId, authorizedDeviceId);
         doNothing().when(srpDao).delete(srpEntity);
         doReturn(new BigInteger(1, Base64.getDecoder().decode(req.getM1()))).when(srpFlow).calculateM1Server(srpEntity);
         doNothing().when(userDao).deleteByEmail(authorizedEmail);
 
         // when
-        ResponseEntity<Void> response = accountDeletionService.completeAuthorizedDeletion(authorizedEmail, req);
+        ResponseEntity<Void> response = accountDeletionService.completeAuthorizedDeletion(authorizedUserId, req);
 
         // then
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -200,7 +202,7 @@ public class AccountDeletionServiceTest extends AbstractTestInitializer {
         String testEmail = "test@gmail.com";
         EmailDeletionStartReq req = generateEmailDeletionStartReq();
         req.setEmail(testEmail);
-        UserEntity userEntity = generateUserEntity();
+        UserEntity userEntity = generateUserEntity(UUID.randomUUID());
         userEntity.setEmail(testEmail);
         userDao.save(userEntity);
 
@@ -276,9 +278,9 @@ public class AccountDeletionServiceTest extends AbstractTestInitializer {
         return emailDeletionStartReq;
     }
 
-    private UserEntity generateUserEntity() {
+    private UserEntity generateUserEntity(UUID userId) {
         UserEntity userEntity = new UserEntity();
-        userEntity.setUserId(UUID.randomUUID());
+        userEntity.setUserId(userId);
         userEntity.setEmail(email);
         userEntity.setSaltAuth(UUID.randomUUID().toString());
         userEntity.setVerifier(UUID.randomUUID().toString());

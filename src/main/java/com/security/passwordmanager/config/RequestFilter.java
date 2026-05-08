@@ -76,15 +76,15 @@ public class RequestFilter extends OncePerRequestFilter {
                         .parseSignedClaims(token);
 
                 Claims claims = jws.getPayload();
-                String email = claims.getSubject();
+                String userIdString = claims.getSubject();
 
-                if (!isAllowedUser(rules, email)) {
+                if (!isAllowedUser(rules, userIdString)) {
                     respond429(response);
                     return;
                 }
 
                 UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(email, null, Collections.emptyList());
+                        new UsernamePasswordAuthenticationToken(UUID.fromString(userIdString), null, Collections.emptyList());
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }
@@ -132,10 +132,10 @@ public class RequestFilter extends OncePerRequestFilter {
         return true;
     }
 
-    private boolean isAllowedUser(List<RateLimitRule> rules, String email) {
+    private boolean isAllowedUser(List<RateLimitRule> rules, String userIdString) {
         for (RateLimitRule rule : rules) {
             if (rule.getLimitType() == LimitType.USER) {
-                String key = "segurapass:rate_limit:user:" + email + ":" + rule.getPattern();
+                String key = "segurapass:rate_limit:user:" + userIdString + ":" + rule.getPattern();
                 if (!rateLimitService.isAllowed(key, rule.getLimit(), rule.getWindowSeconds())) {
                     return false;
                 }

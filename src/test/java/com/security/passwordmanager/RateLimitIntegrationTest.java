@@ -173,6 +173,6 @@ class RateLimitIntegrationTest extends AbstractTestInitializer {
     private String generateJwt() {
         Map<String, Object> claims = new HashMap<>();
         claims.put("deviceId", UUID.randomUUID());
-        return "Bearer " + jwtService.generateToken("test@test.com", claims, 180);
+        return "Bearer " + jwtService.generateToken("0fcd2fec-35e6-4455-aaf8-84f5271b2e3d", claims, 180);
     }
 }

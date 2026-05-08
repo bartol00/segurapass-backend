@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>xyz.segurapass</groupId>
 	<artifactId>segurapass-backend</artifactId>
-	<version>1.5.4</version>
+	<version>1.5.5-SNAPSHOT</version>
 	<name>segurapass-backend</name>
 	<description>SeguraPass backend component</description>
 

@@ -8,6 +8,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.UUID;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/deletion")
@@ -17,15 +19,15 @@ public class AccountDeletionController {
     private final AccountDeletionService accountDeletionService;
 
     @PostMapping("/authorized/start")
-    ResponseEntity<AuthorizedDeletionStartResp> startAuthorizedDeletion(@AuthenticationPrincipal String email, @RequestBody AuthorizedDeletionStartReq authorizedDeletionStartReq) {
+    ResponseEntity<AuthorizedDeletionStartResp> startAuthorizedDeletion(@AuthenticationPrincipal UUID userId, @RequestBody AuthorizedDeletionStartReq authorizedDeletionStartReq) {
         log.info("Start Authorized Deletion - Controller");
-        return accountDeletionService.startAuthorizedDeletion(email, authorizedDeletionStartReq);
+        return accountDeletionService.startAuthorizedDeletion(userId, authorizedDeletionStartReq);
     }
 
     @PostMapping("/authorized/end")
-    ResponseEntity<Void> completeAuthorizedDeletion(@AuthenticationPrincipal String email, @RequestBody AuthorizedDeletionCompleteReq authorizedDeletionCompleteReq) {
+    ResponseEntity<Void> completeAuthorizedDeletion(@AuthenticationPrincipal UUID userId, @RequestBody AuthorizedDeletionCompleteReq authorizedDeletionCompleteReq) {
         log.info("Complete Authorized Deletion - Controller");
-        return accountDeletionService.completeAuthorizedDeletion(email, authorizedDeletionCompleteReq);
+        return accountDeletionService.completeAuthorizedDeletion(userId, authorizedDeletionCompleteReq);
     }
 
     @PostMapping("/email/start")

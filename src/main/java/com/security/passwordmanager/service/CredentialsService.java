@@ -2,7 +2,6 @@ package com.security.passwordmanager.service;
 
 import xyz.segurapass.api.credentials.*;
 import com.security.passwordmanager.exceptions.CredentialsException;
-import com.security.passwordmanager.helpers.TokenHasher;
 import com.security.passwordmanager.mapper.CredentialMapper;
 import com.security.passwordmanager.model.audit.AuditAction;
 import com.security.passwordmanager.model.audit.AuditLogDao;
@@ -36,22 +35,21 @@ public class CredentialsService {
     private final CredentialsDao credentialsDao;
     private final UserDao userDao;
     private final AuditLogDao auditLogDao;
-    private final TokenHasher tokenHasher;
 
     @Transactional
-    public ResponseEntity<Page<CredentialsResp>> getCredentials(String email, int page, int size) {
-        log.info("Get Credentials for user {} - Service", tokenHasher.generateSha256Email(email));
+    public ResponseEntity<Page<CredentialsResp>> getCredentials(UUID userId, int page, int size) {
+        log.info("Get Credentials for user {} - Service", userId);
 
         Pageable pageable = PageRequest.of(page, size);
-        Page<CredentialsEntity> credentialsEntityPage = credentialsDao.findByUserEntity_Email(email, pageable);
+        Page<CredentialsEntity> credentialsEntityPage = credentialsDao.findByUserEntity_UserId(userId, pageable);
         return ResponseEntity.ok(mapper.toCredentialsRespPage(credentialsEntityPage));
     }
 
     @Transactional
-    public ResponseEntity<CredentialsResp> getCredentialById(UUID id, String email) {
-        log.info("Get Credentials By ID for user {} - Service", tokenHasher.generateSha256Email(email));
+    public ResponseEntity<CredentialsResp> getCredentialById(UUID id, UUID userId) {
+        log.info("Get Credentials By ID for user {} - Service", userId);
 
-        CredentialsEntity credentialsEntity = credentialsDao.findByCredentialsIdAndUserEntity_Email(id, email);
+        CredentialsEntity credentialsEntity = credentialsDao.findByCredentialsIdAndUserEntity_UserId(id, userId);
         if (credentialsEntity == null) {
             throw new CredentialsException(CREDENTIAL_NOT_EXISTS);
         }
@@ -59,10 +57,10 @@ public class CredentialsService {
     }
 
     @Transactional
-    public ResponseEntity<CredentialsResp> createCredentials(CredentialsReq req, String email) {
-        log.info("Create Credentials for user {} - Service", tokenHasher.generateSha256Email(email));
+    public ResponseEntity<CredentialsResp> createCredentials(CredentialsReq req, UUID userId) {
+        log.info("Create Credentials for user {} - Service", userId);
 
-        UserEntity userEntity = userDao.findByEmail(email);
+        UserEntity userEntity = userDao.findByUserId(userId);
 
         CredentialsEntity credentialsEntity = mapper.toCredentialsEntity(req);
         credentialsEntity.setUserEntity(userEntity);
@@ -72,7 +70,7 @@ public class CredentialsService {
         credentialsEntity = credentialsDao.save(credentialsEntity);
 
         AuditLogEntity auditLogEntity = new AuditLogEntity();
-        auditLogEntity.setUserId(userEntity.getUserId());
+        auditLogEntity.setUserId(userId);
         auditLogEntity.setTimestamp(Instant.now());
         auditLogEntity.setAction(AuditAction.CREDENTIAL_CREATED);
         auditLogEntity.setIpAddress(MDC.get("clientIp"));
@@ -84,10 +82,10 @@ public class CredentialsService {
     }
 
     @Transactional
-    public ResponseEntity<CredentialsResp> updateCredentials(UUID id, CredentialsReq req, String email) {
-        log.info("Update Credentials for user {} - Service", tokenHasher.generateSha256Email(email));
+    public ResponseEntity<CredentialsResp> updateCredentials(UUID id, CredentialsReq req, UUID userId) {
+        log.info("Update Credentials for user {} - Service", userId);
 
-        CredentialsEntity entity = credentialsDao.findByCredentialsIdAndUserEntity_Email(id, email);
+        CredentialsEntity entity = credentialsDao.findByCredentialsIdAndUserEntity_UserId(id, userId);
         if (entity == null) {
             throw new CredentialsException(CREDENTIAL_NOT_EXISTS);
         }
@@ -118,7 +116,7 @@ public class CredentialsService {
         entity = credentialsDao.save(entity);
 
         AuditLogEntity auditLogEntity = new AuditLogEntity();
-        auditLogEntity.setUserId(userDao.findByEmail(email).getUserId());
+        auditLogEntity.setUserId(userId);
         auditLogEntity.setTimestamp(Instant.now());
         auditLogEntity.setAction(AuditAction.CREDENTIAL_UPDATED);
         auditLogEntity.setIpAddress(MDC.get("clientIp"));
@@ -130,10 +128,10 @@ public class CredentialsService {
     }
 
     @Transactional
-    public ResponseEntity<Void> deleteCredentials(UUID id, String email) {
-        log.info("Delete Credentials for user {} - Service", tokenHasher.generateSha256Email(email));
+    public ResponseEntity<Void> deleteCredentials(UUID id, UUID userId) {
+        log.info("Delete Credentials for user {} - Service", userId);
 
-        CredentialsEntity credentialsEntity = credentialsDao.findByCredentialsIdAndUserEntity_Email(id, email);
+        CredentialsEntity credentialsEntity = credentialsDao.findByCredentialsIdAndUserEntity_UserId(id, userId);
         if (credentialsEntity == null) {
             throw new CredentialsException(CREDENTIAL_NOT_EXISTS);
         }
@@ -141,7 +139,7 @@ public class CredentialsService {
         credentialsDao.delete(credentialsEntity);
 
         AuditLogEntity auditLogEntity = new AuditLogEntity();
-        auditLogEntity.setUserId(userDao.findByEmail(email).getUserId());
+        auditLogEntity.setUserId(userId);
         auditLogEntity.setTimestamp(Instant.now());
         auditLogEntity.setAction(AuditAction.CREDENTIAL_DELETED);
         auditLogEntity.setIpAddress(MDC.get("clientIp"));

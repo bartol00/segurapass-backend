@@ -164,7 +164,7 @@ public class AuthorizationService {
         LoginCompleteResp resp = new LoginCompleteResp();
         resp.setM2(Base64.getEncoder().encodeToString(M2Server.toByteArray()));
         resp.setSaltKey(user.getSaltKey());
-        resp.setAccessToken(generateJwt(req.getEmail(), req.getDeviceId()));
+        resp.setAccessToken(generateJwt(user.getUserId(), req.getDeviceId()));
         resp.setRefreshToken(refreshToken);
         resp.setRefreshTokenExpiryTime(refreshExpiry);
 
@@ -193,7 +193,7 @@ public class AuthorizationService {
         log.info("JWT Refresh for user {} - Service", tokenHasher.generateSha256Email(userEntity.getEmail()));
 
         RefreshResp resp = new RefreshResp();
-        resp.setAccessToken(generateJwt(req.getEmail(), req.getDeviceId()));
+        resp.setAccessToken(generateJwt(userEntity.getUserId(), req.getDeviceId()));
 
         return ResponseEntity.ok(resp);
     }
@@ -243,10 +243,10 @@ public class AuthorizationService {
     }
 
 
-    private String generateJwt(String email, UUID deviceId) {
+    private String generateJwt(UUID userId, UUID deviceId) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("deviceId", deviceId);
-        return jwtService.generateToken(email, claims, 300);
+        return jwtService.generateToken(userId.toString(), claims, 180);
     }
 
     private boolean isValidEmail(String email) {

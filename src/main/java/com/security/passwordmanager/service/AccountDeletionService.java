@@ -22,6 +22,7 @@ import java.math.BigInteger;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
+import java.util.UUID;
 
 import static com.security.passwordmanager.exceptions.ErrorEnum.*;
 
@@ -40,17 +41,17 @@ public class AccountDeletionService {
     private final SrpFlow srpFlow;
 
     @Transactional
-    public ResponseEntity<AuthorizedDeletionStartResp> startAuthorizedDeletion(String email, AuthorizedDeletionStartReq req) {
-        UserEntity userEntity = userDao.findByEmail(email);
+    public ResponseEntity<AuthorizedDeletionStartResp> startAuthorizedDeletion(UUID userId, AuthorizedDeletionStartReq req) {
+        UserEntity userEntity = userDao.findByUserId(userId);
         if (userEntity == null) {
             throw new AccountDeletionException(USER_NOT_EXISTS);
         }
 
-        log.info("Start Account Deletion for user {} - Service", tokenHasher.generateSha256Email(email));
+        log.info("Start Account Deletion for user {} - Service", userId);
 
         SrpEntity srpEntity = srpFlow.beginFlow(req.getA(), req.getDeviceId(), userEntity);
 
-        SrpEntity existing = srpDao.findByUserEntity_EmailAndDeviceId(email, req.getDeviceId());
+        SrpEntity existing = srpDao.findByUserEntity_UserIdAndDeviceId(userId, req.getDeviceId());
         if (existing != null) {
             srpDao.delete(existing);
         }
@@ -64,8 +65,8 @@ public class AccountDeletionService {
     }
 
     @Transactional
-    public ResponseEntity<Void> completeAuthorizedDeletion(String email, AuthorizedDeletionCompleteReq req) {
-        SrpEntity srpEntity = srpDao.findByUserEntity_EmailAndDeviceId(email, req.getDeviceId());
+    public ResponseEntity<Void> completeAuthorizedDeletion(UUID userId, AuthorizedDeletionCompleteReq req) {
+        SrpEntity srpEntity = srpDao.findByUserEntity_UserIdAndDeviceId(userId, req.getDeviceId());
         if (srpEntity == null) {
             throw new AccountDeletionException(SRP_SESSION_NOT_FOUND);
         }
@@ -76,7 +77,7 @@ public class AccountDeletionService {
             throw new AccountDeletionException(SRP_SESSION_EXPIRED);
         }
 
-        log.info("Complete Account Deletion for user {} - Service", tokenHasher.generateSha256Email(email));
+        log.info("Complete Account Deletion for user {} - Service", userId);
 
         BigInteger M1Server = srpFlow.calculateM1Server(srpEntity);
         BigInteger M1Client = new BigInteger(1, Base64.getDecoder().decode(req.getM1()));
@@ -85,7 +86,7 @@ public class AccountDeletionService {
             throw new AccountDeletionException(SRP_VERIFICATION_FAILED);
         }
 
-        userDao.deleteByEmail(email);
+        userDao.deleteByUserId(userId);
 
         return ResponseEntity.ok(null);
     }

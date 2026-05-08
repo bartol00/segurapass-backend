@@ -20,34 +20,34 @@ public class CredentialsController {
     private final CredentialsService credentialsService;
 
     @GetMapping("/get")
-    public ResponseEntity<Page<CredentialsResp>> getCredentials(@AuthenticationPrincipal String email, @RequestParam(defaultValue = "0") int page,
+    public ResponseEntity<Page<CredentialsResp>> getCredentials(@AuthenticationPrincipal UUID userId, @RequestParam(defaultValue = "0") int page,
                                                                 @RequestParam(defaultValue = "20") int size) {
         log.info("Get Credentials - Controller");
-        return credentialsService.getCredentials(email, page, size);
+        return credentialsService.getCredentials(userId, page, size);
     }
 
     @GetMapping("/get/{id}")
-    public ResponseEntity<CredentialsResp> getCredentialById(@PathVariable UUID id, @AuthenticationPrincipal String email) {
+    public ResponseEntity<CredentialsResp> getCredentialById(@PathVariable UUID id, @AuthenticationPrincipal UUID userId) {
         log.info("Get Credentials By ID - Controller");
-        return credentialsService.getCredentialById(id, email);
+        return credentialsService.getCredentialById(id, userId);
     }
 
     @PostMapping("/create")
-    public ResponseEntity<CredentialsResp> createCredentials(@RequestBody CredentialsReq req, @AuthenticationPrincipal String email) {
+    public ResponseEntity<CredentialsResp> createCredentials(@RequestBody CredentialsReq req, @AuthenticationPrincipal UUID userId) {
         log.info("Create Credentials - Controller");
-        return credentialsService.createCredentials(req, email);
+        return credentialsService.createCredentials(req, userId);
     }
 
     @PutMapping("/update/{id}")
-    public ResponseEntity<CredentialsResp> updateCredentials(@PathVariable UUID id, @RequestBody CredentialsReq req, @AuthenticationPrincipal String email) {
+    public ResponseEntity<CredentialsResp> updateCredentials(@PathVariable UUID id, @RequestBody CredentialsReq req, @AuthenticationPrincipal UUID userId) {
         log.info("Update Credentials - Controller");
-        return credentialsService.updateCredentials(id, req, email);
+        return credentialsService.updateCredentials(id, req, userId);
     }
 
     @DeleteMapping("/delete/{id}")
-    public ResponseEntity<Void> deleteCredentials(@PathVariable UUID id, @AuthenticationPrincipal String email) {
+    public ResponseEntity<Void> deleteCredentials(@PathVariable UUID id, @AuthenticationPrincipal UUID userId) {
         log.info("Delete Credentials - Controller");
-        return credentialsService.deleteCredentials(id, email);
+        return credentialsService.deleteCredentials(id, userId);
     }
 
 }

@@ -1,6 +1,6 @@
 package com.security.passwordmanager.service;
 
-import com.security.passwordmanager.api.key.PublicKeyResp;
+import xyz.segurapass.api.key.PublicKeyResp;
 import com.security.passwordmanager.exceptions.KeysException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

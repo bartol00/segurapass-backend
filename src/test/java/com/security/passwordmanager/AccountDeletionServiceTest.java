@@ -1,6 +1,7 @@
 package com.security.passwordmanager;
 
 import com.security.passwordmanager.redis.RedisService;
+import com.security.passwordmanager.redis.entities.EmailDeletionRedisEntity;
 import com.security.passwordmanager.redis.entities.SrpRedisEntity;
 import org.junit.jupiter.api.*;
 import xyz.segurapass.api.deletion.*;
@@ -210,11 +211,11 @@ public class AccountDeletionServiceTest extends AbstractTestInitializer {
         accountDeletionService.startDeletionEmail(req);
 
         // then
-        assertTrue(emailDeletionDao.existsByUserEntity_Email(testEmail));
+        verify(emailService).sendDeletionEmail(eq(userEntity.getEmail()), anyString());
     }
 
     @Test
-    void shouldFailMissingTokenCompleteDeletionEmail() {
+    void shouldFailTokenExpiredCompleteDeletionEmail() {
         // given
         String randomToken = UUID.randomUUID().toString();
 
@@ -222,41 +223,26 @@ public class AccountDeletionServiceTest extends AbstractTestInitializer {
         AccountDeletionException ex = assertThrows(AccountDeletionException.class, () -> accountDeletionService.completeDeletionEmail(randomToken));
 
         // then
-        assertEquals(USER_DELETION_NOT_EXISTS.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
-        assertEquals(USER_DELETION_NOT_EXISTS.getMessage(), ex.getErrorEnum().getMessage());
-    }
-
-    @Test
-    void shouldFailExpiredTokenCompleteDeletionEmail() {
-        // given
-        EmailDeletionEntity emailDeletionEntity = emailDeletionDao.findByUserEntity_Email(email);
-        emailDeletionEntity.setTokenExpiry(Instant.now().minus(2, ChronoUnit.MINUTES));
-        emailDeletionDao.save(emailDeletionEntity);
-
-        // when
-        AccountDeletionException ex = assertThrows(AccountDeletionException.class, () -> accountDeletionService.completeDeletionEmail(token));
-
-        // then
-        assertEquals(USER_DELETION_EXPIRED.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
-        assertEquals(USER_DELETION_EXPIRED.getMessage(), ex.getErrorEnum().getMessage());
+        assertEquals(TOKEN_EXPIRED.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(TOKEN_EXPIRED.getMessage(), ex.getErrorEnum().getMessage());
     }
 
     @Test
     void shouldSucceedCompleteDeletionEmail() {
         // given
-        EmailDeletionEntity emailDeletionEntity = emailDeletionDao.findByUserEntity_Email(email);
-        emailDeletionEntity.setTokenExpiry(Instant.now().plus(2, ChronoUnit.MINUTES));
-        emailDeletionDao.save(emailDeletionEntity);
+        UUID userId = UUID.randomUUID();
+        EmailDeletionRedisEntity emailDeletionRedisEntity = new EmailDeletionRedisEntity(userId, "random");
+        doReturn(true).when(redisService).exists(anyString());
+        doReturn(emailDeletionRedisEntity).when(redisService).get(anyString(), eq(EmailDeletionRedisEntity.class));
+        doNothing().when(redisService).delete(anyString());
 
         // when
         ResponseEntity<String> response = accountDeletionService.completeDeletionEmail(token);
 
         // then
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertFalse(userDao.existsByEmail(email));
-        assertFalse(emailDeletionDao.existsByUserEntity_Email(email));
+        verify(userDao).deleteByUserId(userId);
     }
-
 
     private AuthorizedDeletionStartReq generateAuthorizedDeletionStartReq() {
         AuthorizedDeletionStartReq authorizedDeletionStartReq = new AuthorizedDeletionStartReq();

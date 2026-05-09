@@ -31,15 +31,6 @@ public class SrpFlowImpl implements SrpFlow {
         BigInteger b = new BigInteger(256, random);
         BigInteger B = k.multiply(v).add(g.modPow(b, N)).mod(N);
 
-//        SrpEntity srpEntity = new SrpEntity();
-//        srpEntity.setA(A);
-//        srpEntity.setBpriv(Base64.getEncoder().encodeToString(b.toByteArray()));
-//        srpEntity.setB(Base64.getEncoder().encodeToString(B.toByteArray()));
-//        srpEntity.setVerifier(Base64.getEncoder().encodeToString(v.toByteArray()));
-//        srpEntity.setDeviceId(deviceId);
-//        srpEntity.setUserEntity(userEntity);
-//        srpEntity.setExpiryTime(Instant.now().plus(60, ChronoUnit.SECONDS));
-
         return new SrpRedisEntity(
                 A,
                 Base64.getEncoder().encodeToString(b.toByteArray()),

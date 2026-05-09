@@ -1,12 +1,13 @@
 package com.security.passwordmanager;
 
+import com.security.passwordmanager.redis.RedisService;
+import com.security.passwordmanager.redis.entities.SrpRedisEntity;
 import org.junit.jupiter.api.*;
 import xyz.segurapass.api.deletion.*;
 import com.security.passwordmanager.exceptions.AccountDeletionException;
 import com.security.passwordmanager.helpers.EmailService;
 import com.security.passwordmanager.helpers.SrpFlow;
 import com.security.passwordmanager.helpers.TokenHasher;
-import com.security.passwordmanager.model.authorization.SrpDao;
 import com.security.passwordmanager.model.authorization.SrpEntity;
 import com.security.passwordmanager.model.authorization.UserDao;
 import com.security.passwordmanager.model.authorization.UserEntity;
@@ -51,11 +52,11 @@ public class AccountDeletionServiceTest extends AbstractTestInitializer {
     @MockitoSpyBean
     private EmailDeletionDao emailDeletionDao;
     @MockitoSpyBean
-    private SrpDao srpDao;
-    @MockitoSpyBean
     private SrpFlow srpFlow;
     @MockitoBean
     private EmailService emailService;
+    @MockitoSpyBean
+    private RedisService redisService;
 
     @BeforeEach
     void setup() {
@@ -104,43 +105,40 @@ public class AccountDeletionServiceTest extends AbstractTestInitializer {
     }
 
     @Test
-    void shouldFailSrpIsNullCompleteAuthorizedDeletion() {
+    void shouldFailUserNotExistsAuthorizedDeletion() {
         // given
-        doReturn(null).when(srpDao).findByUserEntity_UserIdAndDeviceId(authorizedUserId, authorizedDeviceId);
         AuthorizedDeletionCompleteReq req = generateAuthorizedDeletionCompleteReq();
+        doReturn(null).when(userDao).findByUserId(authorizedUserId);
 
         // when
         AccountDeletionException ex = assertThrows(AccountDeletionException.class, () -> accountDeletionService.completeAuthorizedDeletion(authorizedUserId, req));
 
         // then
-        assertEquals(SRP_SESSION_NOT_FOUND.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
-        assertEquals(SRP_SESSION_NOT_FOUND.getMessage(), ex.getErrorEnum().getMessage());
+        assertEquals(USER_NOT_EXISTS.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(USER_NOT_EXISTS.getMessage(), ex.getErrorEnum().getMessage());
     }
 
     @Test
-    void shouldFailSrpIsExpiredCompleteAuthorizedDeletion() {
+    void shouldFailTokenExpiredCompleteAuthorizedDeletion() {
         // given
-        SrpEntity srpEntity = generateSrpEntity();
-        srpEntity.setExpiryTime(Instant.now().minus(1, ChronoUnit.MINUTES));
         AuthorizedDeletionCompleteReq req = generateAuthorizedDeletionCompleteReq();
-        doReturn(srpEntity).when(srpDao).findByUserEntity_UserIdAndDeviceId(authorizedUserId, authorizedDeviceId);
-        doNothing().when(srpDao).delete(srpEntity);
+        String userIdString = authorizedUserId.toString();
+        String deviceIdString = req.getDeviceId().toString();
+        String redisKey = "segurapass:srp:" + userIdString + ":" + deviceIdString;
+        doReturn(false).when(redisService).exists(redisKey);
 
         // when
         AccountDeletionException ex = assertThrows(AccountDeletionException.class, () -> accountDeletionService.completeAuthorizedDeletion(authorizedUserId, req));
 
         // then
-        assertEquals(SRP_SESSION_EXPIRED.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
-        assertEquals(SRP_SESSION_EXPIRED.getMessage(), ex.getErrorEnum().getMessage());
+        assertEquals(TOKEN_EXPIRED.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(TOKEN_EXPIRED.getMessage(), ex.getErrorEnum().getMessage());
     }
 
     @Test
     void shouldFailM1MismatchCompleteAuthorizedDeletion() {
         // given
-        SrpEntity srpEntity = generateSrpEntity();
         AuthorizedDeletionCompleteReq req = generateAuthorizedDeletionCompleteReq();
-        doReturn(srpEntity).when(srpDao).findByUserEntity_UserIdAndDeviceId(authorizedUserId, authorizedDeviceId);
-        doNothing().when(srpDao).delete(srpEntity);
 
         // when
         AccountDeletionException ex = assertThrows(AccountDeletionException.class, () -> accountDeletionService.completeAuthorizedDeletion(authorizedUserId, req));
@@ -153,12 +151,14 @@ public class AccountDeletionServiceTest extends AbstractTestInitializer {
     @Test
     void shouldSucceedCompleteAuthorizedDeletion() {
         // given
-        SrpEntity srpEntity = generateSrpEntity();
         AuthorizedDeletionCompleteReq req = generateAuthorizedDeletionCompleteReq();
-        doReturn(srpEntity).when(srpDao).findByUserEntity_UserIdAndDeviceId(authorizedUserId, authorizedDeviceId);
-        doNothing().when(srpDao).delete(srpEntity);
-        doReturn(new BigInteger(1, Base64.getDecoder().decode(req.getM1()))).when(srpFlow).calculateM1Server(srpEntity);
-        doNothing().when(userDao).deleteByEmail(authorizedEmail);
+        String userIdString = authorizedUserId.toString();
+        String deviceIdString = req.getDeviceId().toString();
+        String redisKey = "segurapass:srp:" + userIdString + ":" + deviceIdString;
+        doReturn(true).when(redisService).exists(redisKey);
+        doReturn(new SrpRedisEntity()).when(redisService).get(redisKey, SrpRedisEntity.class);
+        doReturn(new BigInteger(1, Base64.getDecoder().decode(req.getM1()))).when(srpFlow).calculateM1Server(any(SrpRedisEntity.class));
+        doNothing().when(userDao).deleteByUserId(authorizedUserId);
 
         // when
         ResponseEntity<Void> response = accountDeletionService.completeAuthorizedDeletion(authorizedUserId, req);

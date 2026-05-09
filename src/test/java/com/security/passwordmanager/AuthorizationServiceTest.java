@@ -1,20 +1,19 @@
 package com.security.passwordmanager;
 
+import com.security.passwordmanager.helpers.EmailService;
 import com.security.passwordmanager.redis.RedisService;
 import com.security.passwordmanager.redis.entities.SessionRedisEntity;
+import com.security.passwordmanager.redis.entities.SrpRedisEntity;
 import com.security.passwordmanager.redis.entities.UserRedisEntity;
 import org.junit.jupiter.api.AfterEach;
 import xyz.segurapass.api.authorization.*;
 import com.security.passwordmanager.exceptions.AuthorizationException;
-import com.security.passwordmanager.helpers.EmailService;
 import com.security.passwordmanager.helpers.SrpFlow;
 import com.security.passwordmanager.helpers.TokenHasher;
 import com.security.passwordmanager.model.authorization.*;
 import com.security.passwordmanager.service.AuthorizationService;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -46,8 +45,6 @@ public class AuthorizationServiceTest extends AbstractTestInitializer {
     private TokenHasher tokenHasher;
     @MockitoSpyBean
     private UserDao userDao;
-    @MockitoSpyBean
-    private SrpDao srpDao;
     @MockitoSpyBean
     private SrpFlow srpFlow;
     @MockitoBean
@@ -143,48 +140,50 @@ public class AuthorizationServiceTest extends AbstractTestInitializer {
         // then
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(response.getBody().getSaltAuth(), userEntity.getSaltAuth());
-        assertNotEquals(0, srpDao.findAll().size());
     }
 
     @Test
-    void shouldFailSrpEntityNullLoginEnd() {
+    void shouldFailUserNotExistsLoginEnd() {
         // given
         LoginCompleteReq req = generateLoginCompleteReq();
-        doReturn(null).when(srpDao).findByUserEntity_EmailAndDeviceId(req.getEmail(), req.getDeviceId());
+        doReturn(false).when(userDao).existsByEmail(req.getEmail());
 
         // when
         AuthorizationException ex = assertThrows(AuthorizationException.class, () -> authorizationService.loginUserEnd(req));
 
         // then
-        assertEquals(SRP_SESSION_NOT_FOUND.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
-        assertEquals(SRP_SESSION_NOT_FOUND.getMessage(), ex.getErrorEnum().getMessage());
+        assertEquals(USER_NOT_EXISTS.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(USER_NOT_EXISTS.getMessage(), ex.getErrorEnum().getMessage());
     }
 
     @Test
-    void shouldFailSrpEntityExpiredLoginEnd() {
+    void shouldFailUserEmailUnverifiedLoginEnd() {
         // given
         LoginCompleteReq req = generateLoginCompleteReq();
-        SrpEntity srpEntity = generateSrpEntity();
-        srpEntity.setExpiryTime(Instant.now().minus(2, ChronoUnit.MINUTES));
-        doReturn(srpEntity).when(srpDao).findByUserEntity_EmailAndDeviceId(req.getEmail(), req.getDeviceId());
-        doNothing().when(srpDao).delete(any(SrpEntity.class));
+        UserEntity userEntity = generateUserEntity();
+        userDao.save(userEntity);
 
         // when
         AuthorizationException ex = assertThrows(AuthorizationException.class, () -> authorizationService.loginUserEnd(req));
 
         // then
-        assertEquals(SRP_SESSION_EXPIRED.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
-        assertEquals(SRP_SESSION_EXPIRED.getMessage(), ex.getErrorEnum().getMessage());
+        assertEquals(USER_EMAIL_UNVERIFIED.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(USER_EMAIL_UNVERIFIED.getMessage(), ex.getErrorEnum().getMessage());
     }
 
     @Test
     void shouldFailM1MismatchLoginEnd() {
         // given
         LoginCompleteReq req = generateLoginCompleteReq();
-        SrpEntity srpEntity = generateSrpEntity();
-        doReturn(srpEntity).when(srpDao).findByUserEntity_EmailAndDeviceId(req.getEmail(), req.getDeviceId());
-        doNothing().when(srpDao).delete(any(SrpEntity.class));
-        doReturn(BigInteger.ONE).when(srpFlow).calculateM1Server(srpEntity);
+        UserEntity userEntity = generateUserEntity();
+        userEntity.setEmailVerified(true);
+        userDao.save(userEntity);
+        String userIdString = userEntity.getUserId().toString();
+        String deviceIdString = req.getDeviceId().toString();
+        String redisKey = "segurapass:srp:" + userIdString + ":" + deviceIdString;
+        doReturn(true).when(redisService).exists(redisKey);
+        doReturn(new SrpRedisEntity()).when(redisService).get(redisKey, SrpRedisEntity.class);
+        doReturn(BigInteger.ONE).when(srpFlow).calculateM1Server(any(SrpRedisEntity.class));
 
         // when
         AuthorizationException ex = assertThrows(AuthorizationException.class, () -> authorizationService.loginUserEnd(req));
@@ -199,11 +198,16 @@ public class AuthorizationServiceTest extends AbstractTestInitializer {
         // given
         MDC.put("clientIp", "127.0.0.1");
         LoginCompleteReq req = generateLoginCompleteReq();
-        SrpEntity srpEntity = generateSrpEntity();
         UserEntity userEntity = generateUserEntity();
-        doReturn(srpEntity).when(srpDao).findByUserEntity_EmailAndDeviceId(req.getEmail(), req.getDeviceId());
-        doNothing().when(srpDao).delete(any(SrpEntity.class));
-        doReturn(new BigInteger(1, Base64.getDecoder().decode(req.getM1()))).when(srpFlow).calculateM1Server(srpEntity);
+        userEntity.setEmailVerified(true);
+        userDao.save(userEntity);
+        String userIdString = userEntity.getUserId().toString();
+        String deviceIdString = req.getDeviceId().toString();
+        String redisKey = "segurapass:srp:" + userIdString + ":" + deviceIdString;
+        doReturn(true).when(redisService).exists(redisKey);
+        doReturn(new SrpRedisEntity()).when(redisService).get(redisKey, SrpRedisEntity.class);
+        doReturn(new BigInteger(1, Base64.getDecoder().decode(req.getM1()))).when(srpFlow).calculateM1Server(any(SrpRedisEntity.class));
+        doReturn(BigInteger.ONE).when(srpFlow).calculateM2Server(any(SrpRedisEntity.class), any(BigInteger.class));
         doReturn(userEntity).when(userDao).findByEmail(req.getEmail());
         doNothing().when(redisService).save(any(String.class), any(Object.class), any(Duration.class));
 

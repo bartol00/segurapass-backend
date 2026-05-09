@@ -1,8 +1,8 @@
 package com.security.passwordmanager.helpers.impl;
 
 import com.security.passwordmanager.helpers.SrpFlow;
-import com.security.passwordmanager.model.authorization.SrpEntity;
 import com.security.passwordmanager.model.authorization.UserEntity;
+import com.security.passwordmanager.redis.entities.SrpRedisEntity;
 import org.bouncycastle.crypto.Digest;
 import org.bouncycastle.crypto.agreement.srp.SRP6StandardGroups;
 import org.bouncycastle.crypto.agreement.srp.SRP6Util;
@@ -12,10 +12,7 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigInteger;
 import java.security.SecureRandom;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.Base64;
-import java.util.UUID;
 
 @Component
 public class SrpFlowImpl implements SrpFlow {
@@ -27,31 +24,36 @@ public class SrpFlowImpl implements SrpFlow {
     private final BigInteger g = group.getG();
 
     @Override
-    public SrpEntity beginFlow(String A, UUID deviceId, UserEntity userEntity) {
+    public SrpRedisEntity beginFlow(String A, UserEntity userEntity) {
         BigInteger k = SRP6Util.calculateK(digest, N, g);
 
         BigInteger v = new BigInteger(1, Base64.getDecoder().decode(userEntity.getVerifier()));
         BigInteger b = new BigInteger(256, random);
         BigInteger B = k.multiply(v).add(g.modPow(b, N)).mod(N);
 
-        SrpEntity srpEntity = new SrpEntity();
-        srpEntity.setA(A);
-        srpEntity.setBpriv(Base64.getEncoder().encodeToString(b.toByteArray()));
-        srpEntity.setB(Base64.getEncoder().encodeToString(B.toByteArray()));
-        srpEntity.setVerifier(Base64.getEncoder().encodeToString(v.toByteArray()));
-        srpEntity.setDeviceId(deviceId);
-        srpEntity.setUserEntity(userEntity);
-        srpEntity.setExpiryTime(Instant.now().plus(60, ChronoUnit.SECONDS));
+//        SrpEntity srpEntity = new SrpEntity();
+//        srpEntity.setA(A);
+//        srpEntity.setBpriv(Base64.getEncoder().encodeToString(b.toByteArray()));
+//        srpEntity.setB(Base64.getEncoder().encodeToString(B.toByteArray()));
+//        srpEntity.setVerifier(Base64.getEncoder().encodeToString(v.toByteArray()));
+//        srpEntity.setDeviceId(deviceId);
+//        srpEntity.setUserEntity(userEntity);
+//        srpEntity.setExpiryTime(Instant.now().plus(60, ChronoUnit.SECONDS));
 
-        return srpEntity;
+        return new SrpRedisEntity(
+                A,
+                Base64.getEncoder().encodeToString(b.toByteArray()),
+                Base64.getEncoder().encodeToString(B.toByteArray()),
+                Base64.getEncoder().encodeToString(v.toByteArray())
+        );
     }
 
     @Override
-    public BigInteger calculateM1Server(SrpEntity srpEntity) {
-        BigInteger A = new BigInteger(1, Base64.getDecoder().decode(srpEntity.getA()));
-        BigInteger B = new BigInteger(1, Base64.getDecoder().decode(srpEntity.getB()));
-        BigInteger b = new BigInteger(1, Base64.getDecoder().decode(srpEntity.getBpriv()));
-        BigInteger v = new BigInteger(1, Base64.getDecoder().decode(srpEntity.getVerifier()));
+    public BigInteger calculateM1Server(SrpRedisEntity srpRedisEntity) {
+        BigInteger A = new BigInteger(1, Base64.getDecoder().decode(srpRedisEntity.getA()));
+        BigInteger B = new BigInteger(1, Base64.getDecoder().decode(srpRedisEntity.getB()));
+        BigInteger b = new BigInteger(1, Base64.getDecoder().decode(srpRedisEntity.getBpriv()));
+        BigInteger v = new BigInteger(1, Base64.getDecoder().decode(srpRedisEntity.getVerifier()));
 
         BigInteger u = SRP6Util.calculateU(digest, N, A, B);
         BigInteger S = A.multiply(v.modPow(u, N)).modPow(b, N);
@@ -60,11 +62,11 @@ public class SrpFlowImpl implements SrpFlow {
     }
 
     @Override
-    public BigInteger calculateM2Server(SrpEntity srpEntity, BigInteger M1Client) {
-        BigInteger A = new BigInteger(1, Base64.getDecoder().decode(srpEntity.getA()));
-        BigInteger B = new BigInteger(1, Base64.getDecoder().decode(srpEntity.getB()));
-        BigInteger b = new BigInteger(1, Base64.getDecoder().decode(srpEntity.getBpriv()));
-        BigInteger v = new BigInteger(1, Base64.getDecoder().decode(srpEntity.getVerifier()));
+    public BigInteger calculateM2Server(SrpRedisEntity srpRedisEntity, BigInteger M1Client) {
+        BigInteger A = new BigInteger(1, Base64.getDecoder().decode(srpRedisEntity.getA()));
+        BigInteger B = new BigInteger(1, Base64.getDecoder().decode(srpRedisEntity.getB()));
+        BigInteger b = new BigInteger(1, Base64.getDecoder().decode(srpRedisEntity.getBpriv()));
+        BigInteger v = new BigInteger(1, Base64.getDecoder().decode(srpRedisEntity.getVerifier()));
 
         BigInteger u = SRP6Util.calculateU(digest, N, A, B);
         BigInteger S = A.multiply(v.modPow(u, N)).modPow(b, N);

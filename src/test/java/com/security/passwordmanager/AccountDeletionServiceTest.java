@@ -9,11 +9,8 @@ import com.security.passwordmanager.exceptions.AccountDeletionException;
 import com.security.passwordmanager.helpers.EmailService;
 import com.security.passwordmanager.helpers.SrpFlow;
 import com.security.passwordmanager.helpers.TokenHasher;
-import com.security.passwordmanager.model.authorization.SrpEntity;
 import com.security.passwordmanager.model.authorization.UserDao;
 import com.security.passwordmanager.model.authorization.UserEntity;
-import com.security.passwordmanager.model.deletion.EmailDeletionDao;
-import com.security.passwordmanager.model.deletion.EmailDeletionEntity;
 import com.security.passwordmanager.service.AccountDeletionService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,7 +22,6 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import java.math.BigInteger;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.UUID;
 
@@ -51,8 +47,6 @@ public class AccountDeletionServiceTest extends AbstractTestInitializer {
     @MockitoSpyBean
     private UserDao userDao;
     @MockitoSpyBean
-    private EmailDeletionDao emailDeletionDao;
-    @MockitoSpyBean
     private SrpFlow srpFlow;
     @MockitoBean
     private EmailService emailService;
@@ -63,9 +57,6 @@ public class AccountDeletionServiceTest extends AbstractTestInitializer {
     void setup() {
         UserEntity userEntity = generateUserEntity(userId);
         userEntity = userDao.save(userEntity);
-        EmailDeletionEntity emailDeletionEntity = generateEmailDeletionEntity();
-        emailDeletionEntity.setUserEntity(userEntity);
-        emailDeletionDao.save(emailDeletionEntity);
         UserEntity authorizedUser = generateUserEntity(authorizedUserId);
         authorizedUser.setEmail(authorizedEmail);
         authorizedUser.setVerifier("authorizedVerifier");
@@ -169,35 +160,6 @@ public class AccountDeletionServiceTest extends AbstractTestInitializer {
     }
 
     @Test
-    void shouldFailUserIsNullStartDeletionEmail() {
-        // given
-        String randomEmail = "random@gmail.com";
-        EmailDeletionStartReq req = generateEmailDeletionStartReq();
-        req.setEmail(randomEmail);
-
-        // when
-        accountDeletionService.startDeletionEmail(req);
-
-        // then
-        assertFalse(emailDeletionDao.existsByUserEntity_Email(randomEmail));
-    }
-
-    @Test
-    void shouldFailEmailEntityAlreadyExistsStartDeletionEmail() {
-        // given
-        EmailDeletionStartReq req = generateEmailDeletionStartReq();
-        EmailDeletionEntity emailDeletionEntity = emailDeletionDao.findByUserEntity_Email(email);
-
-        // when
-        accountDeletionService.startDeletionEmail(req);
-        EmailDeletionEntity retrievedEntity = emailDeletionDao.findByUserEntity_Email(email);
-
-        // then
-        assertEquals(emailDeletionEntity.getToken(), retrievedEntity.getToken());
-        assertEquals(emailDeletionEntity.getId(), retrievedEntity.getId());
-    }
-
-    @Test
     void shouldSucceedStartDeletionEmail() {
         // given
         String testEmail = "test@gmail.com";
@@ -271,28 +233,7 @@ public class AccountDeletionServiceTest extends AbstractTestInitializer {
         userEntity.setSaltAuth(UUID.randomUUID().toString());
         userEntity.setVerifier(UUID.randomUUID().toString());
         userEntity.setSaltKey(UUID.randomUUID().toString());
-        userEntity.setEmailVerified(true);
         return userEntity;
-    }
-
-    private EmailDeletionEntity generateEmailDeletionEntity() {
-        EmailDeletionEntity emailDeletionEntity = new EmailDeletionEntity();
-        emailDeletionEntity.setToken(tokenHasher.generateSha256(token));
-        emailDeletionEntity.setTokenExpiry(Instant.now());
-        return emailDeletionEntity;
-    }
-
-    private SrpEntity generateSrpEntity() {
-        SrpEntity srpEntity = new SrpEntity();
-        srpEntity.setId(1L);
-        srpEntity.setA("publicA");
-        srpEntity.setBpriv("privateB");
-        srpEntity.setB("publicB");
-        srpEntity.setVerifier("verifier");
-        srpEntity.setDeviceId(UUID.randomUUID());
-        srpEntity.setUserEntity(userDao.findByEmail(authorizedEmail));
-        srpEntity.setExpiryTime(Instant.now().plus(30, ChronoUnit.MINUTES));
-        return srpEntity;
     }
 
 }

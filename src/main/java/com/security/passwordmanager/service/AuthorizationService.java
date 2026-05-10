@@ -97,9 +97,6 @@ public class AuthorizationService {
         }
 
         UserEntity userEntity = userDao.findByEmail(req.getEmail());
-        if (!userEntity.getEmailVerified()) {
-            throw new AuthorizationException(USER_EMAIL_UNVERIFIED);
-        }
 
         String userIdString = userEntity.getUserId().toString();
         String deviceIdString = req.getDeviceId().toString();
@@ -127,9 +124,6 @@ public class AuthorizationService {
         }
 
         UserEntity userEntity = userDao.findByEmail(req.getEmail());
-        if (!userEntity.getEmailVerified()) {
-            throw new AuthorizationException(USER_EMAIL_UNVERIFIED);
-        }
 
         String userIdString = userEntity.getUserId().toString();
         String deviceIdString = req.getDeviceId().toString();
@@ -244,7 +238,6 @@ public class AuthorizationService {
         userEntity.setSaltAuth(userRedisEntity.getSaltAuth());
         userEntity.setVerifier(userRedisEntity.getVerifier());
         userEntity.setSaltKey(userRedisEntity.getSaltKey());
-        userEntity.setEmailVerified(true);
         userEntity.setCreationTime(userRedisEntity.getCreationTime());
         userEntity.setLastLogin(Instant.now());
         userDao.save(userEntity);

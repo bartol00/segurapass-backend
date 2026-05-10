@@ -1,0 +1,15 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+    <changeSet id="2026-05-10-01-cleanup-old-tables" author="bartol">
+        <dropTable tableName="email_deletion" cascadeConstraints="true"/>
+        <dropTable tableName="session" cascadeConstraints="true"/>
+        <dropTable tableName="srp_session" cascadeConstraints="true"/>
+    </changeSet>
+    <changeSet id="2026-05-10-02-remove-email-verification-columns" author="bartol">
+        <dropColumn tableName="users">
+            <column name="verification_expiry_time"/>
+            <column name="verification_string"/>
+            <column name="email_verified"/>
+        </dropColumn>
+    </changeSet>
+</databaseChangeLog>

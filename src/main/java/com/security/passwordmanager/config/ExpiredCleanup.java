@@ -2,7 +2,6 @@ package com.security.passwordmanager.config;
 
 import com.security.passwordmanager.model.audit.AuditLogDao;
 import com.security.passwordmanager.model.authorization.*;
-import com.security.passwordmanager.model.deletion.EmailDeletionDao;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,26 +16,9 @@ import java.time.temporal.ChronoUnit;
 public class ExpiredCleanup {
 
     @Autowired
-    private SessionDao sessionDao;
-    @Autowired
     private UserDao userDao;
     @Autowired
-    private SrpDao srpDao;
-    @Autowired
-    private EmailDeletionDao emailDeletionDao;
-    @Autowired
     private AuditLogDao auditLogDao;
-
-    @Transactional
-    @Scheduled(cron = "0 */2 * * * *")
-    public void deleteExpiredEntities() {
-        Instant now = Instant.now();
-        sessionDao.deleteByExpiryTimeLessThan(now);
-        userDao.deleteByVerificationExpiryTimeLessThanAndEmailVerified(now, false);
-        srpDao.deleteByExpiryTimeLessThan(now);
-        emailDeletionDao.deleteByTokenExpiryLessThan(now);
-        log.info("Deleted expired entities");
-    }
 
     @Transactional
     @Scheduled(cron = "0 5 2,14 * * *")

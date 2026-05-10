@@ -228,9 +228,6 @@ public class CredentialsServiceIT extends AbstractTestInitializer {
         userEntity.setSaltAuth("saltAuth");
         userEntity.setVerifier("verifier");
         userEntity.setSaltKey("saltKey");
-        userEntity.setVerificationString(null);
-        userEntity.setVerificationExpiryTime(null);
-        userEntity.setEmailVerified(true);
         return userEntity;
     }
 

@@ -1,7 +1,6 @@
 package com.security.passwordmanager.model.authorization;
 
 import com.security.passwordmanager.model.credentials.CredentialsEntity;
-import com.security.passwordmanager.model.deletion.EmailDeletionEntity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.Length;
@@ -40,15 +39,6 @@ public class UserEntity {
     @Column(name = "SALT_KEY", nullable = false, unique = true)
     private String saltKey;
 
-    @Column(name = "VERIFICATION_STRING")
-    private String verificationString;
-
-    @Column(name = "VERIFICATION_EXPIRY_TIME")
-    private Instant verificationExpiryTime;
-
-    @Column(name = "EMAIL_VERIFIED", nullable = false)
-    private Boolean emailVerified;
-
     @Column(name = "CREATION_TIME")
     private Instant creationTime;
 
@@ -56,16 +46,7 @@ public class UserEntity {
     private Instant lastLogin;
 
     @OneToMany(mappedBy = "userEntity", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<SessionEntity> sessionEntities;
-
-    @OneToMany(mappedBy = "userEntity", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<SrpEntity> srpEntities;
-
-    @OneToMany(mappedBy = "userEntity", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CredentialsEntity> credentialsEntities;
-
-    @OneToMany(mappedBy = "userEntity", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<EmailDeletionEntity> emailDeletionEntities;
 
     @Override
     public final boolean equals(Object o) {

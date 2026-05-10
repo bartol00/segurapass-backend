@@ -131,7 +131,6 @@ public class AuthorizationServiceTest extends AbstractTestInitializer {
         // given
         LoginStartReq req = generateLoginStartReq();
         UserEntity userEntity = generateUserEntity();
-        userEntity.setEmailVerified(true);
         userDao.save(userEntity);
 
         // when
@@ -157,26 +156,10 @@ public class AuthorizationServiceTest extends AbstractTestInitializer {
     }
 
     @Test
-    void shouldFailUserEmailUnverifiedLoginEnd() {
-        // given
-        LoginCompleteReq req = generateLoginCompleteReq();
-        UserEntity userEntity = generateUserEntity();
-        userDao.save(userEntity);
-
-        // when
-        AuthorizationException ex = assertThrows(AuthorizationException.class, () -> authorizationService.loginUserEnd(req));
-
-        // then
-        assertEquals(USER_EMAIL_UNVERIFIED.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
-        assertEquals(USER_EMAIL_UNVERIFIED.getMessage(), ex.getErrorEnum().getMessage());
-    }
-
-    @Test
     void shouldFailM1MismatchLoginEnd() {
         // given
         LoginCompleteReq req = generateLoginCompleteReq();
         UserEntity userEntity = generateUserEntity();
-        userEntity.setEmailVerified(true);
         userDao.save(userEntity);
         String userIdString = userEntity.getUserId().toString();
         String deviceIdString = req.getDeviceId().toString();
@@ -199,7 +182,6 @@ public class AuthorizationServiceTest extends AbstractTestInitializer {
         MDC.put("clientIp", "127.0.0.1");
         LoginCompleteReq req = generateLoginCompleteReq();
         UserEntity userEntity = generateUserEntity();
-        userEntity.setEmailVerified(true);
         userDao.save(userEntity);
         String userIdString = userEntity.getUserId().toString();
         String deviceIdString = req.getDeviceId().toString();
@@ -325,7 +307,6 @@ public class AuthorizationServiceTest extends AbstractTestInitializer {
         userEntity.setSaltAuth(userRedisEntity.getSaltAuth());
         userEntity.setVerifier(userRedisEntity.getVerifier());
         userEntity.setSaltKey(userRedisEntity.getSaltKey());
-        userEntity.setEmailVerified(true);
         userEntity.setCreationTime(userRedisEntity.getCreationTime());
         userEntity.setLastLogin(Instant.now());
         userDao.save(userEntity);
@@ -404,23 +385,7 @@ public class AuthorizationServiceTest extends AbstractTestInitializer {
         userEntity.setSaltAuth("saltAuth");
         userEntity.setVerifier("verifier");
         userEntity.setSaltKey("saltKey");
-        userEntity.setVerificationString(tokenHasher.generateSha256(emailVerificationToken));
-        userEntity.setVerificationExpiryTime(Instant.now().plus(1, ChronoUnit.DAYS));
-        userEntity.setEmailVerified(false);
         return userEntity;
-    }
-    
-    private SrpEntity generateSrpEntity() {
-        SrpEntity srpEntity = new SrpEntity();
-        srpEntity.setId(1L);
-        srpEntity.setA("publicA");
-        srpEntity.setBpriv("privateB");
-        srpEntity.setB("publicB");
-        srpEntity.setVerifier("verifier");
-        srpEntity.setDeviceId(UUID.randomUUID());
-        srpEntity.setUserEntity(generateUserEntity());
-        srpEntity.setExpiryTime(Instant.now().plus(30, ChronoUnit.MINUTES));
-        return srpEntity;
     }
 
 }

@@ -46,6 +46,7 @@ public class UserEntity {
     private Instant lastLogin;
 
     @OneToMany(mappedBy = "userEntity", cascade = CascadeType.ALL, orphanRemoval = true)
+    @ToString.Exclude
     private List<CredentialsEntity> credentialsEntities;
 
     @Override

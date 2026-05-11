@@ -38,35 +38,34 @@ public class CredentialsService {
 
     @Transactional
     public ResponseEntity<Page<CredentialsResp>> getCredentials(UUID userId, int page, int size) {
-        log.info("Get Credentials for user {} - Service", userId);
-
         Pageable pageable = PageRequest.of(page, size);
         Page<CredentialsEntity> credentialsEntityPage = credentialsDao.findByUserEntity_UserId(userId, pageable);
+
+        log.info("Get Credentials for user: {} - Service", userId);
+
         return ResponseEntity.ok(mapper.toCredentialsRespPage(credentialsEntityPage));
     }
 
     @Transactional
     public ResponseEntity<CredentialsResp> getCredentialById(UUID id, UUID userId) {
-        log.info("Get Credentials By ID for user {} - Service", userId);
-
         CredentialsEntity credentialsEntity = credentialsDao.findByCredentialsIdAndUserEntity_UserId(id, userId);
         if (credentialsEntity == null) {
             throw new CredentialsException(CREDENTIAL_NOT_EXISTS);
         }
+
+        log.info("Get Credentials By ID for user: {} - Service", userId);
+
         return ResponseEntity.ok(mapper.toCredentialsResp(credentialsEntity));
     }
 
     @Transactional
     public ResponseEntity<CredentialsResp> createCredentials(CredentialsReq req, UUID userId) {
-        log.info("Create Credentials for user {} - Service", userId);
-
         UserEntity userEntity = userDao.findByUserId(userId);
 
         CredentialsEntity credentialsEntity = mapper.toCredentialsEntity(req);
         credentialsEntity.setUserEntity(userEntity);
         credentialsEntity.setCredentialsId(UUID.randomUUID());
         credentialsEntity.setLastUpdated(Instant.now());
-
         credentialsEntity = credentialsDao.save(credentialsEntity);
 
         AuditLogEntity auditLogEntity = new AuditLogEntity();
@@ -78,13 +77,13 @@ public class CredentialsService {
         auditLogEntity.setComment("Created credential with ID: " + credentialsEntity.getCredentialsId());
         auditLogDao.save(auditLogEntity);
 
+        log.info("Create Credentials for user: {} - Service", userId);
+
         return ResponseEntity.ok(mapper.toCredentialsResp(credentialsEntity));
     }
 
     @Transactional
     public ResponseEntity<CredentialsResp> updateCredentials(UUID id, CredentialsReq req, UUID userId) {
-        log.info("Update Credentials for user {} - Service", userId);
-
         CredentialsEntity entity = credentialsDao.findByCredentialsIdAndUserEntity_UserId(id, userId);
         if (entity == null) {
             throw new CredentialsException(CREDENTIAL_NOT_EXISTS);
@@ -112,7 +111,6 @@ public class CredentialsService {
             entity.setIvPassword(req.getIvPassword());
         }
         entity.setLastUpdated(Instant.now());
-
         entity = credentialsDao.save(entity);
 
         AuditLogEntity auditLogEntity = new AuditLogEntity();
@@ -124,13 +122,13 @@ public class CredentialsService {
         auditLogEntity.setComment("Updated credential with ID: " + entity.getCredentialsId());
         auditLogDao.save(auditLogEntity);
 
+        log.info("Update Credentials for user: {} - Service", userId);
+
         return ResponseEntity.ok(mapper.toCredentialsResp(entity));
     }
 
     @Transactional
     public ResponseEntity<Void> deleteCredentials(UUID id, UUID userId) {
-        log.info("Delete Credentials for user {} - Service", userId);
-
         CredentialsEntity credentialsEntity = credentialsDao.findByCredentialsIdAndUserEntity_UserId(id, userId);
         if (credentialsEntity == null) {
             throw new CredentialsException(CREDENTIAL_NOT_EXISTS);
@@ -146,6 +144,8 @@ public class CredentialsService {
         auditLogEntity.setSuccess(true);
         auditLogEntity.setComment("Deleted credential with ID: " + credentialsEntity.getCredentialsId());
         auditLogDao.save(auditLogEntity);
+
+        log.info("Delete Credentials for user: {} - Service", userId);
 
         return ResponseEntity.ok(null);
     }

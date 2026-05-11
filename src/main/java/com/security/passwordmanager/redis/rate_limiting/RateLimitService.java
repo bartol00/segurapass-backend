@@ -1,4 +1,4 @@
-package com.security.passwordmanager.config.rate_limiting;
+package com.security.passwordmanager.redis.rate_limiting;
 
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;

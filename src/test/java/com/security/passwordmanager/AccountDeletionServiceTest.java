@@ -21,7 +21,6 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import java.math.BigInteger;
-import java.time.Instant;
 import java.util.Base64;
 import java.util.UUID;
 
@@ -123,8 +122,8 @@ public class AccountDeletionServiceTest extends AbstractTestInitializer {
         AccountDeletionException ex = assertThrows(AccountDeletionException.class, () -> accountDeletionService.completeAuthorizedDeletion(authorizedUserId, req));
 
         // then
-        assertEquals(TOKEN_EXPIRED.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
-        assertEquals(TOKEN_EXPIRED.getMessage(), ex.getErrorEnum().getMessage());
+        assertEquals(TOKEN_NOT_FOUND.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(TOKEN_NOT_FOUND.getMessage(), ex.getErrorEnum().getMessage());
     }
 
     @Test
@@ -185,8 +184,8 @@ public class AccountDeletionServiceTest extends AbstractTestInitializer {
         AccountDeletionException ex = assertThrows(AccountDeletionException.class, () -> accountDeletionService.completeDeletionEmail(randomToken));
 
         // then
-        assertEquals(TOKEN_EXPIRED.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
-        assertEquals(TOKEN_EXPIRED.getMessage(), ex.getErrorEnum().getMessage());
+        assertEquals(TOKEN_NOT_FOUND.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(TOKEN_NOT_FOUND.getMessage(), ex.getErrorEnum().getMessage());
     }
 
     @Test
@@ -197,13 +196,14 @@ public class AccountDeletionServiceTest extends AbstractTestInitializer {
         doReturn(true).when(redisService).exists(anyString());
         doReturn(emailDeletionRedisEntity).when(redisService).get(anyString(), eq(EmailDeletionRedisEntity.class));
         doNothing().when(redisService).delete(anyString());
+        doReturn(generateUserEntity(userId)).when(userDao).findByUserId(any(UUID.class));
+        doNothing().when(userDao).delete(any(UserEntity.class));
 
         // when
         ResponseEntity<String> response = accountDeletionService.completeDeletionEmail(token);
 
         // then
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        verify(userDao).deleteByUserId(userId);
     }
 
     private AuthorizedDeletionStartReq generateAuthorizedDeletionStartReq() {

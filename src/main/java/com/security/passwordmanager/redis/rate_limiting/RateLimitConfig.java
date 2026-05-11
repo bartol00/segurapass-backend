@@ -1,4 +1,4 @@
-package com.security.passwordmanager.config.rate_limiting;
+package com.security.passwordmanager.redis.rate_limiting;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;

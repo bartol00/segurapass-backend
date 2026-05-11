@@ -1,5 +1,6 @@
 package com.security.passwordmanager.service;
 
+import com.security.passwordmanager.redis.RedisKeys;
 import com.security.passwordmanager.redis.RedisService;
 import com.security.passwordmanager.redis.entities.EmailDeletionRedisEntity;
 import com.security.passwordmanager.redis.entities.SrpRedisEntity;
@@ -48,7 +49,7 @@ public class AccountDeletionService {
 
         String userIdString = userEntity.getUserId().toString();
         String deviceIdString = req.getDeviceId().toString();
-        String redisKey = "segurapass:srp:" + userIdString + ":" + deviceIdString;
+        String redisKey = RedisKeys.srp(userIdString, deviceIdString);
         SrpRedisEntity srpRedisEntity = srpFlow.beginFlow(req.getA(), userEntity);
         redisService.save(
                 redisKey,
@@ -60,7 +61,7 @@ public class AccountDeletionService {
         resp.setSaltAuth(userEntity.getSaltAuth());
         resp.setB(srpRedisEntity.getB());
 
-        log.info("Start Account Deletion for user {} - Service", userId);
+        log.info("Start Account Deletion for user: {} - Service", userId);
 
         return ResponseEntity.ok(resp);
     }
@@ -74,9 +75,9 @@ public class AccountDeletionService {
 
         String userIdString = userEntity.getUserId().toString();
         String deviceIdString = req.getDeviceId().toString();
-        String redisKey = "segurapass:srp:" + userIdString + ":" + deviceIdString;
+        String redisKey = RedisKeys.srp(userIdString, deviceIdString);
         if (!redisService.exists(redisKey)) {
-            throw new AccountDeletionException(TOKEN_EXPIRED);
+            throw new AccountDeletionException(TOKEN_NOT_FOUND);
         }
 
         SrpRedisEntity srpRedisEntity = redisService.get(redisKey, SrpRedisEntity.class);
@@ -91,7 +92,7 @@ public class AccountDeletionService {
 
         userDao.deleteByUserId(userId);
 
-        log.info("Complete Account Deletion for user {} - Service", userId);
+        log.info("Complete Account Deletion for user: {} - Service", userId);
 
         return ResponseEntity.ok(null);
     }
@@ -103,20 +104,21 @@ public class AccountDeletionService {
             return;
         }
         String emailHash = tokenHasher.generateSha256Email(userEntity.getEmail());
-        String redisEmailKey = "segurapass:email_deletion:email:" + emailHash;
+        String redisEmailKey = RedisKeys.emailDeletionEmail(emailHash);
         if (redisService.exists(redisEmailKey)) {
             return;
         }
 
         String deletionToken = tokenGenerator.generateEmailVerifier();
         String tokenHash = tokenHasher.generateSha256(deletionToken);
+        String redisKey = RedisKeys.emailDeletion(tokenHash);
         EmailDeletionRedisEntity emailDeletionRedisEntity = new EmailDeletionRedisEntity(
                 userEntity.getUserId(),
                 emailHash
         );
         Instant in15Minutes = Instant.now().plus(15, ChronoUnit.MINUTES);
         redisService.save(
-                "segurapass:email_deletion:" + tokenHash,
+                redisKey,
                 emailDeletionRedisEntity,
                 Duration.between(Instant.now(), in15Minutes)
         );
@@ -128,15 +130,15 @@ public class AccountDeletionService {
 
         emailService.sendDeletionEmail(userEntity.getEmail(), deletionToken);
 
-        log.info("Start Email Deletion for user {} - Service", tokenHasher.generateSha256Email(userEntity.getEmail()));
+        log.info("Start Email Deletion for user (email hash): {} - Service", emailHash);
     }
 
     @Transactional
     public ResponseEntity<String> completeDeletionEmail(String token) {
         String tokenHash = tokenHasher.generateSha256(token);
-        String redisKey = "segurapass:email_deletion:" + tokenHash;
+        String redisKey = RedisKeys.emailDeletion(tokenHash);
         if (!redisService.exists(redisKey)) {
-            throw new AccountDeletionException(TOKEN_EXPIRED);
+            throw new AccountDeletionException(TOKEN_NOT_FOUND);
         }
 
         EmailDeletionRedisEntity emailDeletionRedisEntity = redisService.get(
@@ -147,12 +149,14 @@ public class AccountDeletionService {
 
         redisService.delete(redisKey);
 
-        String emailHashRedisKey = "segurapass:email_deletion:email:" + emailDeletionRedisEntity.getEmailHash();
+        String emailHashRedisKey = RedisKeys.emailDeletionEmail(emailDeletionRedisEntity.getEmailHash());
         redisService.delete(emailHashRedisKey);
 
-        userDao.deleteByUserId(userId);
+        UserEntity userEntity = userDao.findByUserId(userId);
+        String emailHash = tokenHasher.generateSha256Email(userEntity.getEmail());
+        userDao.delete(userEntity);
 
-        log.info("Complete Email Deletion for user {} - Service", userId);
+        log.info("Complete Email Deletion for user (email hash): {} - Service", emailHash);
 
         return ResponseEntity.ok("Account successfully deleted");
     }

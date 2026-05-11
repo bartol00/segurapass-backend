@@ -31,7 +31,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/deletion/authorized/**").authenticated()
                         .anyRequest().permitAll()
                 )
-                .addFilterBefore(requestFilter, UsernamePasswordAuthenticationFilter.class);;
+                .addFilterBefore(requestFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 }

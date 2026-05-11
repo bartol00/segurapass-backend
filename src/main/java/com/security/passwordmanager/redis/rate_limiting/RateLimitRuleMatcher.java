@@ -1,4 +1,4 @@
-package com.security.passwordmanager.config.rate_limiting;
+package com.security.passwordmanager.redis.rate_limiting;
 
 import org.springframework.stereotype.Component;
 import org.springframework.util.AntPathMatcher;
@@ -17,7 +17,7 @@ public class RateLimitRuleMatcher {
 
     public List<RateLimitRule> match(String path) {
         return rules.stream()
-                .filter(rule -> matcher.match(rule.getPattern(), path))
+                .filter(rule -> matcher.match(rule.pattern(), path))
                 .toList();
     }
 }

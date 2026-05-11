@@ -25,11 +25,6 @@ public class ExpiredCleanup {
     public void deleteOldAuditLogs() {
         auditLogDao.deleteByTimestampLessThan(Instant.now().minus(180, ChronoUnit.DAYS));
         log.info("Deleted old audit logs");
-    }
-
-    @Transactional
-    @Scheduled(cron = "0 5 2 * * *")
-    public void deleteExpiredByLastLogin() {
         userDao.deleteByLastLoginLessThan(Instant.now().minus(1, ChronoUnit.YEARS));
         log.info("Deleted expired entities (no login for over a year)");
     }

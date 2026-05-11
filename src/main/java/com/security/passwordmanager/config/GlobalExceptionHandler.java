@@ -15,36 +15,34 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AuthorizationException.class)
     public ResponseEntity<String> handleAuthorizationException(AuthorizationException ex) {
         ErrorEnum errorEnum = ex.getErrorEnum();
-        log.error("Authorization Exception: {}", errorEnum.getMessage());
+        log.warn("Authorization Exception: {}", errorEnum.getMessage());
         return ResponseEntity.status(errorEnum.getHttpStatus()).body(errorEnum.getMessage());
     }
 
     @ExceptionHandler(AccountDeletionException.class)
     public ResponseEntity<String> handleAccountDeletionException(AccountDeletionException ex) {
         ErrorEnum errorEnum = ex.getErrorEnum();
-        log.error("Account Deletion Exception: {}", errorEnum.getMessage());
+        log.warn("Account Deletion Exception: {}", errorEnum.getMessage());
         return ResponseEntity.status(errorEnum.getHttpStatus()).body(errorEnum.getMessage());
     }
 
     @ExceptionHandler(CredentialsException.class)
     public ResponseEntity<String> handleCredentialsException(CredentialsException ex) {
         ErrorEnum errorEnum = ex.getErrorEnum();
-        log.error("Credentials Exception: {}", errorEnum.getMessage());
+        log.warn("Credentials Exception: {}", errorEnum.getMessage());
         return ResponseEntity.status(errorEnum.getHttpStatus()).body(errorEnum.getMessage());
     }
 
     @ExceptionHandler(KeysException.class)
     public ResponseEntity<String> handleKeysException(KeysException ex) {
         ErrorEnum errorEnum = ex.getErrorEnum();
-        log.error("Keys Exception: {}", errorEnum.getMessage());
+        log.warn("Keys Exception: {}", errorEnum.getMessage());
         return ResponseEntity.status(errorEnum.getHttpStatus()).body(errorEnum.getMessage());
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<String> handleGenericException(Exception ex) {
         log.error("Exception: {}", ex.getMessage());
-        return ResponseEntity
-                .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Something went wrong");
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Something went wrong");
     }
 }

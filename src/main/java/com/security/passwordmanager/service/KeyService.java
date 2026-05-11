@@ -24,12 +24,11 @@ public class KeyService {
     public ResponseEntity<PublicKeyResp> getPublicKey() {
         try {
             String pem = Files.readString(Path.of(publicKeyPath));
+            PublicKeyResp resp = new PublicKeyResp(pem);
             log.info("Public key found");
-            PublicKeyResp resp = new PublicKeyResp();
-            resp.setPublicKey(pem);
             return ResponseEntity.ok(resp);
         } catch (Exception e) {
-            log.error("Public key could not be found");
+            log.warn("Public key could not be found");
             throw new KeysException(PUBLIC_KEY_NOT_READ);
         }
     }

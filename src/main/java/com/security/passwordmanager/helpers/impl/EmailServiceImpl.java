@@ -5,7 +5,6 @@ import com.security.passwordmanager.config.EmailClient;
 import com.security.passwordmanager.helpers.EmailService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import software.amazon.awssdk.services.ses.model.*;
 
 @Component
 public class EmailServiceImpl implements EmailService {
@@ -40,18 +39,15 @@ public class EmailServiceImpl implements EmailService {
             </html>
         """, verificationLink);
 
-        try {
-            EmailReq emailReq = new EmailReq();
-            emailReq.setTo(to);
-            emailReq.setSubject(subject);
-            emailReq.setText(textBody);
-            emailReq.setHtml(htmlBody);
+        EmailReq emailReq = new EmailReq(
+                "verification@segurapass.xyz",
+                to,
+                subject,
+                textBody,
+                htmlBody
+        );
 
-            emailClient.sendEmail(emailReq);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        emailClient.sendEmail(emailReq);
     }
 
     public void sendDeletionEmail(String to, String verificationToken) {
@@ -75,18 +71,15 @@ public class EmailServiceImpl implements EmailService {
             </html>
         """, verificationLink);
 
-        try {
-            EmailReq emailReq = new EmailReq();
-            emailReq.setTo(to);
-            emailReq.setSubject(subject);
-            emailReq.setText(textBody);
-            emailReq.setHtml(htmlBody);
+        EmailReq emailReq = new EmailReq(
+                "deletion@segurapass.xyz",
+                to,
+                subject,
+                textBody,
+                htmlBody
+        );
 
-            emailClient.sendEmail(emailReq);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        emailClient.sendEmail(emailReq);
     }
 
 }

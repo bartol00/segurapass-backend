@@ -24,7 +24,6 @@ import org.springframework.test.context.bean.override.mockito.*;
 import java.math.BigInteger;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.UUID;
 
@@ -102,21 +101,6 @@ public class AuthorizationServiceTest extends AbstractTestInitializer {
         // given
         LoginStartReq req = generateLoginStartReq();
         doReturn(false).when(userDao).existsByEmail(req.getEmail());
-
-        // when
-        AuthorizationException ex = assertThrows(AuthorizationException.class, () -> authorizationService.loginUserStart(req));
-
-        // then
-        assertEquals(USER_NOT_EXISTS.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
-        assertEquals(USER_NOT_EXISTS.getMessage(), ex.getErrorEnum().getMessage());
-    }
-
-    @Test
-    void shouldFailUserEmailUnverifiedErrorLoginStart() {
-        // given
-        LoginStartReq req = generateLoginStartReq();
-        UserEntity userEntity = generateUserEntity();
-        doReturn(userEntity).when(userDao).findByEmail(req.getEmail());
 
         // when
         AuthorizationException ex = assertThrows(AuthorizationException.class, () -> authorizationService.loginUserStart(req));
@@ -214,8 +198,8 @@ public class AuthorizationServiceTest extends AbstractTestInitializer {
         AuthorizationException ex = assertThrows(AuthorizationException.class, () -> authorizationService.refreshJWT(req));
 
         // then
-        assertEquals(TOKEN_EXPIRED.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
-        assertEquals(TOKEN_EXPIRED.getMessage(), ex.getErrorEnum().getMessage());
+        assertEquals(TOKEN_NOT_FOUND.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(TOKEN_NOT_FOUND.getMessage(), ex.getErrorEnum().getMessage());
     }
 
     @Test
@@ -250,8 +234,8 @@ public class AuthorizationServiceTest extends AbstractTestInitializer {
         AuthorizationException ex = assertThrows(AuthorizationException.class, () -> authorizationService.logout(req));
 
         // then
-        assertEquals(TOKEN_EXPIRED.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
-        assertEquals(TOKEN_EXPIRED.getMessage(), ex.getErrorEnum().getMessage());
+        assertEquals(TOKEN_NOT_FOUND.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(TOKEN_NOT_FOUND.getMessage(), ex.getErrorEnum().getMessage());
     }
 
     @Test

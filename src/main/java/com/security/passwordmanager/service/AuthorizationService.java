@@ -1,5 +1,7 @@
 package com.security.passwordmanager.service;
 
+import com.security.passwordmanager.config.JwtService;
+import com.security.passwordmanager.redis.RedisKeys;
 import com.security.passwordmanager.redis.RedisService;
 import com.security.passwordmanager.redis.entities.SessionRedisEntity;
 import com.security.passwordmanager.redis.entities.SrpRedisEntity;
@@ -78,29 +80,28 @@ public class AuthorizationService {
                 Instant.now()
         );
         redisService.save(
-                "segurapass:email_unverified:" + tokenHash,
+                RedisKeys.emailUnverified(tokenHash),
                 userRedisEntity,
                 Duration.of(15, ChronoUnit.MINUTES)
         );
 
         emailService.sendVerificationEmail(req.getEmail(), verificationToken);
 
-        log.info("Register User for user {} - Service", tokenHasher.generateSha256Email(req.getEmail()));
+        log.info("Register User for user (email hash): {} - Service", tokenHasher.generateSha256Email(req.getEmail()));
 
         return ResponseEntity.ok(null);
     }
 
     @Transactional
     public ResponseEntity<LoginStartResp> loginUserStart(LoginStartReq req) {
-        if (!userDao.existsByEmail(req.getEmail())) {
+        UserEntity userEntity = userDao.findByEmail(req.getEmail());
+        if (userEntity == null) {
             throw new AuthorizationException(USER_NOT_EXISTS);
         }
 
-        UserEntity userEntity = userDao.findByEmail(req.getEmail());
-
         String userIdString = userEntity.getUserId().toString();
         String deviceIdString = req.getDeviceId().toString();
-        String redisKey = "segurapass:srp:" + userIdString + ":" + deviceIdString;
+        String redisKey = RedisKeys.srp(userIdString, deviceIdString);
         SrpRedisEntity srpRedisEntity = srpFlow.beginFlow(req.getA(), userEntity);
         redisService.save(
                 redisKey,
@@ -108,28 +109,28 @@ public class AuthorizationService {
                 Duration.of(10, ChronoUnit.SECONDS)
         );
 
-        LoginStartResp resp = new LoginStartResp();
-        resp.setSaltAuth(userEntity.getSaltAuth());
-        resp.setB(srpRedisEntity.getB());
+        LoginStartResp resp = new LoginStartResp(
+                srpRedisEntity.getB(),
+                userEntity.getSaltAuth()
+        );
 
-        log.info("Login Start for user {} - Service", tokenHasher.generateSha256Email(userEntity.getEmail()));
+        log.info("Login Start for user (email hash): {} - Service", tokenHasher.generateSha256Email(userEntity.getEmail()));
 
         return ResponseEntity.ok(resp);
     }
 
     @Transactional
     public ResponseEntity<LoginCompleteResp> loginUserEnd(LoginCompleteReq req) {
-        if (!userDao.existsByEmail(req.getEmail())) {
+        UserEntity userEntity = userDao.findByEmail(req.getEmail());
+        if (userEntity == null) {
             throw new AuthorizationException(USER_NOT_EXISTS);
         }
 
-        UserEntity userEntity = userDao.findByEmail(req.getEmail());
-
         String userIdString = userEntity.getUserId().toString();
         String deviceIdString = req.getDeviceId().toString();
-        String redisKey = "segurapass:srp:" + userIdString + ":" + deviceIdString;
+        String redisKey = RedisKeys.srp(userIdString, deviceIdString);
         if (!redisService.exists(redisKey)) {
-            throw new AuthorizationException(TOKEN_EXPIRED);
+            throw new AuthorizationException(TOKEN_NOT_FOUND);
         }
 
         SrpRedisEntity srpRedisEntity = redisService.get(redisKey, SrpRedisEntity.class);
@@ -144,49 +145,49 @@ public class AuthorizationService {
 
         BigInteger M2Server = srpFlow.calculateM2Server(srpRedisEntity, M1Client);
 
-        UserEntity user = userDao.findByEmail(req.getEmail());
-        user.setLastLogin(Instant.now());
-        userDao.save(user);
+        userEntity.setLastLogin(Instant.now());
+        userDao.save(userEntity);
 
         String refreshToken = tokenGenerator.generateRefreshToken(32);
         Instant refreshExpiry = Instant.now().plus(30, ChronoUnit.MINUTES);
 
         String tokenHash = tokenHasher.generateSha256(refreshToken);
         SessionRedisEntity sessionRedisEntity = new SessionRedisEntity(
-                user.getUserId(),
+                userEntity.getUserId(),
                 req.getDeviceId()
         );
         redisService.save(
-                "segurapass:session:" + tokenHash,
+                RedisKeys.session(tokenHash),
                 sessionRedisEntity,
-                Duration.of(30, ChronoUnit.MINUTES)
+                Duration.between(Instant.now(), refreshExpiry)
         );
 
         AuditLogEntity auditLogEntity = new AuditLogEntity();
-        auditLogEntity.setUserId(user.getUserId());
+        auditLogEntity.setUserId(userEntity.getUserId());
         auditLogEntity.setTimestamp(Instant.now());
         auditLogEntity.setAction(AuditAction.LOGIN_SUCCESS);
         auditLogEntity.setIpAddress(MDC.get("clientIp"));
         auditLogEntity.setSuccess(true);
         auditLogDao.save(auditLogEntity);
 
-        LoginCompleteResp resp = new LoginCompleteResp();
-        resp.setM2(Base64.getEncoder().encodeToString(M2Server.toByteArray()));
-        resp.setSaltKey(user.getSaltKey());
-        resp.setAccessToken(generateJwt(user.getUserId(), req.getDeviceId()));
-        resp.setRefreshToken(refreshToken);
-        resp.setRefreshTokenExpiryTime(refreshExpiry);
+        LoginCompleteResp resp = new LoginCompleteResp(
+                Base64.getEncoder().encodeToString(M2Server.toByteArray()),
+                userEntity.getSaltKey(),
+                generateJwt(userEntity.getUserId(), req.getDeviceId()),
+                refreshToken,
+                refreshExpiry
+        );
 
-        log.info("Login Complete for user {} - Service", tokenHasher.generateSha256Email(userEntity.getEmail()));
+        log.info("Login Complete for user (email hash): {} - Service", tokenHasher.generateSha256Email(userEntity.getEmail()));
 
         return ResponseEntity.ok(resp);
     }
 
     public ResponseEntity<RefreshResp> refreshJWT(RefreshReq req) {
         String tokenHash = tokenHasher.generateSha256(req.getRefreshToken());
-        String redisKey = "segurapass:session:" + tokenHash;
+        String redisKey = RedisKeys.session(tokenHash);
         if (!redisService.exists(redisKey)) {
-            throw new AuthorizationException(TOKEN_EXPIRED);
+            throw new AuthorizationException(TOKEN_NOT_FOUND);
         }
 
         SessionRedisEntity sessionRedisEntity = redisService.get(redisKey, SessionRedisEntity.class);
@@ -195,24 +196,23 @@ public class AuthorizationService {
         RefreshResp resp = new RefreshResp();
         resp.setAccessToken(generateJwt(userEntity.getUserId(), sessionRedisEntity.getDeviceId()));
 
-        log.info("JWT Refresh for user {} - Service", sessionRedisEntity.getUserId());
+        log.info("JWT Refresh for user: {} - Service", sessionRedisEntity.getUserId());
 
         return ResponseEntity.ok(resp);
     }
 
-    @Transactional
     public ResponseEntity<Void> logout(RefreshReq req) {
         String tokenHash = tokenHasher.generateSha256(req.getRefreshToken());
-        String redisKey = "segurapass:session:" + tokenHash;
+        String redisKey = RedisKeys.session(tokenHash);
         if (!redisService.exists(redisKey)) {
-            throw new AuthorizationException(TOKEN_EXPIRED);
+            throw new AuthorizationException(TOKEN_NOT_FOUND);
         }
 
         SessionRedisEntity sessionRedisEntity = redisService.get(redisKey, SessionRedisEntity.class);
 
         redisService.delete(redisKey);
 
-        log.info("Logout for user {} - Service", sessionRedisEntity.getUserId());
+        log.info("Logout for user: {} - Service", sessionRedisEntity.getUserId());
 
         return ResponseEntity.ok(null);
     }
@@ -220,7 +220,7 @@ public class AuthorizationService {
     @Transactional
     public ResponseEntity<String> verifyEmail(String token) {
         String tokenHash = tokenHasher.generateSha256(token);
-        String redisKey = "segurapass:email_unverified:" + tokenHash;
+        String redisKey = RedisKeys.emailUnverified(tokenHash);
         if (!redisService.exists(redisKey)) {
             throw new AuthorizationException(USER_VERIFICATION_NOT_EXISTS);
         }
@@ -242,7 +242,7 @@ public class AuthorizationService {
         userEntity.setLastLogin(Instant.now());
         userDao.save(userEntity);
 
-        log.info("Email Verification for user {} - Service", tokenHasher.generateSha256Email(userEntity.getEmail()));
+        log.info("Email Verification for user (email hash): {} - Service", tokenHasher.generateSha256Email(userEntity.getEmail()));
 
         return ResponseEntity.ok("Email has been verified successfully");
     }

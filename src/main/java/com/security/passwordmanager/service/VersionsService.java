@@ -25,13 +25,15 @@ public class VersionsService {
     private String downloadUrl;
 
     public ResponseEntity<VersionInfo> getLatestVersion() {
+        VersionInfo versionInfo = new VersionInfo(
+                versionNumber,
+                versionDescription,
+                downloadUrl,
+                LocalDate.parse(versionDate)
+        );
+
         log.info("Get Latest Version - Service");
 
-        VersionInfo versionInfo = new VersionInfo();
-        versionInfo.setVersionNumber(versionNumber);
-        versionInfo.setVersionDescription(versionDescription);
-        versionInfo.setVersionDate(LocalDate.parse(versionDate));
-        versionInfo.setDownloadUrl(downloadUrl);
         return ResponseEntity.ok(versionInfo);
     }
 

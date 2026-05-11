@@ -1,9 +1,8 @@
-package com.security.passwordmanager.service;
+package com.security.passwordmanager.config;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
-import org.springframework.stereotype.Service;
+import org.springframework.context.annotation.Configuration;
 
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -11,7 +10,7 @@ import java.time.Instant;
 import java.util.Date;
 import java.util.Map;
 
-@Service
+@Configuration
 public class JwtService {
 
     private final PrivateKey privateKey;
@@ -37,7 +36,7 @@ public class JwtService {
         return Jwts.parser()
                 .verifyWith(publicKey)
                 .build()
-                .parseClaimsJws(token)
-                .getBody();
+                .parseSignedClaims(token)
+                .getPayload();
     }
 }

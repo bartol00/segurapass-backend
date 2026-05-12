@@ -49,4 +49,12 @@ public class RedisService {
     public void delete(String key) {
         redisTemplate.delete(key);
     }
+
+    public void clearAll() {
+        assert redisTemplate.getConnectionFactory() != null;
+        redisTemplate.getConnectionFactory()
+                .getConnection()
+                .serverCommands()
+                .flushDb();
+    }
 }

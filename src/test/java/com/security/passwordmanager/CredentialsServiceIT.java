@@ -26,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @Slf4j
 @SpringBootTest
-public class CredentialsServiceTest extends AbstractTestInitializer {
+public class CredentialsServiceIT extends AbstractTestInitializer {
 
     private final UUID userId = UUID.fromString("14bd3b93-3413-4108-a68b-416cb71e6c70");
 

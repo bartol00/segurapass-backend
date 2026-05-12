@@ -1,5 +1,7 @@
 package com.security.passwordmanager;
 
+import com.security.passwordmanager.helpers.TokenHasher;
+import com.security.passwordmanager.redis.RedisKeys;
 import com.security.passwordmanager.redis.RedisService;
 import com.security.passwordmanager.redis.entities.EmailDeletionRedisEntity;
 import com.security.passwordmanager.redis.entities.SrpRedisEntity;
@@ -8,7 +10,6 @@ import xyz.segurapass.api.deletion.*;
 import com.security.passwordmanager.exceptions.AccountDeletionException;
 import com.security.passwordmanager.helpers.EmailService;
 import com.security.passwordmanager.helpers.SrpFlow;
-import com.security.passwordmanager.helpers.TokenHasher;
 import com.security.passwordmanager.model.authorization.UserDao;
 import com.security.passwordmanager.model.authorization.UserEntity;
 import com.security.passwordmanager.service.AccountDeletionService;
@@ -18,9 +19,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import java.math.BigInteger;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.UUID;
 
@@ -32,49 +34,46 @@ import static com.security.passwordmanager.exceptions.ErrorEnum.*;
 @SpringBootTest
 public class AccountDeletionServiceTest extends AbstractTestInitializer {
 
-    private final String email = "me@gmail.com";
-    private final String token = "random token";
-    private final String authorizedEmail = "authorized@gmail.com";
-    private final UUID authorizedDeviceId = UUID.fromString("9a55c43b-52b3-4efb-b77c-3747b115e551");
+    private final String email = "user@gmail.com";
     private final UUID userId = UUID.fromString("14bd3b93-3413-4108-a68b-416cb71e6c70");
-    private final UUID authorizedUserId = UUID.fromString("decc9437-bf41-403c-9ee4-d3f9c308115a");
 
     @Autowired
     private AccountDeletionService accountDeletionService;
     @Autowired
-    private TokenHasher tokenHasher;
-    @MockitoSpyBean
     private UserDao userDao;
-    @MockitoSpyBean
+    @Autowired
     private SrpFlow srpFlow;
+    @Autowired
+    private RedisService redisService;
+    @Autowired
+    private TokenHasher tokenHasher;
     @MockitoBean
     private EmailService emailService;
-    @MockitoSpyBean
-    private RedisService redisService;
 
     @BeforeEach
     void setup() {
         UserEntity userEntity = generateUserEntity(userId);
-        userEntity = userDao.save(userEntity);
-        UserEntity authorizedUser = generateUserEntity(authorizedUserId);
-        authorizedUser.setEmail(authorizedEmail);
-        authorizedUser.setVerifier("authorizedVerifier");
-        userDao.save(authorizedUser);
+        userDao.save(userEntity);
     }
 
     @AfterEach
     void cleanup() {
         userDao.deleteAll();
+        redisService.clearAll();
     }
 
     @Test
     void shouldFailUserIsNullStartAuthorizedDeletion() {
         // given
-        UUID randomUserId = UUID.randomUUID();
-        AuthorizedDeletionStartReq req = generateAuthorizedDeletionStartReq();
+        UUID userId = UUID.randomUUID();
+        UUID deviceId = UUID.randomUUID();
+        AuthorizedDeletionStartReq req = generateAuthorizedDeletionStartReq(deviceId);
 
         // when
-        AccountDeletionException ex = assertThrows(AccountDeletionException.class, () -> accountDeletionService.startAuthorizedDeletion(randomUserId, req));
+        AccountDeletionException ex = assertThrows(
+                AccountDeletionException.class,
+                () -> accountDeletionService.startAuthorizedDeletion(userId, req)
+        );
 
         // then
         assertEquals(USER_NOT_EXISTS.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
@@ -84,25 +83,34 @@ public class AccountDeletionServiceTest extends AbstractTestInitializer {
     @Test
     void shouldSucceedStartAuthorizedDeletion() {
         // given
-        UserEntity userEntity = userDao.findByEmail(authorizedEmail);
-        AuthorizedDeletionStartReq req = generateAuthorizedDeletionStartReq();
+        UserEntity userEntity = userDao.findByUserId(userId);
+        UUID deviceId = UUID.randomUUID();
+        AuthorizedDeletionStartReq req = generateAuthorizedDeletionStartReq(deviceId);
+        String redisKey = RedisKeys.srp(userId.toString(), deviceId.toString());
+        assertFalse(redisService.exists(redisKey));
 
         // when
-        ResponseEntity<AuthorizedDeletionStartResp> response = accountDeletionService.startAuthorizedDeletion(authorizedUserId, req);
+        ResponseEntity<AuthorizedDeletionStartResp> response = accountDeletionService.startAuthorizedDeletion(userId, req);
 
         // then
         assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
         assertEquals(userEntity.getSaltAuth(), response.getBody().getSaltAuth());
+        assertTrue(redisService.exists(redisKey));
     }
 
     @Test
-    void shouldFailUserNotExistsAuthorizedDeletion() {
+    void shouldFailUserIsNullCompleteAuthorizedDeletion() {
         // given
-        AuthorizedDeletionCompleteReq req = generateAuthorizedDeletionCompleteReq();
-        doReturn(null).when(userDao).findByUserId(authorizedUserId);
+        UUID userId = UUID.randomUUID();
+        UUID deviceId = UUID.randomUUID();
+        AuthorizedDeletionCompleteReq req = generateAuthorizedDeletionCompleteReq(deviceId, "randomM1");
 
         // when
-        AccountDeletionException ex = assertThrows(AccountDeletionException.class, () -> accountDeletionService.completeAuthorizedDeletion(authorizedUserId, req));
+        AccountDeletionException ex = assertThrows(
+                AccountDeletionException.class,
+                () -> accountDeletionService.completeAuthorizedDeletion(userId, req)
+        );
 
         // then
         assertEquals(USER_NOT_EXISTS.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
@@ -110,16 +118,16 @@ public class AccountDeletionServiceTest extends AbstractTestInitializer {
     }
 
     @Test
-    void shouldFailTokenExpiredCompleteAuthorizedDeletion() {
+    void shouldFailTokenNotFoundCompleteAuthorizedDeletion() {
         // given
-        AuthorizedDeletionCompleteReq req = generateAuthorizedDeletionCompleteReq();
-        String userIdString = authorizedUserId.toString();
-        String deviceIdString = req.getDeviceId().toString();
-        String redisKey = "segurapass:srp:" + userIdString + ":" + deviceIdString;
-        doReturn(false).when(redisService).exists(redisKey);
+        UUID deviceId = UUID.randomUUID();
+        AuthorizedDeletionCompleteReq req = generateAuthorizedDeletionCompleteReq(deviceId, "randomM1");
 
         // when
-        AccountDeletionException ex = assertThrows(AccountDeletionException.class, () -> accountDeletionService.completeAuthorizedDeletion(authorizedUserId, req));
+        AccountDeletionException ex = assertThrows(
+                AccountDeletionException.class,
+                () -> accountDeletionService.completeAuthorizedDeletion(userId, req)
+        );
 
         // then
         assertEquals(TOKEN_NOT_FOUND.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
@@ -129,10 +137,23 @@ public class AccountDeletionServiceTest extends AbstractTestInitializer {
     @Test
     void shouldFailM1MismatchCompleteAuthorizedDeletion() {
         // given
-        AuthorizedDeletionCompleteReq req = generateAuthorizedDeletionCompleteReq();
+        UserEntity userEntity = userDao.findByUserId(userId);
+        String A = Base64.getEncoder().encodeToString(BigInteger.TEN.toByteArray());
+        SrpRedisEntity srpRedisEntity = srpFlow.beginFlow(A, userEntity);
+        UUID deviceId = UUID.randomUUID();
+        String redisKey = RedisKeys.srp(userId.toString(), deviceId.toString());
+        redisService.save(
+                redisKey,
+                srpRedisEntity,
+                Duration.of(10, ChronoUnit.SECONDS)
+        );
+        AuthorizedDeletionCompleteReq req = generateAuthorizedDeletionCompleteReq(deviceId, "randomM1");
 
         // when
-        AccountDeletionException ex = assertThrows(AccountDeletionException.class, () -> accountDeletionService.completeAuthorizedDeletion(authorizedUserId, req));
+        AccountDeletionException ex = assertThrows(
+                AccountDeletionException.class,
+                () -> accountDeletionService.completeAuthorizedDeletion(userId, req)
+        );
 
         // then
         assertEquals(SRP_VERIFICATION_FAILED.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
@@ -142,46 +163,88 @@ public class AccountDeletionServiceTest extends AbstractTestInitializer {
     @Test
     void shouldSucceedCompleteAuthorizedDeletion() {
         // given
-        AuthorizedDeletionCompleteReq req = generateAuthorizedDeletionCompleteReq();
-        String userIdString = authorizedUserId.toString();
-        String deviceIdString = req.getDeviceId().toString();
-        String redisKey = "segurapass:srp:" + userIdString + ":" + deviceIdString;
-        doReturn(true).when(redisService).exists(redisKey);
-        doReturn(new SrpRedisEntity()).when(redisService).get(redisKey, SrpRedisEntity.class);
-        doReturn(new BigInteger(1, Base64.getDecoder().decode(req.getM1()))).when(srpFlow).calculateM1Server(any(SrpRedisEntity.class));
-        doNothing().when(userDao).deleteByUserId(authorizedUserId);
+        UserEntity userEntity = userDao.findByUserId(userId);
+        String A = Base64.getEncoder().encodeToString(BigInteger.TEN.toByteArray());
+        SrpRedisEntity srpRedisEntity = srpFlow.beginFlow(A, userEntity);
+        String M1 = Base64.getEncoder().encodeToString(srpFlow.calculateM1Server(srpRedisEntity).toByteArray());
+        UUID deviceId = UUID.randomUUID();
+        String redisKey = RedisKeys.srp(userId.toString(), deviceId.toString());
+        redisService.save(
+                redisKey,
+                srpRedisEntity,
+                Duration.of(10, ChronoUnit.SECONDS)
+        );
+        AuthorizedDeletionCompleteReq req = generateAuthorizedDeletionCompleteReq(deviceId, M1);
+        assertTrue(redisService.exists(redisKey));
 
         // when
-        ResponseEntity<Void> response = accountDeletionService.completeAuthorizedDeletion(authorizedUserId, req);
+        ResponseEntity<Void> response = accountDeletionService.completeAuthorizedDeletion(userId, req);
 
         // then
         assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNull(userDao.findByUserId(userId));
+        assertFalse(redisService.exists(redisKey));
     }
 
     @Test
-    void shouldSucceedStartDeletionEmail() {
+    void shouldFailUserIsNullStartDeletionEmail() {
         // given
-        String testEmail = "test@gmail.com";
-        EmailDeletionStartReq req = generateEmailDeletionStartReq();
-        req.setEmail(testEmail);
-        UserEntity userEntity = generateUserEntity(UUID.randomUUID());
-        userEntity.setEmail(testEmail);
-        userDao.save(userEntity);
+        String email = "random@gmail.com";
+        EmailDeletionStartReq req = generateEmailDeletionStartReq(email);
 
         // when
         accountDeletionService.startDeletionEmail(req);
 
         // then
-        verify(emailService).sendDeletionEmail(eq(userEntity.getEmail()), anyString());
+        verify(emailService, never()).sendDeletionEmail(any(), any());
     }
 
     @Test
-    void shouldFailTokenExpiredCompleteDeletionEmail() {
+    void shouldFailRedisKeyAlreadyExistsStartDeletionEmail() {
         // given
-        String randomToken = UUID.randomUUID().toString();
+        EmailDeletionStartReq req = generateEmailDeletionStartReq(email);
+        String emailHash = tokenHasher.generateSha256Email(email);
+        String redisKey = RedisKeys.emailDeletionEmail(emailHash);
+        redisService.save(
+                redisKey,
+                null,
+                Duration.of(15, ChronoUnit.MINUTES)
+        );
+        assertTrue(redisService.exists(redisKey));
 
         // when
-        AccountDeletionException ex = assertThrows(AccountDeletionException.class, () -> accountDeletionService.completeDeletionEmail(randomToken));
+        accountDeletionService.startDeletionEmail(req);
+
+        // then
+        verify(emailService, never()).sendDeletionEmail(any(), any());
+    }
+
+    @Test
+    void shouldSucceedStartDeletionEmail() {
+        // given
+        EmailDeletionStartReq req = generateEmailDeletionStartReq(email);
+        String emailHash = tokenHasher.generateSha256Email(email);
+        String redisKey = RedisKeys.emailDeletionEmail(emailHash);
+        assertFalse(redisService.exists(redisKey));
+
+        // when
+        accountDeletionService.startDeletionEmail(req);
+
+        // then
+        assertTrue(redisService.exists(redisKey));
+        verify(emailService).sendDeletionEmail(any(), any());
+    }
+
+    @Test
+    void shouldFailTokenNotFoundCompleteDeletionEmail() {
+        // given
+        String token = UUID.randomUUID().toString();
+
+        // when
+        AccountDeletionException ex = assertThrows(
+                AccountDeletionException.class,
+                () -> accountDeletionService.completeDeletionEmail(token)
+        );
 
         // then
         assertEquals(TOKEN_NOT_FOUND.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
@@ -191,47 +254,58 @@ public class AccountDeletionServiceTest extends AbstractTestInitializer {
     @Test
     void shouldSucceedCompleteDeletionEmail() {
         // given
-        UUID userId = UUID.randomUUID();
-        EmailDeletionRedisEntity emailDeletionRedisEntity = new EmailDeletionRedisEntity(userId, "random");
-        doReturn(true).when(redisService).exists(anyString());
-        doReturn(emailDeletionRedisEntity).when(redisService).get(anyString(), eq(EmailDeletionRedisEntity.class));
-        doNothing().when(redisService).delete(anyString());
-        doReturn(generateUserEntity(userId)).when(userDao).findByUserId(any(UUID.class));
-        doNothing().when(userDao).delete(any(UserEntity.class));
+        String token = UUID.randomUUID().toString();
+        String redisKey = RedisKeys.emailDeletion(tokenHasher.generateSha256(token));
+        String emailHash = tokenHasher.generateSha256Email(token);
+        EmailDeletionRedisEntity emailDeletionRedisEntity = new EmailDeletionRedisEntity(userId, emailHash);
+        redisService.save(
+                redisKey,
+                emailDeletionRedisEntity,
+                Duration.of(15, ChronoUnit.MINUTES)
+        );
+        String emailHashRedisKey = RedisKeys.emailDeletionEmail(emailHash);
+        redisService.save(
+                emailHashRedisKey,
+                null,
+                Duration.of(15, ChronoUnit.MINUTES)
+        );
+        assertTrue(redisService.exists(redisKey));
+        assertTrue(redisService.exists(emailHashRedisKey));
 
         // when
         ResponseEntity<String> response = accountDeletionService.completeDeletionEmail(token);
 
         // then
         assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNull(userDao.findByUserId(userId));
+        assertFalse(redisService.exists(redisKey));
+        assertFalse(redisService.exists(emailHashRedisKey));
     }
 
-    private AuthorizedDeletionStartReq generateAuthorizedDeletionStartReq() {
-        AuthorizedDeletionStartReq authorizedDeletionStartReq = new AuthorizedDeletionStartReq();
-        authorizedDeletionStartReq.setDeviceId(authorizedDeviceId);
-        authorizedDeletionStartReq.setA("publicA");
-        return authorizedDeletionStartReq;
+    private AuthorizedDeletionStartReq generateAuthorizedDeletionStartReq(UUID deviceId) {
+        return new AuthorizedDeletionStartReq(
+                deviceId,
+                "publicA"
+        );
     }
 
-    private AuthorizedDeletionCompleteReq generateAuthorizedDeletionCompleteReq() {
-        AuthorizedDeletionCompleteReq authorizedDeletionCompleteReq = new AuthorizedDeletionCompleteReq();
-        authorizedDeletionCompleteReq.setDeviceId(authorizedDeviceId);
-        authorizedDeletionCompleteReq.setM1("clientM1");
-        return authorizedDeletionCompleteReq;
+    private AuthorizedDeletionCompleteReq generateAuthorizedDeletionCompleteReq(UUID deviceId, String M1) {
+        return new AuthorizedDeletionCompleteReq(
+                deviceId,
+                M1
+        );
     }
 
-    private EmailDeletionStartReq generateEmailDeletionStartReq() {
-        EmailDeletionStartReq emailDeletionStartReq = new EmailDeletionStartReq();
-        emailDeletionStartReq.setEmail(email);
-        return emailDeletionStartReq;
+    private EmailDeletionStartReq generateEmailDeletionStartReq(String email) {
+        return new EmailDeletionStartReq(email);
     }
 
     private UserEntity generateUserEntity(UUID userId) {
         UserEntity userEntity = new UserEntity();
         userEntity.setUserId(userId);
-        userEntity.setEmail(email);
+        userEntity.setEmail("user@gmail.com");
         userEntity.setSaltAuth(UUID.randomUUID().toString());
-        userEntity.setVerifier(UUID.randomUUID().toString());
+        userEntity.setVerifier("verifier");
         userEntity.setSaltKey(UUID.randomUUID().toString());
         return userEntity;
     }

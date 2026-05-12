@@ -30,7 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Slf4j
 @SpringBootTest
 @AutoConfigureMockMvc
-class RateLimitIntegrationTest extends AbstractTestInitializer {
+class RateLimitTest extends AbstractTestInitializer {
 
     @Autowired
     private MockMvc mockMvc;
@@ -50,7 +50,6 @@ class RateLimitIntegrationTest extends AbstractTestInitializer {
 
     @TestConfiguration
     static class MockControllerConfig {
-
         @Bean
         @Primary
         public AuthorizationController authorizationController() {
@@ -137,7 +136,7 @@ class RateLimitIntegrationTest extends AbstractTestInitializer {
                         .content(loginStartRequestJson()))
                 .andExpect(status().isTooManyRequests());
 
-        Thread.sleep(3500);
+        Thread.sleep(2500);
 
         mockMvc.perform(post(PATH)
                         .contentType(MediaType.APPLICATION_JSON)

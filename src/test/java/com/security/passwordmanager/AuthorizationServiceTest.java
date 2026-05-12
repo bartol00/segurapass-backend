@@ -1,11 +1,14 @@
 package com.security.passwordmanager;
 
 import com.security.passwordmanager.helpers.EmailService;
+import com.security.passwordmanager.model.audit.AuditLogDao;
+import com.security.passwordmanager.redis.RedisKeys;
 import com.security.passwordmanager.redis.RedisService;
 import com.security.passwordmanager.redis.entities.SessionRedisEntity;
 import com.security.passwordmanager.redis.entities.SrpRedisEntity;
 import com.security.passwordmanager.redis.entities.UserRedisEntity;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import xyz.segurapass.api.authorization.*;
 import com.security.passwordmanager.exceptions.AuthorizationException;
 import com.security.passwordmanager.helpers.SrpFlow;
@@ -24,6 +27,7 @@ import org.springframework.test.context.bean.override.mockito.*;
 import java.math.BigInteger;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.UUID;
 
@@ -35,35 +39,49 @@ import static com.security.passwordmanager.exceptions.ErrorEnum.*;
 @SpringBootTest
 public class AuthorizationServiceTest extends AbstractTestInitializer {
 
-    private final String email = "me@gmail.com";
-    private final String emailVerificationToken = "verification token";
+    private final String email = "user@gmail.com";
+    private final UUID userId = UUID.fromString("14bd3b93-3413-4108-a68b-416cb71e6c70");
 
     @Autowired
     private AuthorizationService authorizationService;
     @Autowired
     private TokenHasher tokenHasher;
-    @MockitoSpyBean
+    @Autowired
     private UserDao userDao;
-    @MockitoSpyBean
+    @Autowired
+    private AuditLogDao auditLogDao;
+    @Autowired
     private SrpFlow srpFlow;
+    @Autowired
+    private RedisService redisService;
     @MockitoBean
     private EmailService emailService;
-    @MockitoSpyBean
-    private RedisService redisService;
+
+    @BeforeEach
+    void setup() {
+        UserEntity userEntity = generateUserEntity(userId);
+        userDao.save(userEntity);
+        MDC.put("clientIp", "127.0.0.1");
+    }
 
     @AfterEach
     void cleanup() {
         userDao.deleteAll();
+        auditLogDao.deleteAll();
+        redisService.clearAll();
+        MDC.clear();
     }
 
     @Test
     void shouldFailInvalidEmailErrorRegisterUser() {
         // given
-        RegistrationReq req = generateRegistrationReq();
-        req.setEmail("invalid@email.com");
+        RegistrationReq req = generateRegistrationReq("invalid@email.com");
 
         // when
-        AuthorizationException ex = assertThrows(AuthorizationException.class, () -> authorizationService.registerUser(req));
+        AuthorizationException ex = assertThrows(
+                AuthorizationException.class,
+                () -> authorizationService.registerUser(req)
+        );
 
         // then
         assertEquals(USER_EMAIL_INVALID.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
@@ -71,13 +89,15 @@ public class AuthorizationServiceTest extends AbstractTestInitializer {
     }
 
     @Test
-    void shouldFailUserExistsErrorRegisterUser() {
+    void shouldFailUserAlreadyExistsErrorRegisterUser() {
         // given
-        RegistrationReq req = generateRegistrationReq();
-        doReturn(true).when(userDao).existsByEmail(req.getEmail());
+        RegistrationReq req = generateRegistrationReq(email);
 
         // when
-        AuthorizationException ex = assertThrows(AuthorizationException.class, () -> authorizationService.registerUser(req));
+        AuthorizationException ex = assertThrows(
+                AuthorizationException.class,
+                () -> authorizationService.registerUser(req)
+        );
 
         // then
         assertEquals(USER_EXISTS.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
@@ -87,23 +107,26 @@ public class AuthorizationServiceTest extends AbstractTestInitializer {
     @Test
     void shouldSucceedRegisterUser() {
         // given
-        RegistrationReq req = generateRegistrationReq();
+        RegistrationReq req = generateRegistrationReq("unregistered@gmail.com");
 
         // when
         ResponseEntity<Void> response = authorizationService.registerUser(req);
 
         // then
         assertEquals(HttpStatus.OK, response.getStatusCode());
+        verify(emailService).sendVerificationEmail(any(), any());
     }
 
     @Test
-    void shouldFailUserNotExistsErrorLoginStart() {
+    void shouldFailUserIsNullErrorLoginStart() {
         // given
-        LoginStartReq req = generateLoginStartReq();
-        doReturn(false).when(userDao).existsByEmail(req.getEmail());
+        LoginStartReq req = generateLoginStartReq("unregistered@gmail.com");
 
         // when
-        AuthorizationException ex = assertThrows(AuthorizationException.class, () -> authorizationService.loginUserStart(req));
+        AuthorizationException ex = assertThrows(
+                AuthorizationException.class,
+                () -> authorizationService.loginUserStart(req)
+        );
 
         // then
         assertEquals(USER_NOT_EXISTS.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
@@ -113,26 +136,34 @@ public class AuthorizationServiceTest extends AbstractTestInitializer {
     @Test
     void shouldSucceedLoginStart() {
         // given
-        LoginStartReq req = generateLoginStartReq();
-        UserEntity userEntity = generateUserEntity();
-        userDao.save(userEntity);
+        LoginStartReq req = generateLoginStartReq(email);
+        UserEntity userEntity = userDao.findByEmail(email);
+        String redisKey = RedisKeys.srp(
+                userEntity.getUserId().toString(),
+                req.getDeviceId().toString()
+        );
+        assertFalse(redisService.exists(redisKey));
 
         // when
         ResponseEntity<LoginStartResp> response = authorizationService.loginUserStart(req);
 
         // then
+        assertTrue(redisService.exists(redisKey));
         assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
         assertEquals(response.getBody().getSaltAuth(), userEntity.getSaltAuth());
     }
 
     @Test
-    void shouldFailUserNotExistsLoginEnd() {
+    void shouldFailUserIsNullLoginEnd() {
         // given
-        LoginCompleteReq req = generateLoginCompleteReq();
-        doReturn(false).when(userDao).existsByEmail(req.getEmail());
+        LoginCompleteReq req = generateLoginCompleteReq("unregistered@gmail.com", "M1");
 
         // when
-        AuthorizationException ex = assertThrows(AuthorizationException.class, () -> authorizationService.loginUserEnd(req));
+        AuthorizationException ex = assertThrows(
+                AuthorizationException.class,
+                () -> authorizationService.loginUserEnd(req)
+        );
 
         // then
         assertEquals(USER_NOT_EXISTS.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
@@ -140,17 +171,38 @@ public class AuthorizationServiceTest extends AbstractTestInitializer {
     }
 
     @Test
+    void shouldFailTokenNotFoundLoginEnd() {
+        // given
+        LoginCompleteReq req = generateLoginCompleteReq(email, "M1");
+
+        // when
+        AuthorizationException ex = assertThrows(
+                AuthorizationException.class,
+                () -> authorizationService.loginUserEnd(req)
+        );
+
+        // then
+        assertEquals(TOKEN_NOT_FOUND.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(TOKEN_NOT_FOUND.getMessage(), ex.getErrorEnum().getMessage());
+    }
+
+    @Test
     void shouldFailM1MismatchLoginEnd() {
         // given
-        LoginCompleteReq req = generateLoginCompleteReq();
-        UserEntity userEntity = generateUserEntity();
-        userDao.save(userEntity);
-        String userIdString = userEntity.getUserId().toString();
-        String deviceIdString = req.getDeviceId().toString();
-        String redisKey = "segurapass:srp:" + userIdString + ":" + deviceIdString;
-        doReturn(true).when(redisService).exists(redisKey);
-        doReturn(new SrpRedisEntity()).when(redisService).get(redisKey, SrpRedisEntity.class);
-        doReturn(BigInteger.ONE).when(srpFlow).calculateM1Server(any(SrpRedisEntity.class));
+        String A = Base64.getEncoder().encodeToString(BigInteger.TEN.toByteArray());
+        UserEntity userEntity = userDao.findByEmail(email);
+        SrpRedisEntity srpRedisEntity = srpFlow.beginFlow(A, userEntity);
+        LoginCompleteReq req = generateLoginCompleteReq(email, "M1");
+        String redisKey = RedisKeys.srp(
+                userEntity.getUserId().toString(),
+                req.getDeviceId().toString()
+        );
+        redisService.save(
+                redisKey,
+                srpRedisEntity,
+                Duration.of(10, ChronoUnit.SECONDS)
+        );
+        assertTrue(redisService.exists(redisKey));
 
         // when
         AuthorizationException ex = assertThrows(AuthorizationException.class, () -> authorizationService.loginUserEnd(req));
@@ -163,39 +215,47 @@ public class AuthorizationServiceTest extends AbstractTestInitializer {
     @Test
     void shouldSucceedLoginEnd() {
         // given
-        MDC.put("clientIp", "127.0.0.1");
-        LoginCompleteReq req = generateLoginCompleteReq();
-        UserEntity userEntity = generateUserEntity();
-        userDao.save(userEntity);
-        String userIdString = userEntity.getUserId().toString();
-        String deviceIdString = req.getDeviceId().toString();
-        String redisKey = "segurapass:srp:" + userIdString + ":" + deviceIdString;
-        doReturn(true).when(redisService).exists(redisKey);
-        doReturn(new SrpRedisEntity()).when(redisService).get(redisKey, SrpRedisEntity.class);
-        doReturn(new BigInteger(1, Base64.getDecoder().decode(req.getM1()))).when(srpFlow).calculateM1Server(any(SrpRedisEntity.class));
-        doReturn(BigInteger.ONE).when(srpFlow).calculateM2Server(any(SrpRedisEntity.class), any(BigInteger.class));
-        doReturn(userEntity).when(userDao).findByEmail(req.getEmail());
-        doNothing().when(redisService).save(any(String.class), any(Object.class), any(Duration.class));
+        String A = Base64.getEncoder().encodeToString(BigInteger.TEN.toByteArray());
+        UserEntity userEntity = userDao.findByEmail(email);
+        SrpRedisEntity srpRedisEntity = srpFlow.beginFlow(A, userEntity);
+        BigInteger M1Client = srpFlow.calculateM1Server(srpRedisEntity);
+        String M1 = Base64.getEncoder().encodeToString(M1Client.toByteArray());
+        LoginCompleteReq req = generateLoginCompleteReq(email, M1);
+        String redisKey = RedisKeys.srp(
+                userEntity.getUserId().toString(),
+                req.getDeviceId().toString()
+        );
+        redisService.save(
+                redisKey,
+                srpRedisEntity,
+                Duration.of(10, ChronoUnit.SECONDS)
+        );
+        assertTrue(redisService.exists(redisKey));
 
         // when
         ResponseEntity<LoginCompleteResp> response = authorizationService.loginUserEnd(req);
+        String M2 = Base64.getEncoder().encodeToString(srpFlow.calculateM2Server(srpRedisEntity, M1Client).toByteArray());
 
         // then
+        assertFalse(redisService.exists(redisKey));
+        assertEquals(1, auditLogDao.findAll().size());
         assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(M2, response.getBody().getM2());
         assertEquals(userEntity.getSaltKey(), response.getBody().getSaltKey());
-
-        MDC.clear();
     }
 
     @Test
-    void shouldFailRefreshTokenNotExistsRefreshJwt() {
+    void shouldFailTokenNotFoundRefreshJwt() {
         // given
-        RefreshReq req = generateRefreshReq();
-        String redisKey = "segurapass:session:" + tokenHasher.generateSha256(req.getRefreshToken());
-        doReturn(false).when(redisService).exists(redisKey);
+        String token = "token";
+        RefreshReq req = generateRefreshReq(token);
 
         // when
-        AuthorizationException ex = assertThrows(AuthorizationException.class, () -> authorizationService.refreshJWT(req));
+        AuthorizationException ex = assertThrows(
+                AuthorizationException.class,
+                () -> authorizationService.refreshJWT(req)
+        );
 
         // then
         assertEquals(TOKEN_NOT_FOUND.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
@@ -205,33 +265,40 @@ public class AuthorizationServiceTest extends AbstractTestInitializer {
     @Test
     void shouldSucceedRefreshJwt() {
         // given
-        RefreshReq req = generateRefreshReq();
-        UserEntity userEntity = generateUserEntity();
-        userDao.save(userEntity);
-        String redisKey = "segurapass:session:" + tokenHasher.generateSha256(req.getRefreshToken());
+        String token = "token";
+        RefreshReq req = generateRefreshReq(token);
+        String tokenHash = tokenHasher.generateSha256(token);
+        String redisKey = RedisKeys.session(tokenHash);
+        UserEntity userEntity = userDao.findByEmail(email);
         SessionRedisEntity sessionRedisEntity = new SessionRedisEntity(
                 userEntity.getUserId(),
                 UUID.randomUUID()
         );
-        doReturn(true).when(redisService).exists(redisKey);
-        doReturn(sessionRedisEntity).when(redisService).get(redisKey, SessionRedisEntity.class);
+        redisService.save(
+                redisKey,
+                sessionRedisEntity,
+                Duration.of(30, ChronoUnit.MINUTES)
+        );
+        assertTrue(redisService.exists(redisKey));
 
         // when
         ResponseEntity<RefreshResp> response = authorizationService.refreshJWT(req);
 
         // then
+        assertTrue(redisService.exists(redisKey));
         assertEquals(HttpStatus.OK, response.getStatusCode());
     }
 
     @Test
     void shouldFailSessionIsNullLogout() {
         // given
-        RefreshReq req = generateRefreshReq();
-        String redisKey = "segurapass:session:" + tokenHasher.generateSha256(req.getRefreshToken());
-        doReturn(false).when(redisService).exists(redisKey);
+        RefreshReq req = generateRefreshReq("token");
 
         // when
-        AuthorizationException ex = assertThrows(AuthorizationException.class, () -> authorizationService.logout(req));
+        AuthorizationException ex = assertThrows(
+                AuthorizationException.class,
+                () -> authorizationService.logout(req)
+        );
 
         // then
         assertEquals(TOKEN_NOT_FOUND.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
@@ -241,31 +308,40 @@ public class AuthorizationServiceTest extends AbstractTestInitializer {
     @Test
     void shouldSucceedLogout() {
         // given
-        RefreshReq req = generateRefreshReq();
-        UserEntity userEntity = generateUserEntity();
-        String redisKey = "segurapass:session:" + tokenHasher.generateSha256(req.getRefreshToken());
+        String token = "token";
+        RefreshReq req = generateRefreshReq(token);
+        String tokenHash = tokenHasher.generateSha256(token);
+        String redisKey = RedisKeys.session(tokenHash);
+        UserEntity userEntity = userDao.findByEmail(email);
         SessionRedisEntity sessionRedisEntity = new SessionRedisEntity(
                 userEntity.getUserId(),
                 UUID.randomUUID()
         );
-        doReturn(true).when(redisService).exists(redisKey);
-        doReturn(sessionRedisEntity).when(redisService).get(redisKey, SessionRedisEntity.class);
+        redisService.save(
+                redisKey,
+                sessionRedisEntity,
+                Duration.of(30, ChronoUnit.MINUTES)
+        );
+        assertTrue(redisService.exists(redisKey));
 
         // when
         ResponseEntity<Void> response = authorizationService.logout(req);
 
         // then
+        assertFalse(redisService.exists(redisKey));
         assertEquals(HttpStatus.OK, response.getStatusCode());
     }
 
     @Test
-    void shouldFailEmailNotExistsVerifyEmail() {
+    void shouldFailUserVerificationNotExistsVerifyEmail() {
         // given
-        String redisKey = "segurapass:email_unverified:" + tokenHasher.generateSha256(emailVerificationToken);
-        doReturn(false).when(redisService).exists(redisKey);
+        String token = "token";
 
         // when
-        AuthorizationException ex = assertThrows(AuthorizationException.class, () -> authorizationService.verifyEmail(emailVerificationToken));
+        AuthorizationException ex = assertThrows(
+                AuthorizationException.class,
+                () -> authorizationService.verifyEmail(token)
+        );
 
         // then
         assertEquals(USER_VERIFICATION_NOT_EXISTS.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
@@ -275,31 +351,21 @@ public class AuthorizationServiceTest extends AbstractTestInitializer {
     @Test
     void shouldFailUserAlreadyExistsVerifyEmail() {
         // given
-        RegistrationReq req = generateRegistrationReq();
-        String redisKey = "segurapass:email_unverified:" + tokenHasher.generateSha256(emailVerificationToken);
-        UserRedisEntity userRedisEntity = new UserRedisEntity(
-                UUID.randomUUID(),
-                req.getEmail(),
-                req.getSaltAuth(),
-                req.getVerifier(),
-                req.getSaltKey(),
-                Instant.now()
+        String token = "token";
+        String tokenHash = tokenHasher.generateSha256(token);
+        String redisKey = RedisKeys.emailUnverified(tokenHash);
+        UserRedisEntity userRedisEntity = generateUserRedisEntity(userId, email);
+        redisService.save(
+                redisKey,
+                userRedisEntity,
+                Duration.of(15, ChronoUnit.MINUTES)
         );
-        UserEntity userEntity = new UserEntity();
-        userEntity.setUserId(userRedisEntity.getUserId());
-        userEntity.setEmail(userRedisEntity.getEmail());
-        userEntity.setSaltAuth(userRedisEntity.getSaltAuth());
-        userEntity.setVerifier(userRedisEntity.getVerifier());
-        userEntity.setSaltKey(userRedisEntity.getSaltKey());
-        userEntity.setCreationTime(userRedisEntity.getCreationTime());
-        userEntity.setLastLogin(Instant.now());
-        userDao.save(userEntity);
-        doReturn(true).when(redisService).exists(redisKey);
-        doReturn(userRedisEntity).when(redisService).get(redisKey, UserRedisEntity.class);
-        doNothing().when(redisService).delete(redisKey);
 
         // when
-        AuthorizationException ex = assertThrows(AuthorizationException.class, () -> authorizationService.verifyEmail(emailVerificationToken));
+        AuthorizationException ex = assertThrows(
+                AuthorizationException.class,
+                () -> authorizationService.verifyEmail(token)
+        );
 
         // then
         assertEquals(USER_EXISTS.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
@@ -309,62 +375,75 @@ public class AuthorizationServiceTest extends AbstractTestInitializer {
     @Test
     void shouldSucceedVerifyEmail() {
         // given
-        RegistrationReq req = generateRegistrationReq();
-        String redisKey = "segurapass:email_unverified:" + tokenHasher.generateSha256(emailVerificationToken);
-        UserRedisEntity userRedisEntity = new UserRedisEntity(
+        String email = "unregistered@gmail.com";
+        String token = "token";
+        String tokenHash = tokenHasher.generateSha256(token);
+        String redisKey = RedisKeys.emailUnverified(tokenHash);
+        UserRedisEntity userRedisEntity = generateUserRedisEntity(
                 UUID.randomUUID(),
-                req.getEmail(),
-                req.getSaltAuth(),
-                req.getVerifier(),
-                req.getSaltKey(),
-                Instant.now()
+                email
         );
-        doReturn(true).when(redisService).exists(redisKey);
-        doReturn(userRedisEntity).when(redisService).get(redisKey, UserRedisEntity.class);
-        doNothing().when(redisService).delete(redisKey);
+        redisService.save(
+                redisKey,
+                userRedisEntity,
+                Duration.of(15, ChronoUnit.MINUTES)
+        );
+        assertTrue(redisService.exists(redisKey));
+        assertNull(userDao.findByEmail(email));
 
         // when
-        ResponseEntity<String> response = authorizationService.verifyEmail(emailVerificationToken);
+        ResponseEntity<String> response = authorizationService.verifyEmail(token);
 
         // then
+        assertFalse(redisService.exists(redisKey));
+        assertNotNull(userDao.findByEmail(email));
         assertEquals(HttpStatus.OK, response.getStatusCode());
     }
 
-    private RegistrationReq generateRegistrationReq() {
-        RegistrationReq registrationReq = new RegistrationReq();
-        registrationReq.setEmail(email);
-        registrationReq.setVerifier("verifier");
-        registrationReq.setSaltKey("saltKey");
-        registrationReq.setSaltAuth("saltAuth");
-        registrationReq.setDeviceId(UUID.randomUUID());
-        return registrationReq;
+    private RegistrationReq generateRegistrationReq(String email) {
+        return new RegistrationReq(
+                email,
+                "saltAuth",
+                "verifier",
+                "saltKey",
+                UUID.randomUUID()
+        );
     }
 
-    private LoginStartReq generateLoginStartReq() {
-        LoginStartReq loginStartReq = new LoginStartReq();
-        loginStartReq.setEmail(email);
-        loginStartReq.setDeviceId(UUID.randomUUID());
-        loginStartReq.setA("publicA");
-        return loginStartReq;
+    private LoginStartReq generateLoginStartReq(String email) {
+        return new LoginStartReq(
+                email,
+                UUID.randomUUID(),
+                "publicA"
+        );
     }
 
-    private LoginCompleteReq generateLoginCompleteReq() {
-        LoginCompleteReq loginCompleteReq = new LoginCompleteReq();
-        loginCompleteReq.setEmail(email);
-        loginCompleteReq.setDeviceId(UUID.randomUUID());
-        loginCompleteReq.setM1("M1Client");
-        return loginCompleteReq;
+    private LoginCompleteReq generateLoginCompleteReq(String email, String M1) {
+        return new LoginCompleteReq(
+                email,
+                UUID.randomUUID(),
+                M1
+        );
     }
 
-    private RefreshReq generateRefreshReq() {
-        RefreshReq refreshReq = new RefreshReq();
-        refreshReq.setRefreshToken("refreshToken");
-        return refreshReq;
+    private RefreshReq generateRefreshReq(String refreshToken) {
+        return new RefreshReq(refreshToken);
     }
 
-    private UserEntity generateUserEntity() {
+    private UserRedisEntity generateUserRedisEntity(UUID userId, String email) {
+        return new UserRedisEntity(
+                userId,
+                email,
+                UUID.randomUUID().toString(),
+                UUID.randomUUID().toString(),
+                UUID.randomUUID().toString(),
+                Instant.now()
+        );
+    }
+
+    private UserEntity generateUserEntity(UUID userId) {
         UserEntity userEntity = new UserEntity();
-        userEntity.setUserId(UUID.randomUUID());
+        userEntity.setUserId(userId);
         userEntity.setEmail(email);
         userEntity.setSaltAuth("saltAuth");
         userEntity.setVerifier("verifier");

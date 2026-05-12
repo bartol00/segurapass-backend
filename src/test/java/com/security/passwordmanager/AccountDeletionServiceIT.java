@@ -32,7 +32,7 @@ import static com.security.passwordmanager.exceptions.ErrorEnum.*;
 
 @Slf4j
 @SpringBootTest
-public class AccountDeletionServiceTest extends AbstractTestInitializer {
+public class AccountDeletionServiceIT extends AbstractTestInitializer {
 
     private final String email = "user@gmail.com";
     private final UUID userId = UUID.fromString("14bd3b93-3413-4108-a68b-416cb71e6c70");

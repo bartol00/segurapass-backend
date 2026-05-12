@@ -30,7 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Slf4j
 @SpringBootTest
 @AutoConfigureMockMvc
-class RateLimitTest extends AbstractTestInitializer {
+class RateLimitIT extends AbstractTestInitializer {
 
     @Autowired
     private MockMvc mockMvc;

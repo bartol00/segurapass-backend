@@ -1,5 +1,6 @@
 package com.security.passwordmanager;
 
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import xyz.segurapass.api.authorization.*;
 import com.security.passwordmanager.controller.AuthorizationController;
 import com.security.passwordmanager.config.JwtService;
@@ -7,7 +8,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -136,7 +136,7 @@ class RateLimitIT extends AbstractTestInitializer {
                         .content(loginStartRequestJson()))
                 .andExpect(status().isTooManyRequests());
 
-        Thread.sleep(2500);
+        Thread.sleep(4000);
 
         mockMvc.perform(post(PATH)
                         .contentType(MediaType.APPLICATION_JSON)

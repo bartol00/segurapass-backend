@@ -14,4 +14,4 @@ spring:
 app:
   rate-limiting:
     ip-enabled: true
-    default-window-seconds: 1
+    default-window-seconds: 3

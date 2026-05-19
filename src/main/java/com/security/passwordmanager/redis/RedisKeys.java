@@ -10,6 +10,14 @@ public final class RedisKeys {
         return "segurapass:srp:%s:%s".formatted(userId, deviceId);
     }
 
+    public static String accountDeletion(String userId, String deviceId) {
+        return "segurapass:account_deletion:%s:%s".formatted(userId, deviceId);
+    }
+
+    public static String passwordChange(String userId, String deviceId) {
+        return "segurapass:password_change:%s:%s".formatted(userId, deviceId);
+    }
+
     public static String session(String tokenHash) {
         return "segurapass:session:%s".formatted(tokenHash);
     }

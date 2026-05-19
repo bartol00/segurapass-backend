@@ -43,6 +43,9 @@ public class CredentialsEntity {
     @Column(name = "IV_PASSWORD", nullable = false, unique = true)
     private String ivPassword;
 
+    @Column(name = "CREATED_AT", nullable = false)
+    private Instant createdAt;
+
     @Column(name = "LAST_UPDATED", nullable = false)
     private Instant lastUpdated;
 

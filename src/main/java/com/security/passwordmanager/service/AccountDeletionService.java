@@ -49,7 +49,7 @@ public class AccountDeletionService {
 
         String userIdString = userEntity.getUserId().toString();
         String deviceIdString = req.getDeviceId().toString();
-        String redisKey = RedisKeys.srp(userIdString, deviceIdString);
+        String redisKey = RedisKeys.accountDeletion(userIdString, deviceIdString);
         SrpRedisEntity srpRedisEntity = srpFlow.beginFlow(req.getA(), userEntity);
         redisService.save(
                 redisKey,
@@ -75,7 +75,7 @@ public class AccountDeletionService {
 
         String userIdString = userEntity.getUserId().toString();
         String deviceIdString = req.getDeviceId().toString();
-        String redisKey = RedisKeys.srp(userIdString, deviceIdString);
+        String redisKey = RedisKeys.accountDeletion(userIdString, deviceIdString);
         if (!redisService.exists(redisKey)) {
             throw new AccountDeletionException(TOKEN_NOT_FOUND);
         }

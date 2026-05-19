@@ -20,7 +20,8 @@ public class RateLimitConfig {
     public List<RateLimitRule> rateLimitRules() {
         List<RateLimitRule> rules = new ArrayList<>(List.of(
                 new RateLimitRule("/api/deletion/authorized/**", 10, windowSeconds, LimitType.USER, true),
-                new RateLimitRule("/api/credentials/**", 50, windowSeconds, LimitType.USER, true)
+                new RateLimitRule("/api/credentials/**", 50, windowSeconds, LimitType.USER, true),
+                new RateLimitRule("/api/password/**", 10, windowSeconds, LimitType.USER, true)
         ));
 
         if (ipRulesEnabled) {

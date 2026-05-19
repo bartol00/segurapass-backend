@@ -86,7 +86,7 @@ public class AccountDeletionServiceIT extends AbstractTestInitializer {
         UserEntity userEntity = userDao.findByUserId(userId);
         UUID deviceId = UUID.randomUUID();
         AuthorizedDeletionStartReq req = generateAuthorizedDeletionStartReq(deviceId);
-        String redisKey = RedisKeys.srp(userId.toString(), deviceId.toString());
+        String redisKey = RedisKeys.accountDeletion(userId.toString(), deviceId.toString());
         assertFalse(redisService.exists(redisKey));
 
         // when
@@ -141,7 +141,7 @@ public class AccountDeletionServiceIT extends AbstractTestInitializer {
         String A = Base64.getEncoder().encodeToString(BigInteger.TEN.toByteArray());
         SrpRedisEntity srpRedisEntity = srpFlow.beginFlow(A, userEntity);
         UUID deviceId = UUID.randomUUID();
-        String redisKey = RedisKeys.srp(userId.toString(), deviceId.toString());
+        String redisKey = RedisKeys.accountDeletion(userId.toString(), deviceId.toString());
         redisService.save(
                 redisKey,
                 srpRedisEntity,
@@ -168,7 +168,7 @@ public class AccountDeletionServiceIT extends AbstractTestInitializer {
         SrpRedisEntity srpRedisEntity = srpFlow.beginFlow(A, userEntity);
         String M1 = Base64.getEncoder().encodeToString(srpFlow.calculateM1Server(srpRedisEntity).toByteArray());
         UUID deviceId = UUID.randomUUID();
-        String redisKey = RedisKeys.srp(userId.toString(), deviceId.toString());
+        String redisKey = RedisKeys.accountDeletion(userId.toString(), deviceId.toString());
         redisService.save(
                 redisKey,
                 srpRedisEntity,
@@ -306,6 +306,8 @@ public class AccountDeletionServiceIT extends AbstractTestInitializer {
         userEntity.setEmail("user@gmail.com");
         userEntity.setSaltAuth(UUID.randomUUID().toString());
         userEntity.setVerifier("verifier");
+        userEntity.setVaultKey("vaultKey");
+        userEntity.setIvVaultKey("ivVaultKey");
         userEntity.setSaltKey(UUID.randomUUID().toString());
         return userEntity;
     }

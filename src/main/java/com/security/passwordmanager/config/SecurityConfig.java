@@ -29,6 +29,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/credentials/**").authenticated()
                         .requestMatchers("/api/deletion/authorized/**").authenticated()
+                        .requestMatchers("/api/password/**").authenticated()
                         .anyRequest().permitAll()
                 )
                 .addFilterBefore(requestFilter, UsernamePasswordAuthenticationFilter.class);

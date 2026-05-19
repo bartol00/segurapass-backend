@@ -15,6 +15,8 @@ public class UserRedisEntity {
     private String email;
     private String saltAuth;
     private String verifier;
+    private String vaultKey;
+    private String ivVaultKey;
     private String saltKey;
     private Instant creationTime;
 }

@@ -237,6 +237,8 @@ public class CredentialsServiceIT extends AbstractTestInitializer {
         userEntity.setEmail("user@gmail.com");
         userEntity.setSaltAuth("saltAuth");
         userEntity.setVerifier("verifier");
+        userEntity.setVaultKey("vaultKey");
+        userEntity.setIvVaultKey("ivVaultKey");
         userEntity.setSaltKey("saltKey");
         return userEntity;
     }
@@ -250,6 +252,7 @@ public class CredentialsServiceIT extends AbstractTestInitializer {
         credentialsEntity.setIvWebsite(UUID.randomUUID().toString());
         credentialsEntity.setIvUsername(UUID.randomUUID().toString());
         credentialsEntity.setIvPassword(UUID.randomUUID().toString());
+        credentialsEntity.setCreatedAt(Instant.now());
         credentialsEntity.setLastUpdated(Instant.now());
         credentialsEntity.setUserEntity(userEntity);
         return credentialsEntity;

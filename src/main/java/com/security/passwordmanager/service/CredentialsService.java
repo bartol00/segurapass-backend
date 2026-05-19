@@ -62,15 +62,18 @@ public class CredentialsService {
     public ResponseEntity<CredentialsResp> createCredentials(CredentialsReq req, UUID userId) {
         UserEntity userEntity = userDao.findByUserId(userId);
 
+        Instant now = Instant.now();
+
         CredentialsEntity credentialsEntity = mapper.toCredentialsEntity(req);
         credentialsEntity.setUserEntity(userEntity);
         credentialsEntity.setCredentialsId(UUID.randomUUID());
-        credentialsEntity.setLastUpdated(Instant.now());
+        credentialsEntity.setCreatedAt(now);
+        credentialsEntity.setLastUpdated(now);
         credentialsEntity = credentialsDao.save(credentialsEntity);
 
         AuditLogEntity auditLogEntity = new AuditLogEntity();
         auditLogEntity.setUserId(userId);
-        auditLogEntity.setTimestamp(Instant.now());
+        auditLogEntity.setTimestamp(now);
         auditLogEntity.setAction(AuditAction.CREDENTIAL_CREATED);
         auditLogEntity.setIpAddress(MDC.get("clientIp"));
         auditLogEntity.setSuccess(true);
@@ -110,12 +113,13 @@ public class CredentialsService {
             entity.setPassword(req.getPassword());
             entity.setIvPassword(req.getIvPassword());
         }
-        entity.setLastUpdated(Instant.now());
+        Instant now = Instant.now();
+        entity.setLastUpdated(now);
         entity = credentialsDao.save(entity);
 
         AuditLogEntity auditLogEntity = new AuditLogEntity();
         auditLogEntity.setUserId(userId);
-        auditLogEntity.setTimestamp(Instant.now());
+        auditLogEntity.setTimestamp(now);
         auditLogEntity.setAction(AuditAction.CREDENTIAL_UPDATED);
         auditLogEntity.setIpAddress(MDC.get("clientIp"));
         auditLogEntity.setSuccess(true);

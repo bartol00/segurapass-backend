@@ -405,6 +405,8 @@ public class AuthorizationServiceIT extends AbstractTestInitializer {
                 email,
                 "saltAuth",
                 "verifier",
+                "vaultKey",
+                "ivVaultKey",
                 "saltKey",
                 UUID.randomUUID()
         );
@@ -437,6 +439,8 @@ public class AuthorizationServiceIT extends AbstractTestInitializer {
                 UUID.randomUUID().toString(),
                 UUID.randomUUID().toString(),
                 UUID.randomUUID().toString(),
+                UUID.randomUUID().toString(),
+                UUID.randomUUID().toString(),
                 Instant.now()
         );
     }
@@ -447,6 +451,8 @@ public class AuthorizationServiceIT extends AbstractTestInitializer {
         userEntity.setEmail(email);
         userEntity.setSaltAuth("saltAuth");
         userEntity.setVerifier("verifier");
+        userEntity.setVaultKey("vaultKey");
+        userEntity.setIvVaultKey("ivVaultKey");
         userEntity.setSaltKey("saltKey");
         return userEntity;
     }

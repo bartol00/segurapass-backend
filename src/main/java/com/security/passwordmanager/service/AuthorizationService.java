@@ -76,6 +76,8 @@ public class AuthorizationService {
                 req.getEmail(),
                 req.getSaltAuth(),
                 req.getVerifier(),
+                req.getVaultKey(),
+                req.getIvVaultKey(),
                 req.getSaltKey(),
                 Instant.now()
         );
@@ -172,6 +174,8 @@ public class AuthorizationService {
 
         LoginCompleteResp resp = new LoginCompleteResp(
                 Base64.getEncoder().encodeToString(M2Server.toByteArray()),
+                userEntity.getVaultKey(),
+                userEntity.getIvVaultKey(),
                 userEntity.getSaltKey(),
                 generateJwt(userEntity.getUserId(), req.getDeviceId()),
                 refreshToken,
@@ -237,6 +241,8 @@ public class AuthorizationService {
         userEntity.setEmail(userRedisEntity.getEmail());
         userEntity.setSaltAuth(userRedisEntity.getSaltAuth());
         userEntity.setVerifier(userRedisEntity.getVerifier());
+        userEntity.setVaultKey(userRedisEntity.getVaultKey());
+        userEntity.setIvVaultKey(userRedisEntity.getIvVaultKey());
         userEntity.setSaltKey(userRedisEntity.getSaltKey());
         userEntity.setCreationTime(userRedisEntity.getCreationTime());
         userEntity.setLastLogin(Instant.now());

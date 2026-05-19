@@ -36,6 +36,12 @@ public class UserEntity {
     @Column(name = "VERIFIER", nullable = false, unique = true, length = Length.LONG32)
     private String verifier;
 
+    @Column(name = "VAULT_KEY", nullable = false, unique = true, length = Length.LONG32)
+    private String vaultKey;
+
+    @Column(name = "IV_VAULT_KEY", nullable = false, unique = true)
+    private String ivVaultKey;
+
     @Column(name = "SALT_KEY", nullable = false, unique = true)
     private String saltKey;
 

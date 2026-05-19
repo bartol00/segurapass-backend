@@ -40,6 +40,13 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(errorEnum.getHttpStatus()).body(errorEnum.getMessage());
     }
 
+    @ExceptionHandler(PasswordChangeException.class)
+    public ResponseEntity<String> handlePasswordChangeException(PasswordChangeException ex) {
+        ErrorEnum errorEnum = ex.getErrorEnum();
+        log.warn("Password Change Exception: {}", errorEnum.getMessage());
+        return ResponseEntity.status(errorEnum.getHttpStatus()).body(errorEnum.getMessage());
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<String> handleGenericException(Exception ex) {
         log.error("Exception: {}", ex.getMessage());

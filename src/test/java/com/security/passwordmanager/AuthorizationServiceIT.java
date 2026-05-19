@@ -105,6 +105,31 @@ public class AuthorizationServiceIT extends AbstractTestInitializer {
     }
 
     @Test
+    void shouldFailEmailPendingVerificationRegisterUser() {
+        // given
+        String email = "unregistered@gmail.com";
+        String emailHash = tokenHasher.generateSha256Email(email);
+        String redisEmailKey = RedisKeys.emailUnverifiedEmail(emailHash);
+        RegistrationReq req = generateRegistrationReq(email);
+        redisService.save(
+                redisEmailKey,
+                null,
+                Duration.of(10, ChronoUnit.MINUTES)
+        );
+        assertTrue(redisService.exists(redisEmailKey));
+
+        // when
+        AuthorizationException ex = assertThrows(
+                AuthorizationException.class,
+                () -> authorizationService.registerUser(req)
+        );
+
+        // then
+        assertEquals(EMAIL_PENDING_VERIFICATION.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(EMAIL_PENDING_VERIFICATION.getMessage(), ex.getErrorEnum().getMessage());
+    }
+
+    @Test
     void shouldSucceedRegisterUser() {
         // given
         RegistrationReq req = generateRegistrationReq("unregistered@gmail.com");
@@ -349,36 +374,14 @@ public class AuthorizationServiceIT extends AbstractTestInitializer {
     }
 
     @Test
-    void shouldFailUserAlreadyExistsVerifyEmail() {
-        // given
-        String token = "token";
-        String tokenHash = tokenHasher.generateSha256(token);
-        String redisKey = RedisKeys.emailUnverified(tokenHash);
-        UserRedisEntity userRedisEntity = generateUserRedisEntity(userId, email);
-        redisService.save(
-                redisKey,
-                userRedisEntity,
-                Duration.of(15, ChronoUnit.MINUTES)
-        );
-
-        // when
-        AuthorizationException ex = assertThrows(
-                AuthorizationException.class,
-                () -> authorizationService.verifyEmail(token)
-        );
-
-        // then
-        assertEquals(USER_EXISTS.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
-        assertEquals(USER_EXISTS.getMessage(), ex.getErrorEnum().getMessage());
-    }
-
-    @Test
     void shouldSucceedVerifyEmail() {
         // given
         String email = "unregistered@gmail.com";
         String token = "token";
         String tokenHash = tokenHasher.generateSha256(token);
         String redisKey = RedisKeys.emailUnverified(tokenHash);
+        String emailHash = tokenHasher.generateSha256Email(email);
+        String redisKeyEmail = RedisKeys.emailUnverifiedEmail(emailHash);
         UserRedisEntity userRedisEntity = generateUserRedisEntity(
                 UUID.randomUUID(),
                 email
@@ -388,7 +391,13 @@ public class AuthorizationServiceIT extends AbstractTestInitializer {
                 userRedisEntity,
                 Duration.of(15, ChronoUnit.MINUTES)
         );
+        redisService.save(
+                redisKeyEmail,
+                null,
+                Duration.of(15, ChronoUnit.MINUTES)
+        );
         assertTrue(redisService.exists(redisKey));
+        assertTrue(redisService.exists(redisKeyEmail));
         assertNull(userDao.findByEmail(email));
 
         // when
@@ -396,6 +405,7 @@ public class AuthorizationServiceIT extends AbstractTestInitializer {
 
         // then
         assertFalse(redisService.exists(redisKey));
+        assertFalse(redisService.exists(redisKeyEmail));
         assertNotNull(userDao.findByEmail(email));
         assertEquals(HttpStatus.OK, response.getStatusCode());
     }

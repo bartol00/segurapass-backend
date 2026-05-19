@@ -6,6 +6,10 @@ public final class RedisKeys {
         return "segurapass:email_unverified:%s".formatted(tokenHash);
     }
 
+    public static String emailUnverifiedEmail(String emailHash) {
+        return "segurapass:email_unverified:email:%s".formatted(emailHash);
+    }
+
     public static String srp(String userId, String deviceId) {
         return "segurapass:srp:%s:%s".formatted(userId, deviceId);
     }

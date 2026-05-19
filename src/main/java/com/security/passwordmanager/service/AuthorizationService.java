@@ -69,6 +69,12 @@ public class AuthorizationService {
             throw new AuthorizationException(USER_EXISTS);
         }
 
+        String emailHash = tokenHasher.generateSha256Email(req.getEmail());
+        String redisEmailKey = RedisKeys.emailUnverifiedEmail(emailHash);
+        if (redisService.exists(redisEmailKey)) {
+            throw new AuthorizationException(EMAIL_PENDING_VERIFICATION);
+        }
+
         String verificationToken = tokenGenerator.generateEmailVerifier();
         String tokenHash = tokenHasher.generateSha256(verificationToken);
         UserRedisEntity userRedisEntity = new UserRedisEntity(
@@ -81,15 +87,22 @@ public class AuthorizationService {
                 req.getSaltKey(),
                 Instant.now()
         );
+
+        Instant in15Minutes = Instant.now().plus(15, ChronoUnit.MINUTES);
         redisService.save(
                 RedisKeys.emailUnverified(tokenHash),
                 userRedisEntity,
-                Duration.of(15, ChronoUnit.MINUTES)
+                Duration.between(Instant.now(), in15Minutes)
+        );
+        redisService.save(
+                redisEmailKey,
+                null,
+                Duration.between(Instant.now(), in15Minutes)
         );
 
         emailService.sendVerificationEmail(req.getEmail(), verificationToken);
 
-        log.info("Register User for user (email hash): {} - Service", tokenHasher.generateSha256Email(req.getEmail()));
+        log.info("Register User for user (email hash): {} - Service", emailHash);
 
         return ResponseEntity.ok(null);
     }
@@ -232,9 +245,9 @@ public class AuthorizationService {
         UserRedisEntity userRedisEntity = redisService.get(redisKey, UserRedisEntity.class);
         redisService.delete(redisKey);
 
-        if (userDao.existsByEmail(userRedisEntity.getEmail())) {
-            throw new AuthorizationException(USER_EXISTS);
-        }
+        String emailHash = tokenHasher.generateSha256Email(userRedisEntity.getEmail());
+        String redisEmailKey = RedisKeys.emailUnverifiedEmail(emailHash);
+        redisService.delete(redisEmailKey);
 
         UserEntity userEntity = new UserEntity();
         userEntity.setUserId(userRedisEntity.getUserId());
@@ -248,7 +261,7 @@ public class AuthorizationService {
         userEntity.setLastLogin(Instant.now());
         userDao.save(userEntity);
 
-        log.info("Email Verification for user (email hash): {} - Service", tokenHasher.generateSha256Email(userEntity.getEmail()));
+        log.info("Email Verification for user (email hash): {} - Service", emailHash);
 
         return ResponseEntity.ok("Email has been verified successfully");
     }

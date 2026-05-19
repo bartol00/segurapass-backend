@@ -13,7 +13,8 @@ public enum ErrorEnum {
     CREDENTIAL_NOT_EXISTS(HttpStatus.NOT_FOUND, "Credential with this identifier does not exist"),
     CREDENTIAL_UPDATE_IV_MISSING(HttpStatus.NOT_ACCEPTABLE, "Credential is missing one or multiple required IV fields"),
     PUBLIC_KEY_NOT_READ(HttpStatus.INTERNAL_SERVER_ERROR, "Public key could not be read"),
-    TOKEN_NOT_FOUND(HttpStatus.NOT_FOUND, "Token could not be found");
+    TOKEN_NOT_FOUND(HttpStatus.NOT_FOUND, "Token could not be found"),
+    EMAIL_PENDING_VERIFICATION(HttpStatus.CONFLICT, "Email is already pending verification");
 
     private final HttpStatus httpStatus;
     private final String message;

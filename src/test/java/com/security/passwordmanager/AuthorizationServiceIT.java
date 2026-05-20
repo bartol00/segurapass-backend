@@ -26,7 +26,6 @@ import org.springframework.test.context.bean.override.mockito.*;
 
 import java.math.BigInteger;
 import java.time.Duration;
-import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.UUID;
@@ -34,13 +33,11 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 import static com.security.passwordmanager.exceptions.ErrorEnum.*;
+import static com.security.passwordmanager.shared.HelperMethods.*;
 
 @Slf4j
 @SpringBootTest
 public class AuthorizationServiceIT extends AbstractTestInitializer {
-
-    private final String email = "user@gmail.com";
-    private final UUID userId = UUID.fromString("14bd3b93-3413-4108-a68b-416cb71e6c70");
 
     @Autowired
     private AuthorizationService authorizationService;
@@ -59,7 +56,7 @@ public class AuthorizationServiceIT extends AbstractTestInitializer {
 
     @BeforeEach
     void setup() {
-        UserEntity userEntity = generateUserEntity(userId);
+        UserEntity userEntity = generateUserEntity();
         userDao.save(userEntity);
         MDC.put("clientIp", "127.0.0.1");
     }
@@ -408,63 +405,6 @@ public class AuthorizationServiceIT extends AbstractTestInitializer {
         assertFalse(redisService.exists(redisKeyEmail));
         assertNotNull(userDao.findByEmail(email));
         assertEquals(HttpStatus.OK, response.getStatusCode());
-    }
-
-    private RegistrationReq generateRegistrationReq(String email) {
-        return new RegistrationReq(
-                email,
-                "saltAuth",
-                "verifier",
-                "vaultKey",
-                "ivVaultKey",
-                "saltKey",
-                UUID.randomUUID()
-        );
-    }
-
-    private LoginStartReq generateLoginStartReq(String email) {
-        return new LoginStartReq(
-                email,
-                UUID.randomUUID(),
-                "publicA"
-        );
-    }
-
-    private LoginCompleteReq generateLoginCompleteReq(String email, String M1) {
-        return new LoginCompleteReq(
-                email,
-                UUID.randomUUID(),
-                M1
-        );
-    }
-
-    private RefreshReq generateRefreshReq(String refreshToken) {
-        return new RefreshReq(refreshToken);
-    }
-
-    private UserRedisEntity generateUserRedisEntity(UUID userId, String email) {
-        return new UserRedisEntity(
-                userId,
-                email,
-                UUID.randomUUID().toString(),
-                UUID.randomUUID().toString(),
-                UUID.randomUUID().toString(),
-                UUID.randomUUID().toString(),
-                UUID.randomUUID().toString(),
-                Instant.now()
-        );
-    }
-
-    private UserEntity generateUserEntity(UUID userId) {
-        UserEntity userEntity = new UserEntity();
-        userEntity.setUserId(userId);
-        userEntity.setEmail(email);
-        userEntity.setSaltAuth("saltAuth");
-        userEntity.setVerifier("verifier");
-        userEntity.setVaultKey("vaultKey");
-        userEntity.setIvVaultKey("ivVaultKey");
-        userEntity.setSaltKey("saltKey");
-        return userEntity;
     }
 
 }

@@ -17,18 +17,16 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
 import static com.security.passwordmanager.exceptions.ErrorEnum.*;
 import static org.junit.jupiter.api.Assertions.*;
+import static com.security.passwordmanager.shared.HelperMethods.*;
 
 @Slf4j
 @SpringBootTest
 public class CredentialsServiceIT extends AbstractTestInitializer {
-
-    private final UUID userId = UUID.fromString("14bd3b93-3413-4108-a68b-416cb71e6c70");
 
     @Autowired
     private CredentialsService credentialsService;
@@ -43,7 +41,7 @@ public class CredentialsServiceIT extends AbstractTestInitializer {
     void setup() {
         MDC.put("clientIp", "127.0.0.1");
 
-        UserEntity userEntity = generateUserEntity(userId);
+        UserEntity userEntity = generateUserEntity();
         userDao.save(userEntity);
 
         CredentialsEntity credentialsEntity1 = generateCredentialsEntity(userEntity);
@@ -218,44 +216,6 @@ public class CredentialsServiceIT extends AbstractTestInitializer {
         assertEquals(count - 1, credentialsDao.count());
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertTrue(credentialsDao.findById(credentialsEntity.getId()).isEmpty());
-    }
-
-    private CredentialsReq generateCredentialsReq() {
-        CredentialsReq credentialsReq = new CredentialsReq();
-        credentialsReq.setWebsite("unique website");
-        credentialsReq.setUsername("unique username");
-        credentialsReq.setPassword("unique password");
-        credentialsReq.setIvWebsite(UUID.randomUUID().toString());
-        credentialsReq.setIvUsername(UUID.randomUUID().toString());
-        credentialsReq.setIvPassword(UUID.randomUUID().toString());
-        return credentialsReq;
-    }
-
-    private UserEntity generateUserEntity(UUID userId) {
-        UserEntity userEntity = new UserEntity();
-        userEntity.setUserId(userId);
-        userEntity.setEmail("user@gmail.com");
-        userEntity.setSaltAuth("saltAuth");
-        userEntity.setVerifier("verifier");
-        userEntity.setVaultKey("vaultKey");
-        userEntity.setIvVaultKey("ivVaultKey");
-        userEntity.setSaltKey("saltKey");
-        return userEntity;
-    }
-
-    private CredentialsEntity generateCredentialsEntity(UserEntity userEntity) {
-        CredentialsEntity credentialsEntity = new CredentialsEntity();
-        credentialsEntity.setCredentialsId(UUID.randomUUID());
-        credentialsEntity.setWebsite(UUID.randomUUID().toString());
-        credentialsEntity.setUsername(UUID.randomUUID().toString());
-        credentialsEntity.setPassword(UUID.randomUUID().toString());
-        credentialsEntity.setIvWebsite(UUID.randomUUID().toString());
-        credentialsEntity.setIvUsername(UUID.randomUUID().toString());
-        credentialsEntity.setIvPassword(UUID.randomUUID().toString());
-        credentialsEntity.setCreatedAt(Instant.now());
-        credentialsEntity.setLastUpdated(Instant.now());
-        credentialsEntity.setUserEntity(userEntity);
-        return credentialsEntity;
     }
 
 }

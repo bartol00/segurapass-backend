@@ -29,13 +29,11 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 import static com.security.passwordmanager.exceptions.ErrorEnum.*;
+import static com.security.passwordmanager.shared.HelperMethods.*;
 
 @Slf4j
 @SpringBootTest
 public class AccountDeletionServiceIT extends AbstractTestInitializer {
-
-    private final String email = "user@gmail.com";
-    private final UUID userId = UUID.fromString("14bd3b93-3413-4108-a68b-416cb71e6c70");
 
     @Autowired
     private AccountDeletionService accountDeletionService;
@@ -52,7 +50,7 @@ public class AccountDeletionServiceIT extends AbstractTestInitializer {
 
     @BeforeEach
     void setup() {
-        UserEntity userEntity = generateUserEntity(userId);
+        UserEntity userEntity = generateUserEntity();
         userDao.save(userEntity);
     }
 
@@ -280,36 +278,6 @@ public class AccountDeletionServiceIT extends AbstractTestInitializer {
         assertNull(userDao.findByUserId(userId));
         assertFalse(redisService.exists(redisKey));
         assertFalse(redisService.exists(emailHashRedisKey));
-    }
-
-    private AuthorizedDeletionStartReq generateAuthorizedDeletionStartReq(UUID deviceId) {
-        return new AuthorizedDeletionStartReq(
-                deviceId,
-                "publicA"
-        );
-    }
-
-    private AuthorizedDeletionCompleteReq generateAuthorizedDeletionCompleteReq(UUID deviceId, String M1) {
-        return new AuthorizedDeletionCompleteReq(
-                deviceId,
-                M1
-        );
-    }
-
-    private EmailDeletionStartReq generateEmailDeletionStartReq(String email) {
-        return new EmailDeletionStartReq(email);
-    }
-
-    private UserEntity generateUserEntity(UUID userId) {
-        UserEntity userEntity = new UserEntity();
-        userEntity.setUserId(userId);
-        userEntity.setEmail("user@gmail.com");
-        userEntity.setSaltAuth(UUID.randomUUID().toString());
-        userEntity.setVerifier("verifier");
-        userEntity.setVaultKey("vaultKey");
-        userEntity.setIvVaultKey("ivVaultKey");
-        userEntity.setSaltKey(UUID.randomUUID().toString());
-        return userEntity;
     }
 
 }

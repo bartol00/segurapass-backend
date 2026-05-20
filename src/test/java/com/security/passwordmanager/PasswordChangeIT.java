@@ -2,7 +2,6 @@ package com.security.passwordmanager;
 
 import com.security.passwordmanager.exceptions.PasswordChangeException;
 import com.security.passwordmanager.helpers.SrpFlow;
-import com.security.passwordmanager.helpers.TokenHasher;
 import com.security.passwordmanager.model.audit.AuditLogDao;
 import com.security.passwordmanager.model.authorization.UserDao;
 import com.security.passwordmanager.model.authorization.UserEntity;
@@ -29,12 +28,11 @@ import java.util.UUID;
 
 import static com.security.passwordmanager.exceptions.ErrorEnum.*;
 import static org.junit.jupiter.api.Assertions.*;
+import static com.security.passwordmanager.shared.HelperMethods.*;
 
 @Slf4j
 @SpringBootTest
 public class PasswordChangeIT extends AbstractTestInitializer {
-
-    private final UUID userId = UUID.fromString("14bd3b93-3413-4108-a68b-416cb71e6c70");
 
     @Autowired
     private PasswordChangeService passwordChangeService;
@@ -45,13 +43,11 @@ public class PasswordChangeIT extends AbstractTestInitializer {
     @Autowired
     private RedisService redisService;
     @Autowired
-    private TokenHasher tokenHasher;
-    @Autowired
     private SrpFlow srpFlow;
 
     @BeforeEach
     void setup() {
-        UserEntity userEntity = generateUserEntity(userId);
+        UserEntity userEntity = generateUserEntity();
         userDao.save(userEntity);
         MDC.put("clientIp", "127.0.0.1");
     }
@@ -197,37 +193,6 @@ public class PasswordChangeIT extends AbstractTestInitializer {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(userEntity.getVerifier(), req.getNewVerifier());
         assertEquals(1, auditLogDao.findAll().size());
-    }
-
-    private PasswordChangeStartReq generatePasswordChangeStartReq(UUID deviceId) {
-        return new PasswordChangeStartReq(
-                deviceId,
-                "publicA"
-        );
-    }
-
-    private PasswordChangeCompleteReq generatePasswordChangeCompleteReq(UUID deviceId, String M1) {
-        return new PasswordChangeCompleteReq(
-                deviceId,
-                M1,
-                UUID.randomUUID().toString(),
-                UUID.randomUUID().toString(),
-                UUID.randomUUID().toString(),
-                UUID.randomUUID().toString(),
-                UUID.randomUUID().toString()
-        );
-    }
-
-    private UserEntity generateUserEntity(UUID userId) {
-        UserEntity userEntity = new UserEntity();
-        userEntity.setUserId(userId);
-        userEntity.setEmail("user@gmail.com");
-        userEntity.setSaltAuth("saltAuth");
-        userEntity.setVerifier("verifier");
-        userEntity.setVaultKey("vaultKey");
-        userEntity.setIvVaultKey("ivVaultKey");
-        userEntity.setSaltKey("saltKey");
-        return userEntity;
     }
 
 }

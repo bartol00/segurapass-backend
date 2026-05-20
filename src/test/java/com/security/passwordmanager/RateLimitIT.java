@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static com.security.passwordmanager.shared.HelperMethods.*;
 
 @Slf4j
 @SpringBootTest
@@ -146,7 +147,11 @@ class RateLimitIT extends AbstractTestInitializer {
 
     @Test
     void shouldApplyUserRateLimit() throws Exception {
-        String token = generateJwt();
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("deviceId", UUID.randomUUID());
+        String token = generateJwt(
+                jwtService.generateToken(UUID.randomUUID().toString(), claims, 180)
+        );
 
         for (int i = 0; i < 50; i++) {
             mockMvc.perform(get("/api/credentials/get")
@@ -159,19 +164,4 @@ class RateLimitIT extends AbstractTestInitializer {
                 .andExpect(status().isTooManyRequests());
     }
 
-    private String loginStartRequestJson() {
-        return """
-        {
-            "email": "test@test.com",
-            "deviceId": "1f13c83d-473d-459c-809c-b64e76bfae0d",
-            "A": "randomA"
-        }
-        """;
-    }
-
-    private String generateJwt() {
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("deviceId", UUID.randomUUID());
-        return "Bearer " + jwtService.generateToken("0fcd2fec-35e6-4455-aaf8-84f5271b2e3d", claims, 180);
-    }
 }

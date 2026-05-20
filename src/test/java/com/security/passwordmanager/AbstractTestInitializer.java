@@ -12,6 +12,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @ActiveProfiles("test")
 @Testcontainers
 @Import(AppSecurityTestConfig.class)
+@SuppressWarnings("resource")
 public abstract class AbstractTestInitializer {
 
     static final PostgreSQLContainer<?> POSTGRES =

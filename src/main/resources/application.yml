@@ -27,6 +27,7 @@ app:
     email-hash-salt: ${EMAIL_HASH_SALT}
   email:
     url: ${EMAIL_SERVICE_URL:emailServiceUrl}
+    active: ${EMAIL_SERVICE_ACTIVE:true}
   rate-limiting:
     ip-enabled: ${IP_LIMITING_ENABLED:false}
     default-window-seconds: ${DEFAULT_LIMITING_SECONDS:60}

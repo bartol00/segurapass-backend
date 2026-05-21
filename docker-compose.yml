@@ -1,7 +1,6 @@
 services:
   segurapass_backend:
     image: ${IMAGE_NAME}:${IMAGE_TAG}
-    container_name: ${IMAGE_NAME}
     ports:
       - "8080:8080"
     env_file:

@@ -9,14 +9,22 @@ import org.springframework.web.reactive.function.client.WebClient;
 public class EmailClient {
 
     private final WebClient webClient;
+    private final boolean active;
 
-    public EmailClient(@Value("${app.email.url}") String emailUrl) {
+    public EmailClient(
+            @Value("${app.email.url}") String emailUrl,
+            @Value("${app.email.active}") boolean active) {
         this.webClient = WebClient.builder()
                 .baseUrl(emailUrl)
                 .build();
+        this.active = active;
     }
 
     public void sendEmail(EmailReq req) {
+        if (!active) {
+            return;
+        }
+
         webClient.post()
                 .uri("/send-email")
                 .bodyValue(req)

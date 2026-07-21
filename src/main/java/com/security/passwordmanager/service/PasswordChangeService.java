@@ -94,6 +94,9 @@ public class PasswordChangeService {
         userEntity.setVaultKey(req.getNewVaultKey());
         userEntity.setIvVaultKey(req.getNewIvVaultKey());
         userEntity.setSaltKey(req.getNewSaltKey());
+        userEntity.setSaltHkdf(req.getNewSaltHkdf());
+        userEntity.setPrivateSigningKey(req.getNewPrivateSigningKey());
+        userEntity.setIvPrivateSigningKey(req.getNewIvPrivateSigningKey());
         userEntity = userDao.save(userEntity);
 
         AuditLogEntity auditLogEntity = new AuditLogEntity();

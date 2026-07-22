@@ -1,5 +1,10 @@
 package com.security.passwordmanager.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.security.passwordmanager.helpers.TokenGenerator;
+import com.security.passwordmanager.redis.RedisKeys;
+import com.security.passwordmanager.redis.RedisService;
+import com.security.passwordmanager.redis.entities.CredentialsWriteEntity;
 import xyz.segurapass.api.credentials.*;
 import com.security.passwordmanager.exceptions.CredentialsException;
 import com.security.passwordmanager.mapper.CredentialMapper;
@@ -19,8 +24,17 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import xyz.segurapass.api.credentials.CredentialsOperation;
 
+import java.security.KeyFactory;
+import java.security.PublicKey;
+import java.security.Signature;
+import java.security.spec.X509EncodedKeySpec;
+import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Base64;
+import java.util.Objects;
 import java.util.UUID;
 
 import static com.security.passwordmanager.exceptions.ErrorEnum.*;
@@ -32,9 +46,13 @@ public class CredentialsService {
 
     private final CredentialMapper mapper;
 
+    private final TokenGenerator tokenGenerator;
+    private final RedisService redisService;
+
     private final CredentialsDao credentialsDao;
     private final UserDao userDao;
     private final AuditLogDao auditLogDao;
+    private final ObjectMapper objectMapper;
 
     @Transactional
     public ResponseEntity<Page<CredentialsResp>> getCredentials(UUID userId, int page, int size) {
@@ -58,8 +76,15 @@ public class CredentialsService {
         return ResponseEntity.ok(mapper.toCredentialsResp(credentialsEntity));
     }
 
+    public ResponseEntity<NonceResp> createCredentialsStart(UUID userId, UUID deviceId) {
+        String nonce = generateNonce(null, userId, deviceId, CredentialsOperation.CREATE);
+        return ResponseEntity.ok(new NonceResp(nonce));
+    }
+
     @Transactional
-    public ResponseEntity<CredentialsResp> createCredentials(CredentialsReq req, UUID userId) {
+    public ResponseEntity<CredentialsResp> createCredentialsEnd(CredentialsReq req, UUID userId, UUID deviceId, String signature) {
+        verifyNonceAndSignature(null, userId, deviceId, req, signature);
+
         UserEntity userEntity = userDao.findByUserId(userId);
 
         Instant now = Instant.now();
@@ -80,13 +105,20 @@ public class CredentialsService {
         auditLogEntity.setComment("Created credential with ID: " + credentialsEntity.getCredentialsId());
         auditLogDao.save(auditLogEntity);
 
-        log.info("Create Credentials for user: {} - Service", userId);
+        log.info("Create Credentials End for user: {} - Service", userId);
 
         return ResponseEntity.ok(mapper.toCredentialsResp(credentialsEntity));
     }
 
+    public ResponseEntity<NonceResp> updateCredentialsStart(UUID credentialsId, UUID userId, UUID deviceId) {
+        String nonce = generateNonce(credentialsId, userId, deviceId, CredentialsOperation.UPDATE);
+        return ResponseEntity.ok(new NonceResp(nonce));
+    }
+
     @Transactional
-    public ResponseEntity<CredentialsResp> updateCredentials(UUID id, CredentialsReq req, UUID userId) {
+    public ResponseEntity<CredentialsResp> updateCredentialsEnd(UUID id, CredentialsReq req, UUID userId, UUID deviceId,String signature) {
+        verifyNonceAndSignature(id, userId, deviceId, req, signature);
+
         CredentialsEntity entity = credentialsDao.findByCredentialsIdAndUserEntity_UserId(id, userId);
         if (entity == null) {
             throw new CredentialsException(CREDENTIAL_NOT_EXISTS);
@@ -126,13 +158,20 @@ public class CredentialsService {
         auditLogEntity.setComment("Updated credential with ID: " + entity.getCredentialsId());
         auditLogDao.save(auditLogEntity);
 
-        log.info("Update Credentials for user: {} - Service", userId);
+        log.info("Update Credentials End for user: {} - Service", userId);
 
         return ResponseEntity.ok(mapper.toCredentialsResp(entity));
     }
 
+    public ResponseEntity<NonceResp> deleteCredentialsStart(UUID credentialsId, UUID userId, UUID deviceId) {
+        String nonce = generateNonce(credentialsId, userId, deviceId, CredentialsOperation.DELETE);
+        return ResponseEntity.ok(new NonceResp(nonce));
+    }
+
     @Transactional
-    public ResponseEntity<Void> deleteCredentials(UUID id, UUID userId) {
+    public ResponseEntity<Void> deleteCredentialsEnd(UUID id, CredentialsReq req, UUID userId, UUID deviceId, String signature) {
+        verifyNonceAndSignature(id, userId, deviceId, req, signature);
+
         CredentialsEntity credentialsEntity = credentialsDao.findByCredentialsIdAndUserEntity_UserId(id, userId);
         if (credentialsEntity == null) {
             throw new CredentialsException(CREDENTIAL_NOT_EXISTS);
@@ -149,9 +188,109 @@ public class CredentialsService {
         auditLogEntity.setComment("Deleted credential with ID: " + credentialsEntity.getCredentialsId());
         auditLogDao.save(auditLogEntity);
 
-        log.info("Delete Credentials for user: {} - Service", userId);
+        log.info("Delete Credentials End for user: {} - Service", userId);
 
         return ResponseEntity.ok(null);
+    }
+
+    private String generateNonce(UUID credentialsId, UUID userId, UUID deviceId, CredentialsOperation operation) {
+        String nonce = tokenGenerator.generateRandomToken(48);
+
+        String redisKey = RedisKeys.credentialsNonce(nonce);
+        CredentialsWriteEntity writeEntity = new CredentialsWriteEntity(
+                userId,
+                deviceId,
+                operation,
+                credentialsId
+        );
+
+        redisService.save(redisKey,writeEntity, Duration.of(60, ChronoUnit.SECONDS));
+
+        return nonce;
+    }
+
+    private void verifyNonceAndSignature(
+            UUID credentialsId,
+            UUID userId,
+            UUID deviceId,
+            CredentialsReq req,
+            String signature
+    ) {
+        if (req.getNonce() == null || req.getNonce().isEmpty()) {
+            throw new CredentialsException(CREDENTIAL_NONCE_MISSING);
+        }
+
+        String redisKey = RedisKeys.credentialsNonce(req.getNonce());
+        if (!redisService.exists(redisKey)) {
+            throw new CredentialsException(NONCE_NOT_FOUND);
+        }
+
+        CredentialsWriteEntity writeEntity = redisService.get(redisKey, CredentialsWriteEntity.class);
+
+        if (writeEntity == null) {
+            throw new CredentialsException(NONCE_ERROR);
+        }
+        if (!writeEntity.getUserId().equals(userId)) {
+            throw new CredentialsException(NONCE_ERROR);
+        }
+        if (!writeEntity.getDeviceId().equals(deviceId)) {
+            throw new CredentialsException(NONCE_ERROR);
+        }
+        if (!writeEntity.getOperation().equals(req.getOperation())) {
+            throw new CredentialsException(NONCE_ERROR);
+        }
+        if (!Objects.equals(writeEntity.getCredentialsId(), credentialsId)) {
+            throw new CredentialsException(NONCE_ERROR);
+        }
+
+        try {
+            PublicKey publicKey = getPublicKeyFromDatabase(userId);
+            CredentialsWritePayload payload =
+                    new CredentialsWritePayload(
+                            req.getWebsite(),
+                            req.getUsername(),
+                            req.getPassword(),
+                            req.getIvWebsite(),
+                            req.getIvUsername(),
+                            req.getIvPassword(),
+                            req.getNonce(),
+                            req.getOperation(),
+                            credentialsId
+                    );
+            byte[] payloadBytes = objectMapper.writeValueAsBytes(payload);
+            boolean verified = verifySignature(publicKey, payloadBytes, signature);
+            if (!verified) {
+                throw new CredentialsException(INVALID_SIGNATURE);
+            }
+            redisService.delete(redisKey);
+        } catch (Exception e) {
+            throw new CredentialsException(INVALID_SIGNATURE);
+        }
+    }
+
+    private PublicKey getPublicKeyFromDatabase(UUID userId) throws Exception {
+        String publicKey = userDao.findByUserId(userId).getPublicSigningKey();
+
+        byte[] keyBytes = Base64.getDecoder().decode(publicKey);
+
+        KeyFactory factory = KeyFactory.getInstance("Ed25519");
+        return factory.generatePublic(
+                new X509EncodedKeySpec(keyBytes)
+        );
+    }
+
+    private boolean verifySignature(
+            PublicKey publicKey,
+            byte[] payload,
+            String signatureBase64
+    ) throws Exception {
+        byte[] signatureBytes = Base64.getDecoder().decode(signatureBase64);
+
+        Signature signature = Signature.getInstance("Ed25519");
+        signature.initVerify(publicKey);
+        signature.update(payload);
+
+        return signature.verify(signatureBytes);
     }
 
 }

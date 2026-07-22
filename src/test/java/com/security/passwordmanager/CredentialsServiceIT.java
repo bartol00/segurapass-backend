@@ -108,13 +108,13 @@ public class CredentialsServiceIT extends AbstractTestInitializer {
     }
 
     @Test
-    void shouldSucceedCreateCredentials() {
+    void shouldSucceedCreateCredentialsEnd() {
         // given
         CredentialsReq req = generateCredentialsReq();
         long count = credentialsDao.count();
 
         // when
-        ResponseEntity<CredentialsResp> response = credentialsService.createCredentials(req, userId);
+        ResponseEntity<CredentialsResp> response = credentialsService.createCredentialsEnd(req, userId, deviceId, null);
         CredentialsResp resp = response.getBody();
 
         // then
@@ -127,7 +127,7 @@ public class CredentialsServiceIT extends AbstractTestInitializer {
     }
 
     @Test
-    void shouldFailCredentialIsNullUpdateCredentials() {
+    void shouldFailCredentialIsNullUpdateCredentialsEnd() {
         // given
         UUID credentialsId = UUID.randomUUID();
         CredentialsReq req = generateCredentialsReq();
@@ -135,7 +135,7 @@ public class CredentialsServiceIT extends AbstractTestInitializer {
         // when
         CredentialsException ex = assertThrows(
                 CredentialsException.class,
-                () -> credentialsService.updateCredentials(credentialsId, req, userId)
+                () -> credentialsService.updateCredentialsEnd(credentialsId, req, userId, deviceId, null)
         );
 
         // then
@@ -144,7 +144,7 @@ public class CredentialsServiceIT extends AbstractTestInitializer {
     }
 
     @Test
-    void shouldFailMissingIvUpdateCredentials() {
+    void shouldFailMissingIvUpdateCredentialsEnd() {
         // given
         List<CredentialsEntity> credentialsEntityList = credentialsDao.findAll();
         CredentialsEntity credentialsEntity = credentialsEntityList.getFirst();
@@ -155,7 +155,7 @@ public class CredentialsServiceIT extends AbstractTestInitializer {
         // when
         CredentialsException ex = assertThrows(
                 CredentialsException.class,
-                () -> credentialsService.updateCredentials(credentialsId, req, userId)
+                () -> credentialsService.updateCredentialsEnd(credentialsId, req, userId, deviceId, null)
         );
 
         // then
@@ -164,7 +164,7 @@ public class CredentialsServiceIT extends AbstractTestInitializer {
     }
 
     @Test
-    void shouldSucceedUpdateCredentials() {
+    void shouldSucceedUpdateCredentialsEnd() {
         // given
         List<CredentialsEntity> credentialsEntityList = credentialsDao.findAll();
         CredentialsEntity credentialsEntity = credentialsEntityList.getFirst();
@@ -172,7 +172,7 @@ public class CredentialsServiceIT extends AbstractTestInitializer {
         CredentialsReq req = generateCredentialsReq();
 
         // when
-        ResponseEntity<CredentialsResp> response = credentialsService.updateCredentials(credentialsId, req, userId);
+        ResponseEntity<CredentialsResp> response = credentialsService.updateCredentialsEnd(credentialsId, req, userId, deviceId, null);
         CredentialsResp resp = response.getBody();
 
         // then
@@ -185,14 +185,14 @@ public class CredentialsServiceIT extends AbstractTestInitializer {
     }
 
     @Test
-    void shouldFailCredentialIsNullDeleteCredentials() {
+    void shouldFailCredentialIsNullDeleteCredentialsEnd() {
         // given
         UUID credentialsId = UUID.randomUUID();
 
         // when
         CredentialsException ex = assertThrows(
                 CredentialsException.class,
-                () -> credentialsService.deleteCredentials(credentialsId, userId)
+                () -> credentialsService.deleteCredentialsEnd(credentialsId, null, userId, deviceId, null)
         );
 
         // then
@@ -201,7 +201,7 @@ public class CredentialsServiceIT extends AbstractTestInitializer {
     }
 
     @Test
-    void shouldSucceedDeleteCredentials() {
+    void shouldSucceedDeleteCredentialsEnd() {
         // given
         List<CredentialsEntity> credentialsEntityList = credentialsDao.findAll();
         CredentialsEntity credentialsEntity = credentialsEntityList.getFirst();
@@ -209,7 +209,7 @@ public class CredentialsServiceIT extends AbstractTestInitializer {
         long count = credentialsDao.count();
 
         // when
-        ResponseEntity<Void> response = credentialsService.deleteCredentials(credentialsId, userId);
+        ResponseEntity<Void> response = credentialsService.deleteCredentialsEnd(credentialsId, null, userId, deviceId, null);
 
         // then
         assertEquals(1, auditLogDao.findAll().size());

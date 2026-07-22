@@ -75,7 +75,7 @@ public class AuthorizationService {
             throw new AuthorizationException(EMAIL_PENDING_VERIFICATION);
         }
 
-        String verificationToken = tokenGenerator.generateEmailVerifier();
+        String verificationToken = tokenGenerator.generateRandomToken(32);
         String tokenHash = tokenHasher.generateSha256(verificationToken);
         UserRedisEntity userRedisEntity = new UserRedisEntity(
                 UUID.randomUUID(),

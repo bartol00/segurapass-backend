@@ -71,14 +71,23 @@ public class RequestFilter extends OncePerRequestFilter {
                 Claims claims = jwtService.validateToken(token);
 
                 String userIdString = claims.getSubject();
-
                 if (!isAllowedUser(rules, userIdString)) {
                     respond429(response);
                     return;
                 }
 
+                UUID userId = UUID.fromString(userIdString);
+                UUID deviceId = UUID.fromString(
+                        claims.get("deviceId", String.class)
+                );
+
+                AuthenticatedUser principal = new AuthenticatedUser(userId, deviceId);
                 UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(UUID.fromString(userIdString), null, Collections.emptyList());
+                        new UsernamePasswordAuthenticationToken(
+                                principal,
+                                null,
+                                Collections.emptyList()
+                        );
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }

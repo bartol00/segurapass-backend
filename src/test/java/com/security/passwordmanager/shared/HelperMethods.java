@@ -21,6 +21,7 @@ public class HelperMethods {
 
     public static final String email = "user@gmail.com";
     public static final UUID userId = UUID.fromString("14bd3b93-3413-4108-a68b-416cb71e6c70");
+    public static final UUID deviceId = UUID.fromString("aa621bf6-83c5-4eb3-b503-8d5650ecd5e0");
 
     // general helper methods
     public static UserEntity generateUserEntity() {

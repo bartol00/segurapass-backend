@@ -1,5 +1,6 @@
 package com.security.passwordmanager.controller;
 
+import com.security.passwordmanager.config.AuthenticatedUser;
 import xyz.segurapass.api.deletion.*;
 import com.security.passwordmanager.service.AccountDeletionService;
 import lombok.RequiredArgsConstructor;
@@ -7,8 +8,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.UUID;
 
 @RestController
 @RequiredArgsConstructor
@@ -19,15 +18,21 @@ public class AccountDeletionController {
     private final AccountDeletionService accountDeletionService;
 
     @PostMapping("/authorized/start")
-    ResponseEntity<AuthorizedDeletionStartResp> startAuthorizedDeletion(@AuthenticationPrincipal UUID userId, @RequestBody AuthorizedDeletionStartReq authorizedDeletionStartReq) {
+    ResponseEntity<AuthorizedDeletionStartResp> startAuthorizedDeletion(
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
+            @RequestBody AuthorizedDeletionStartReq authorizedDeletionStartReq
+    ) {
         log.info("Start Authorized Deletion - Controller");
-        return accountDeletionService.startAuthorizedDeletion(userId, authorizedDeletionStartReq);
+        return accountDeletionService.startAuthorizedDeletion(authenticatedUser.userId(), authorizedDeletionStartReq);
     }
 
     @PostMapping("/authorized/end")
-    ResponseEntity<Void> completeAuthorizedDeletion(@AuthenticationPrincipal UUID userId, @RequestBody AuthorizedDeletionCompleteReq authorizedDeletionCompleteReq) {
+    ResponseEntity<Void> completeAuthorizedDeletion(
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
+            @RequestBody AuthorizedDeletionCompleteReq authorizedDeletionCompleteReq
+    ) {
         log.info("Complete Authorized Deletion - Controller");
-        return accountDeletionService.completeAuthorizedDeletion(userId, authorizedDeletionCompleteReq);
+        return accountDeletionService.completeAuthorizedDeletion(authenticatedUser.userId(), authorizedDeletionCompleteReq);
     }
 
     @PostMapping("/email/start")

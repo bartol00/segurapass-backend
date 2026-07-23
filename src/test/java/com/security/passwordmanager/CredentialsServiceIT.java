@@ -22,6 +22,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import java.security.*;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.List;
 import java.util.Objects;
@@ -145,6 +147,178 @@ public class CredentialsServiceIT extends AbstractTestInitializer {
         assertEquals(deviceId, writeEntity.getDeviceId());
         assertEquals(CredentialsOperation.CREATE, writeEntity.getOperation());
         assertNull(writeEntity.getCredentialsId());
+    }
+
+    @Test
+    void shouldFailCredentialNonceMissingCreateCredentialsEnd() {
+        // given
+        CredentialsReq req = new CredentialsReq();
+        req.setNonce(null);
+
+        // when
+        CredentialsException ex = assertThrows(
+                CredentialsException.class,
+                () -> credentialsService.createCredentialsEnd(req, userId, deviceId, null)
+        );
+
+        // then
+        assertEquals(CREDENTIAL_NONCE_MISSING.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(CREDENTIAL_NONCE_MISSING.getMessage(), ex.getErrorEnum().getMessage());
+    }
+
+    @Test
+    void shouldFailNonceNotFoundCreateCredentialsEnd() {
+        // given
+        CredentialsReq req = new CredentialsReq();
+        req.setNonce(UUID.randomUUID().toString());
+
+        // when
+        CredentialsException ex = assertThrows(
+                CredentialsException.class,
+                () -> credentialsService.createCredentialsEnd(req, userId, deviceId, null)
+        );
+
+        // then
+        assertEquals(NONCE_NOT_FOUND.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(NONCE_NOT_FOUND.getMessage(), ex.getErrorEnum().getMessage());
+    }
+
+    @Test
+    void shouldFailWriteEntityNullNonceErrorCreateCredentialsEnd() {
+        // given
+        CredentialsReq req = new CredentialsReq();
+        req.setNonce("nonce");
+        redisService.save(RedisKeys.credentialsNonce("nonce"), null, Duration.of(60, ChronoUnit.SECONDS));
+
+        // when
+        CredentialsException ex = assertThrows(
+                CredentialsException.class,
+                () -> credentialsService.createCredentialsEnd(req, userId, deviceId, null)
+        );
+
+        // then
+        assertEquals(NONCE_ERROR.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(NONCE_ERROR.getMessage(), ex.getErrorEnum().getMessage());
+    }
+
+    @Test
+    void shouldFailWriteEntityUserIdMismatchNonceErrorCreateCredentialsEnd() {
+        // given
+        CredentialsReq req = new CredentialsReq();
+        req.setNonce("nonce");
+        CredentialsWriteEntity writeEntity = createWriteEntity(
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+                CredentialsOperation.CREATE,
+                UUID.randomUUID()
+        );
+        redisService.save(RedisKeys.credentialsNonce("nonce"), writeEntity, Duration.of(60, ChronoUnit.SECONDS));
+
+        // when
+        CredentialsException ex = assertThrows(
+                CredentialsException.class,
+                () -> credentialsService.createCredentialsEnd(req, userId, deviceId, null)
+        );
+
+        // then
+        assertEquals(NONCE_ERROR.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(NONCE_ERROR.getMessage(), ex.getErrorEnum().getMessage());
+    }
+
+    @Test
+    void shouldFailWriteEntityDeviceIdMismatchNonceErrorCreateCredentialsEnd() {
+        // given
+        CredentialsReq req = new CredentialsReq();
+        req.setNonce("nonce");
+        CredentialsWriteEntity writeEntity = createWriteEntity(
+                userId,
+                UUID.randomUUID(),
+                CredentialsOperation.CREATE,
+                UUID.randomUUID()
+        );
+        redisService.save(RedisKeys.credentialsNonce("nonce"), writeEntity, Duration.of(60, ChronoUnit.SECONDS));
+
+        // when
+        CredentialsException ex = assertThrows(
+                CredentialsException.class,
+                () -> credentialsService.createCredentialsEnd(req, userId, deviceId, null)
+        );
+
+        // then
+        assertEquals(NONCE_ERROR.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(NONCE_ERROR.getMessage(), ex.getErrorEnum().getMessage());
+    }
+
+    @Test
+    void shouldFailWriteEntityOperationMismatchNonceErrorCreateCredentialsEnd() {
+        // given
+        CredentialsReq req = new CredentialsReq();
+        req.setNonce("nonce");
+        CredentialsWriteEntity writeEntity = createWriteEntity(
+                userId,
+                deviceId,
+                CredentialsOperation.DELETE,
+                UUID.randomUUID()
+        );
+        redisService.save(RedisKeys.credentialsNonce("nonce"), writeEntity, Duration.of(60, ChronoUnit.SECONDS));
+
+        // when
+        CredentialsException ex = assertThrows(
+                CredentialsException.class,
+                () -> credentialsService.createCredentialsEnd(req, userId, deviceId, null)
+        );
+
+        // then
+        assertEquals(NONCE_ERROR.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(NONCE_ERROR.getMessage(), ex.getErrorEnum().getMessage());
+    }
+
+    @Test
+    void shouldFailWriteEntityCredentialsIdMismatchNonceErrorCreateCredentialsEnd() {
+        // given
+        CredentialsReq req = new CredentialsReq();
+        req.setNonce("nonce");
+        CredentialsWriteEntity writeEntity = createWriteEntity(
+                userId,
+                deviceId,
+                CredentialsOperation.CREATE,
+                UUID.randomUUID()
+        );
+        redisService.save(RedisKeys.credentialsNonce("nonce"), writeEntity, Duration.of(60, ChronoUnit.SECONDS));
+
+        // when
+        CredentialsException ex = assertThrows(
+                CredentialsException.class,
+                () -> credentialsService.createCredentialsEnd(req, userId, deviceId, null)
+        );
+
+        // then
+        assertEquals(NONCE_ERROR.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(NONCE_ERROR.getMessage(), ex.getErrorEnum().getMessage());
+    }
+
+    @Test
+    void shouldFailInvalidSignatureCreateCredentialsEnd() throws Exception {
+        // given
+        String nonce = Objects.requireNonNull(
+                credentialsService.createCredentialsStart(userId, deviceId).getBody()
+        ).getNonce();
+        CredentialsReq req = generateCredentialsReq();
+        req.setNonce(nonce);
+        req.setOperation(CredentialsOperation.CREATE);
+        KeyPairGenerator generator = KeyPairGenerator.getInstance("Ed25519");
+        KeyPair keyPair = generator.generateKeyPair();
+        String signature = createSignature(req, null, keyPair.getPrivate());
+
+        // when
+        CredentialsException ex = assertThrows(
+                CredentialsException.class,
+                () -> credentialsService.createCredentialsEnd(req, userId, deviceId, signature)
+        );
+
+        // then
+        assertEquals(INVALID_SIGNATURE.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(INVALID_SIGNATURE.getMessage(), ex.getErrorEnum().getMessage());
     }
 
     @Test
@@ -379,6 +553,14 @@ public class CredentialsServiceIT extends AbstractTestInitializer {
         byte[] signatureBytes = signer.sign();
 
         return Base64.getEncoder().encodeToString(signatureBytes);
+    }
+
+    private CredentialsWriteEntity createWriteEntity(
+            UUID userId, UUID deviceId, CredentialsOperation operation, UUID credentialsId
+    ) {
+        return new CredentialsWriteEntity(
+                userId, deviceId, operation, credentialsId
+        );
     }
 
 }

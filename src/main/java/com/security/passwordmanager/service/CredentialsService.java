@@ -5,6 +5,7 @@ import com.security.passwordmanager.helpers.TokenGenerator;
 import com.security.passwordmanager.redis.RedisKeys;
 import com.security.passwordmanager.redis.RedisService;
 import com.security.passwordmanager.redis.entities.CredentialsWriteEntity;
+import com.security.passwordmanager.redis.entities.UserPublicKeyEntity;
 import xyz.segurapass.api.credentials.*;
 import com.security.passwordmanager.exceptions.CredentialsException;
 import com.security.passwordmanager.mapper.CredentialMapper;
@@ -244,7 +245,7 @@ public class CredentialsService {
         }
 
         try {
-            PublicKey publicKey = getPublicKeyFromDatabase(userId);
+            PublicKey publicKey = getPublicKey(userId);
             CredentialsWritePayload payload =
                     new CredentialsWritePayload(
                             req.getWebsite(),
@@ -268,15 +269,28 @@ public class CredentialsService {
         }
     }
 
-    private PublicKey getPublicKeyFromDatabase(UUID userId) throws Exception {
-        String publicKey = userDao.findByUserId(userId).getPublicSigningKey();
-
-        byte[] keyBytes = Base64.getDecoder().decode(publicKey);
-
+    private PublicKey getPublicKey(UUID userId) throws Exception {
+        String redisKey = RedisKeys.userPublicKey(userId.toString());
         KeyFactory factory = KeyFactory.getInstance("Ed25519");
-        return factory.generatePublic(
-                new X509EncodedKeySpec(keyBytes)
-        );
+
+        if (redisService.exists(redisKey)) {
+            UserPublicKeyEntity userPublicKeyEntity = redisService.get(redisKey, UserPublicKeyEntity.class);
+            return factory.generatePublic(
+                    new X509EncodedKeySpec(userPublicKeyEntity.getPublicKeyBytes())
+            );
+        } else {
+            String publicKeyStr = userDao.findByUserId(userId).getPublicSigningKey();
+            byte[] keyBytes = Base64.getDecoder().decode(publicKeyStr);
+
+            PublicKey publicKey = factory.generatePublic(
+                    new X509EncodedKeySpec(keyBytes)
+            );
+
+            UserPublicKeyEntity userPublicKeyEntity = new UserPublicKeyEntity(keyBytes);
+            redisService.save(redisKey, userPublicKeyEntity, Duration.of(10, ChronoUnit.MINUTES));
+
+            return publicKey;
+        }
     }
 
     private boolean verifySignature(

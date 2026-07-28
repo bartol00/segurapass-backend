@@ -21,6 +21,7 @@ public class HelperMethods {
 
     public static final String email = "user@gmail.com";
     public static final UUID userId = UUID.fromString("14bd3b93-3413-4108-a68b-416cb71e6c70");
+    public static final UUID deviceId = UUID.fromString("aa621bf6-83c5-4eb3-b503-8d5650ecd5e0");
 
     // general helper methods
     public static UserEntity generateUserEntity() {
@@ -32,6 +33,10 @@ public class HelperMethods {
         userEntity.setVaultKey("vaultKey");
         userEntity.setIvVaultKey("ivVaultKey");
         userEntity.setSaltKey(UUID.randomUUID().toString());
+        userEntity.setSaltHkdf(UUID.randomUUID().toString());
+        userEntity.setPrivateSigningKey("privateSigningKey");
+        userEntity.setPublicSigningKey("publicSigningKey");
+        userEntity.setIvPrivateSigningKey("ivPrivateSigningKey");
         return userEntity;
     }
 
@@ -63,6 +68,10 @@ public class HelperMethods {
                 "vaultKey",
                 "ivVaultKey",
                 "saltKey",
+                "saltHkdf",
+                "privateSigningKey",
+                "publicSigningKey",
+                "privateSigningKeyIv",
                 UUID.randomUUID()
         );
     }
@@ -91,6 +100,10 @@ public class HelperMethods {
         return new UserRedisEntity(
                 userId,
                 email,
+                UUID.randomUUID().toString(),
+                UUID.randomUUID().toString(),
+                UUID.randomUUID().toString(),
+                UUID.randomUUID().toString(),
                 UUID.randomUUID().toString(),
                 UUID.randomUUID().toString(),
                 UUID.randomUUID().toString(),
@@ -139,6 +152,9 @@ public class HelperMethods {
         return new PasswordChangeCompleteReq(
                 deviceId,
                 M1,
+                UUID.randomUUID().toString(),
+                UUID.randomUUID().toString(),
+                UUID.randomUUID().toString(),
                 UUID.randomUUID().toString(),
                 UUID.randomUUID().toString(),
                 UUID.randomUUID().toString(),

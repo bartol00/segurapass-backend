@@ -1,5 +1,6 @@
 package com.security.passwordmanager.controller;
 
+import com.security.passwordmanager.config.AuthenticatedUser;
 import xyz.segurapass.api.credentials.*;
 import com.security.passwordmanager.service.CredentialsService;
 import lombok.RequiredArgsConstructor;
@@ -20,34 +21,80 @@ public class CredentialsController {
     private final CredentialsService credentialsService;
 
     @GetMapping("/get")
-    public ResponseEntity<Page<CredentialsResp>> getCredentials(@AuthenticationPrincipal UUID userId, @RequestParam(defaultValue = "0") int page,
-                                                                @RequestParam(defaultValue = "20") int size) {
+    public ResponseEntity<Page<CredentialsResp>> getCredentials(
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
         log.info("Get Credentials - Controller");
-        return credentialsService.getCredentials(userId, page, size);
+        return credentialsService.getCredentials(authenticatedUser.userId(), page, size);
     }
 
     @GetMapping("/get/{id}")
-    public ResponseEntity<CredentialsResp> getCredentialById(@PathVariable UUID id, @AuthenticationPrincipal UUID userId) {
+    public ResponseEntity<CredentialsResp> getCredentialById(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser
+    ) {
         log.info("Get Credentials By ID - Controller");
-        return credentialsService.getCredentialById(id, userId);
+        return credentialsService.getCredentialById(id, authenticatedUser.userId());
     }
 
-    @PostMapping("/create")
-    public ResponseEntity<CredentialsResp> createCredentials(@RequestBody CredentialsReq req, @AuthenticationPrincipal UUID userId) {
-        log.info("Create Credentials - Controller");
-        return credentialsService.createCredentials(req, userId);
+    @GetMapping("/create/start")
+    public ResponseEntity<NonceResp> createCredentialsStart(
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser
+    ) {
+        log.info("Create Credentials Start - Controller");
+        return credentialsService.createCredentialsStart(authenticatedUser.userId(), authenticatedUser.deviceId());
     }
 
-    @PutMapping("/update/{id}")
-    public ResponseEntity<CredentialsResp> updateCredentials(@PathVariable UUID id, @RequestBody CredentialsReq req, @AuthenticationPrincipal UUID userId) {
-        log.info("Update Credentials - Controller");
-        return credentialsService.updateCredentials(id, req, userId);
+    @PostMapping("/create/end")
+    public ResponseEntity<CredentialsResp> createCredentialsEnd(
+            @RequestBody CredentialsReq req,
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
+            @RequestHeader("X-SeguraPass-Signature") String signature
+    ) {
+        log.info("Create Credentials End - Controller");
+        return credentialsService.createCredentialsEnd(req, authenticatedUser.userId(), authenticatedUser.deviceId(), signature);
     }
 
-    @DeleteMapping("/delete/{id}")
-    public ResponseEntity<Void> deleteCredentials(@PathVariable UUID id, @AuthenticationPrincipal UUID userId) {
-        log.info("Delete Credentials - Controller");
-        return credentialsService.deleteCredentials(id, userId);
+    @GetMapping("/update/start/{id}")
+    public ResponseEntity<NonceResp> updateCredentialsStart(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser
+    ) {
+        log.info("Update Credentials Start - Controller");
+        return credentialsService.updateCredentialsStart(id, authenticatedUser.userId(), authenticatedUser.deviceId());
+    }
+
+    @PutMapping("/update/end/{id}")
+    public ResponseEntity<CredentialsResp> updateCredentialsEnd(
+            @PathVariable UUID id,
+            @RequestBody CredentialsReq req,
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
+            @RequestHeader("X-SeguraPass-Signature") String signature
+    ) {
+        log.info("Update Credentials End - Controller");
+        return credentialsService.updateCredentialsEnd(id, req, authenticatedUser.userId(), authenticatedUser.deviceId(), signature);
+    }
+
+    @GetMapping("/delete/start/{id}")
+    public ResponseEntity<NonceResp> deleteCredentialsStart(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser
+    ) {
+        log.info("Delete Credentials Start - Controller");
+        return credentialsService.deleteCredentialsStart(id, authenticatedUser.userId(), authenticatedUser.deviceId());
+    }
+
+    @PostMapping("/delete/end/{id}")
+    public ResponseEntity<Void> deleteCredentialsEnd(
+            @PathVariable UUID id,
+            @RequestBody CredentialsReq req,
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
+            @RequestHeader("X-SeguraPass-Signature") String signature
+    ) {
+        log.info("Delete Credentials End - Controller");
+        return credentialsService.deleteCredentialsEnd(id, req, authenticatedUser.userId(), authenticatedUser.deviceId(), signature);
     }
 
 }

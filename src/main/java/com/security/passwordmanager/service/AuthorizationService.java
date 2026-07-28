@@ -75,7 +75,7 @@ public class AuthorizationService {
             throw new AuthorizationException(EMAIL_PENDING_VERIFICATION);
         }
 
-        String verificationToken = tokenGenerator.generateEmailVerifier();
+        String verificationToken = tokenGenerator.generateRandomToken(32);
         String tokenHash = tokenHasher.generateSha256(verificationToken);
         UserRedisEntity userRedisEntity = new UserRedisEntity(
                 UUID.randomUUID(),
@@ -85,6 +85,10 @@ public class AuthorizationService {
                 req.getVaultKey(),
                 req.getIvVaultKey(),
                 req.getSaltKey(),
+                req.getSaltHkdf(),
+                req.getPrivateSigningKey(),
+                req.getPublicSigningKey(),
+                req.getIvPrivateSigningKey(),
                 Instant.now()
         );
 
@@ -190,6 +194,10 @@ public class AuthorizationService {
                 userEntity.getVaultKey(),
                 userEntity.getIvVaultKey(),
                 userEntity.getSaltKey(),
+                userEntity.getSaltHkdf(),
+                userEntity.getPrivateSigningKey(),
+                userEntity.getPublicSigningKey(),
+                userEntity.getIvPrivateSigningKey(),
                 generateJwt(userEntity.getUserId(), req.getDeviceId()),
                 refreshToken,
                 refreshExpiry
@@ -257,6 +265,10 @@ public class AuthorizationService {
         userEntity.setVaultKey(userRedisEntity.getVaultKey());
         userEntity.setIvVaultKey(userRedisEntity.getIvVaultKey());
         userEntity.setSaltKey(userRedisEntity.getSaltKey());
+        userEntity.setSaltHkdf(userRedisEntity.getSaltHkdf());
+        userEntity.setPrivateSigningKey(userRedisEntity.getPrivateSigningKey());
+        userEntity.setPublicSigningKey(userRedisEntity.getPublicSigningKey());
+        userEntity.setIvPrivateSigningKey(userRedisEntity.getIvPrivateSigningKey());
         userEntity.setCreationTime(userRedisEntity.getCreationTime());
         userEntity.setLastLogin(Instant.now());
         userDao.save(userEntity);

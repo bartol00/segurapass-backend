@@ -9,4 +9,5 @@
     <include file="db/changelog/db.changelog-2026-05-07-audit-logging.xml"/>
     <include file="db/changelog/db.changelog-2026-05-10-cleanup-old-tables.xml"/>
     <include file="db/changelog/db.changelog-2026-05-15-password-change.xml"/>
+    <include file="db/changelog/db.changelog-2026-07-21-signing-keys.xml"/>
 </databaseChangeLog>

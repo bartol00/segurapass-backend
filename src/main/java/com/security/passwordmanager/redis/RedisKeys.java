@@ -34,6 +34,14 @@ public final class RedisKeys {
         return "segurapass:email_deletion:email:%s".formatted(emailHash);
     }
 
+    public static String credentialsNonce(String nonce) {
+        return "segurapass:credentials_nonce:%s".formatted(nonce);
+    }
+
+    public static String userPublicKey(String userId) {
+        return "segurapass:user_public_key:%s".formatted(userId);
+    }
+
     public static String rateLimitIp(String ip, String pattern) {
         return "segurapass:rate_limit:ip:%s:%s".formatted(ip, pattern);
     }

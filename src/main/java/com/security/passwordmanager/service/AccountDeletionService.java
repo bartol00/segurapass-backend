@@ -109,7 +109,7 @@ public class AccountDeletionService {
             return;
         }
 
-        String deletionToken = tokenGenerator.generateEmailVerifier();
+        String deletionToken = tokenGenerator.generateRandomToken(32);
         String tokenHash = tokenHasher.generateSha256(deletionToken);
         String redisKey = RedisKeys.emailDeletion(tokenHash);
         EmailDeletionRedisEntity emailDeletionRedisEntity = new EmailDeletionRedisEntity(

@@ -45,6 +45,18 @@ public class UserEntity {
     @Column(name = "SALT_KEY", nullable = false, unique = true)
     private String saltKey;
 
+    @Column(name = "SALT_HKDF", nullable = false, unique = true)
+    private String saltHkdf;
+
+    @Column(name = "PRIVATE_SIGNING_KEY", nullable = false, unique = true, length = Length.LONG32)
+    private String privateSigningKey;
+
+    @Column(name = "PUBLIC_SIGNING_KEY", nullable = false, unique = true, length = Length.LONG32)
+    private String publicSigningKey;
+
+    @Column(name = "IV_PRIVATE_SIGNING_KEY", nullable = false, unique = true)
+    private String ivPrivateSigningKey;
+
     @Column(name = "CREATION_TIME")
     private Instant creationTime;
 

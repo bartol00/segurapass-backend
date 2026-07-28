@@ -18,12 +18,12 @@ public class TokenGeneratorImpl implements TokenGenerator {
         return base64UrlEncoder.encodeToString(randomBytes);
     }
 
-    public String generateEmailVerifier() {
+    public String generateRandomToken(int length) {
         String charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
-        StringBuilder sb = new StringBuilder(32);
+        StringBuilder sb = new StringBuilder(length);
 
-        for (int i = 0; i < 32; i++) {
+        for (int i = 0; i < length; i++) {
             int index = secureRandom.nextInt(charset.length());
             sb.append(charset.charAt(index));
         }

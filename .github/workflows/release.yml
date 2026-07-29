@@ -42,8 +42,9 @@ jobs:
     permissions:
       contents: write
 
-    uses: bartol00/spring-boot-ci/.github/workflows/release.yml@v1
+    uses: bartol00/spring-boot-ci/.github/workflows/release.yml@v2
 
     with:
       bump-type: ${{ needs.resolve-bump.outputs.bump }}
       java-version: "17"
+      bump-protocol-on-major: true

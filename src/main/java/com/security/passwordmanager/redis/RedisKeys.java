@@ -42,6 +42,14 @@ public final class RedisKeys {
         return "segurapass:user_public_key:%s".formatted(userId);
     }
 
+    public static String mfaNonce(String nonce) {
+        return "segurapass:mfa_nonce:%s".formatted(nonce);
+    }
+
+    public static String totpVerification(String userId, String deviceId) {
+        return "segurapass:totp_verification:%s:%s".formatted(userId, deviceId);
+    }
+
     public static String rateLimitIp(String ip, String pattern) {
         return "segurapass:rate_limit:ip:%s:%s".formatted(ip, pattern);
     }

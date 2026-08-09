@@ -15,6 +15,7 @@ import com.security.passwordmanager.redis.entities.TotpNonceEntity;
 import com.security.passwordmanager.redis.entities.TotpRedisEntity;
 import com.security.passwordmanager.redis.entities.UserPublicKeyEntity;
 import jakarta.transaction.Transactional;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -57,8 +58,11 @@ public class TotpService {
 
     private final ObjectMapper objectMapper;
 
+    @Getter
     private final String TOTP_ALGORITHM = "SHA1";
+    @Getter
     private final int TOTP_DIGITS = 6;
+    @Getter
     private final int TOTP_PERIOD = 30;
 
 
@@ -104,6 +108,7 @@ public class TotpService {
         return ResponseEntity.ok(new NonceResp(nonce));
     }
 
+    @Transactional
     public ResponseEntity<Void> removeTotpEnd(
             TotpReq req,
             UUID userId,
@@ -112,6 +117,11 @@ public class TotpService {
     ) {
         verifyNonceAndSignature(userId, deviceId, req, signature);
         totpDao.deleteByUserEntity_UserId(userId);
+        UserEntity userEntity = userDao.findByUserId(userId);
+        userEntity.setMfaEnabled(false);
+        userEntity.setMfaRecoveryCode(null);
+        userEntity.setTotpEntity(null);
+        userDao.save(userEntity);
         return ResponseEntity.ok(null);
     }
 
@@ -128,9 +138,9 @@ public class TotpService {
         String redisKey = RedisKeys.totpVerification(userId.toString(), deviceId.toString());
         TotpRedisEntity totpRedisEntity = redisService.get(redisKey, TotpRedisEntity.class);
 
-        byte[] totpSecret;
+        byte[] totpSecretBytes;
         try {
-            totpSecret = encryptionService.decryptTotpSecret(
+            totpSecretBytes = encryptionService.decryptTotpSecret(
                     totpRedisEntity.getEncryptedTotpSecret(),
                     totpRedisEntity.getIv()
             );
@@ -138,7 +148,7 @@ public class TotpService {
             throw new MfaException(MFA_TOTP_DECRYPTION_FAILED);
         }
 
-        if (!verifyTotp(totpSecret, req.getOtp())) {
+        if (!verifyTotp(totpSecretBytes, req.getOtp())) {
             throw new MfaException(MFA_TOTP_VERIFICATION_FAILED);
         }
 
@@ -156,6 +166,7 @@ public class TotpService {
 
         userEntity.setMfaEnabled(true);
         userEntity.setMfaRecoveryCode(recoveryHash);
+        userEntity.setTotpEntity(totpEntity);
         userDao.save(userEntity);
 
         redisService.delete(redisKey);
@@ -225,13 +236,13 @@ public class TotpService {
         String nonce = tokenGenerator.generateRandomToken(48);
 
         String redisKey = RedisKeys.mfaNonce(nonce);
-        TotpNonceEntity writeEntity = new TotpNonceEntity(
+        TotpNonceEntity nonceEntity = new TotpNonceEntity(
                 userId,
                 deviceId,
                 mfaType
         );
 
-        redisService.save(redisKey, writeEntity, Duration.of(60, ChronoUnit.SECONDS));
+        redisService.save(redisKey, nonceEntity, Duration.of(60, ChronoUnit.SECONDS));
 
         return nonce;
     }
@@ -251,18 +262,18 @@ public class TotpService {
             throw new MfaException(NONCE_NOT_FOUND);
         }
 
-        TotpNonceEntity writeEntity = redisService.get(redisKey, TotpNonceEntity.class);
+        TotpNonceEntity nonceEntity = redisService.get(redisKey, TotpNonceEntity.class);
 
-        if (writeEntity == null) {
+        if (nonceEntity == null) {
             throw new MfaException(NONCE_ERROR);
         }
-        if (!writeEntity.getUserId().equals(userId)) {
+        if (!nonceEntity.getUserId().equals(userId)) {
             throw new MfaException(NONCE_ERROR);
         }
-        if (!writeEntity.getDeviceId().equals(deviceId)) {
+        if (!nonceEntity.getDeviceId().equals(deviceId)) {
             throw new MfaException(NONCE_ERROR);
         }
-        if (!writeEntity.getMfaType().equals(req.getMfaType())) {
+        if (!nonceEntity.getMfaType().equals(req.getMfaType())) {
             throw new MfaException(NONCE_ERROR);
         }
 

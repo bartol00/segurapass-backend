@@ -3,6 +3,7 @@ package com.security.passwordmanager.helpers.impl;
 import com.security.passwordmanager.config.MfaConfig;
 import com.security.passwordmanager.helpers.EncryptionService;
 import com.security.passwordmanager.redis.entities.TotpRedisEntity;
+import org.apache.commons.codec.binary.Base32;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.Cipher;
@@ -58,7 +59,12 @@ public class EncryptionServiceImpl implements EncryptionService {
         GCMParameterSpec spec = new GCMParameterSpec(GCM_TAG_LENGTH, iv);
         cipher.init(Cipher.DECRYPT_MODE, secretKey, spec);
 
-        return cipher.doFinal(ciphertext);
+        byte[] plaintextBytes = cipher.doFinal(ciphertext);
+        String totpSecret = new String(
+                plaintextBytes,
+                StandardCharsets.UTF_8
+        );
+        return new Base32().decode(totpSecret);
     }
 
 }

@@ -14,6 +14,7 @@ import xyz.segurapass.api.deletion.AuthorizedDeletionCompleteReq;
 import xyz.segurapass.api.deletion.AuthorizedDeletionStartReq;
 import xyz.segurapass.api.deletion.EmailDeletionStartReq;
 import xyz.segurapass.api.mfa.MfaType;
+import xyz.segurapass.api.mfa.TotpVerifyReq;
 import xyz.segurapass.api.password.PasswordChangeCompleteReq;
 import xyz.segurapass.api.password.PasswordChangeStartReq;
 
@@ -182,6 +183,17 @@ public class HelperMethods {
     }
 
     // TotpServiceIT helper methods
+    public static TotpEntity generateTotpEntity(
+            UserEntity userEntity,
+            String encryptedToken,
+            String tokenIv
+    ) {
+        TotpEntity totpEntity = generateTotpEntity(userEntity);
+        totpEntity.setEncryptedToken(encryptedToken);
+        totpEntity.setTokenIv(tokenIv);
+        return totpEntity;
+    }
+
     public static TotpEntity generateTotpEntity(UserEntity userEntity) {
         TotpEntity totpEntity = new TotpEntity();
         totpEntity.setEncryptedToken(UUID.randomUUID().toString());
@@ -197,6 +209,10 @@ public class HelperMethods {
         totpNonceEntity.setDeviceId(UUID.randomUUID());
         totpNonceEntity.setMfaType(mfaType);
         return totpNonceEntity;
+    }
+
+    public static TotpVerifyReq generateTotpVerifyReq(String otp) {
+        return new TotpVerifyReq(otp);
     }
 
 }

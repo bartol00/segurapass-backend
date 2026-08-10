@@ -50,6 +50,10 @@ public final class RedisKeys {
         return "segurapass:totp_verification:%s:%s".formatted(userId, deviceId);
     }
 
+    public static String totpLogin(String code) {
+        return "segurapass:totp_login:%s".formatted(code);
+    }
+
     public static String rateLimitIp(String ip, String pattern) {
         return "segurapass:rate_limit:ip:%s:%s".formatted(ip, pattern);
     }

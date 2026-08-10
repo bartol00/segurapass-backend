@@ -1,26 +1,30 @@
 package com.security.passwordmanager.service.mfa;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.security.passwordmanager.config.JwtService;
 import com.security.passwordmanager.exceptions.MfaException;
 import com.security.passwordmanager.helpers.EncryptionService;
 import com.security.passwordmanager.helpers.TokenGenerator;
 import com.security.passwordmanager.helpers.TokenHasher;
+import com.security.passwordmanager.model.audit.AuditAction;
+import com.security.passwordmanager.model.audit.AuditLogDao;
+import com.security.passwordmanager.model.audit.AuditLogEntity;
 import com.security.passwordmanager.model.authorization.UserDao;
 import com.security.passwordmanager.model.authorization.UserEntity;
 import com.security.passwordmanager.model.mfa.TotpDao;
 import com.security.passwordmanager.model.mfa.TotpEntity;
 import com.security.passwordmanager.redis.RedisKeys;
 import com.security.passwordmanager.redis.RedisService;
-import com.security.passwordmanager.redis.entities.TotpNonceEntity;
-import com.security.passwordmanager.redis.entities.TotpRedisEntity;
-import com.security.passwordmanager.redis.entities.UserPublicKeyEntity;
+import com.security.passwordmanager.redis.entities.*;
 import jakarta.transaction.Transactional;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
+import xyz.segurapass.api.authorization.LoginCompleteResp;
 import xyz.segurapass.api.credentials.NonceResp;
 import xyz.segurapass.api.mfa.*;
 
@@ -37,6 +41,8 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 import static com.security.passwordmanager.exceptions.ErrorEnum.*;
@@ -52,9 +58,11 @@ public class TotpService {
     private final TokenHasher tokenHasher;
     private final RedisService redisService;
     private final EncryptionService encryptionService;
+    private final JwtService jwtService;
 
     private final UserDao userDao;
     private final TotpDao totpDao;
+    private final AuditLogDao auditLogDao;
 
     private final ObjectMapper objectMapper;
 
@@ -174,6 +182,93 @@ public class TotpService {
         return ResponseEntity.ok(new TotpVerifyResp(mfaRecoveryCode));
     }
 
+    @Transactional
+    public ResponseEntity<LoginCompleteResp> totpLogin(
+            String totpCode,
+            TotpVerifyReq req
+    ) {
+        String redisKey = RedisKeys.totpLogin(tokenHasher.generateSha256(totpCode));
+        if (!redisService.exists(redisKey)) {
+            throw new MfaException(MFA_TOTP_LOGIN_MISSING_KEY);
+        }
+
+        TotpLoginEntity totpLoginEntity = redisService.get(redisKey, TotpLoginEntity.class);
+
+        byte[] totpSecretBytes;
+        try {
+            totpSecretBytes = encryptionService.decryptTotpSecret(
+                    totpLoginEntity.getEncryptedTotpSecret(),
+                    totpLoginEntity.getTotpIv()
+            );
+        } catch (Exception e) {
+            throw new MfaException(MFA_TOTP_DECRYPTION_FAILED);
+        }
+
+        if (!verifyTotp(totpSecretBytes, req.getOtp())) {
+            throw new MfaException(MFA_TOTP_VERIFICATION_FAILED);
+        }
+
+        redisService.delete(redisKey);
+
+        return ResponseEntity.ok(
+                generateLoginCompleteResp(totpLoginEntity.getUserId(), totpLoginEntity.getDeviceId())
+        );
+    }
+
+    private LoginCompleteResp generateLoginCompleteResp(UUID userId, UUID deviceId) {
+        UserEntity userEntity = userDao.findByUserId(userId);
+        userEntity.setLastLogin(Instant.now());
+        userDao.save(userEntity);
+
+        String refreshToken = tokenGenerator.generateRefreshToken(32);
+        Instant refreshExpiry = Instant.now().plus(30, ChronoUnit.MINUTES);
+
+        String tokenHash = tokenHasher.generateSha256(refreshToken);
+        SessionRedisEntity sessionRedisEntity = new SessionRedisEntity(
+                userEntity.getUserId(),
+                deviceId
+        );
+        redisService.save(
+                RedisKeys.session(tokenHash),
+                sessionRedisEntity,
+                Duration.between(Instant.now(), refreshExpiry)
+        );
+
+        AuditLogEntity auditLogEntity = new AuditLogEntity();
+        auditLogEntity.setUserId(userEntity.getUserId());
+        auditLogEntity.setTimestamp(Instant.now());
+        auditLogEntity.setAction(AuditAction.LOGIN_SUCCESS);
+        auditLogEntity.setIpAddress(MDC.get("clientIp"));
+        auditLogEntity.setSuccess(true);
+        auditLogDao.save(auditLogEntity);
+
+        LoginCompleteResp resp = new LoginCompleteResp(
+                null,
+                userEntity.getVaultKey(),
+                userEntity.getIvVaultKey(),
+                userEntity.getSaltKey(),
+                userEntity.getSaltHkdf(),
+                userEntity.getPrivateSigningKey(),
+                userEntity.getPublicSigningKey(),
+                userEntity.getIvPrivateSigningKey(),
+                generateJwt(userEntity.getUserId(), deviceId),
+                refreshToken,
+                refreshExpiry
+        );
+
+        log.info(
+                "Login Complete for user (email hash): {} - Service",
+                tokenHasher.generateSha256Email(userEntity.getEmail())
+        );
+
+        return resp;
+    }
+
+    private String generateJwt(UUID userId, UUID deviceId) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("deviceId", deviceId);
+        return jwtService.generateToken(userId.toString(), claims, 180);
+    }
 
     private String createTotpUri(String email, String secret) {
         String appName = "segurapass";

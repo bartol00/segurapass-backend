@@ -3,6 +3,7 @@ package com.security.passwordmanager;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.security.passwordmanager.exceptions.MfaException;
 import com.security.passwordmanager.helpers.EncryptionService;
+import com.security.passwordmanager.helpers.TokenGenerator;
 import com.security.passwordmanager.helpers.TokenHasher;
 import com.security.passwordmanager.model.authorization.UserDao;
 import com.security.passwordmanager.model.authorization.UserEntity;
@@ -10,6 +11,7 @@ import com.security.passwordmanager.model.mfa.TotpDao;
 import com.security.passwordmanager.model.mfa.TotpEntity;
 import com.security.passwordmanager.redis.RedisKeys;
 import com.security.passwordmanager.redis.RedisService;
+import com.security.passwordmanager.redis.entities.TotpLoginEntity;
 import com.security.passwordmanager.redis.entities.TotpNonceEntity;
 import com.security.passwordmanager.redis.entities.TotpRedisEntity;
 import com.security.passwordmanager.service.mfa.TotpService;
@@ -24,6 +26,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.util.UriComponentsBuilder;
+import xyz.segurapass.api.authorization.LoginCompleteResp;
 import xyz.segurapass.api.credentials.NonceResp;
 import xyz.segurapass.api.mfa.*;
 
@@ -58,6 +61,8 @@ public class TotpServiceIT extends AbstractTestInitializer {
     private RedisService redisService;
     @Autowired
     private EncryptionService encryptionService;
+    @Autowired
+    private TokenGenerator tokenGenerator;
     @Autowired
     private TokenHasher tokenHasher;
     @Autowired
@@ -417,6 +422,105 @@ public class TotpServiceIT extends AbstractTestInitializer {
                 tokenHasher.generateSha256(response.getBody().getRecoveryCode()),
                 userEntity.getMfaRecoveryCode()
         );
+    }
+
+    @Test
+    void shouldFailRedisKeyNotExistsLoginTotp() {
+        // when
+        MfaException ex = assertThrows(
+                MfaException.class,
+                () -> totpService.totpLogin(UUID.randomUUID().toString(), null)
+        );
+
+        // then
+        assertEquals(MFA_TOTP_LOGIN_MISSING_KEY.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(MFA_TOTP_LOGIN_MISSING_KEY.getMessage(), ex.getErrorEnum().getMessage());
+    }
+
+    @Test
+    void shouldFailDecryptionFailureLoginTotp() {
+        // given
+        TotpLoginEntity totpLoginEntity = new TotpLoginEntity(
+                userId,
+                deviceId,
+                UUID.randomUUID().toString(),
+                UUID.randomUUID().toString()
+        );
+        String totpCode = tokenGenerator.generateRandomToken(32);
+        String redisKey = RedisKeys.totpLogin(tokenHasher.generateSha256(totpCode));
+        redisService.save(redisKey, totpLoginEntity, Duration.of(10, ChronoUnit.MINUTES));
+
+        // when
+        MfaException ex = assertThrows(
+                MfaException.class,
+                () -> totpService.totpLogin(totpCode, null)
+        );
+
+        // then
+        assertEquals(MFA_TOTP_DECRYPTION_FAILED.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(MFA_TOTP_DECRYPTION_FAILED.getMessage(), ex.getErrorEnum().getMessage());
+    }
+
+    @Test
+    void shouldFailOtpVerificationFailureLoginTotp() throws Exception {
+        // given
+        String totpSecret = tokenGenerator.generateTotpSecret();
+        TotpRedisEntity totpRedisEntity = encryptionService.encryptTotpSecret(totpSecret);
+        TotpLoginEntity totpLoginEntity = new TotpLoginEntity(
+                userId,
+                deviceId,
+                totpRedisEntity.getEncryptedTotpSecret(),
+                totpRedisEntity.getIv()
+        );
+        String totpCode = tokenGenerator.generateRandomToken(32);
+        String redisKey = RedisKeys.totpLogin(tokenHasher.generateSha256(totpCode));
+        redisService.save(redisKey, totpLoginEntity, Duration.of(10, ChronoUnit.MINUTES));
+        TotpVerifyReq req = new TotpVerifyReq("0123456789");
+
+        // when
+        MfaException ex = assertThrows(
+                MfaException.class,
+                () -> totpService.totpLogin(totpCode, req)
+        );
+
+        // then
+        assertEquals(MFA_TOTP_VERIFICATION_FAILED.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(MFA_TOTP_VERIFICATION_FAILED.getMessage(), ex.getErrorEnum().getMessage());
+    }
+
+    @Test
+    void shouldSucceedLoginTotp() throws Exception {
+        // given
+        String totpSecret = tokenGenerator.generateTotpSecret();
+        TotpRedisEntity totpRedisEntity = encryptionService.encryptTotpSecret(totpSecret);
+        TotpLoginEntity totpLoginEntity = new TotpLoginEntity(
+                userId,
+                deviceId,
+                totpRedisEntity.getEncryptedTotpSecret(),
+                totpRedisEntity.getIv()
+        );
+        String totpCode = tokenGenerator.generateRandomToken(32);
+        String redisKey = RedisKeys.totpLogin(tokenHasher.generateSha256(totpCode));
+        redisService.save(redisKey, totpLoginEntity, Duration.of(10, ChronoUnit.MINUTES));
+        byte[] totpSecretDecrypted = encryptionService.decryptTotpSecret(
+                totpRedisEntity.getEncryptedTotpSecret(),
+                totpRedisEntity.getIv()
+        );
+        TotpVerifyReq req = new TotpVerifyReq(generateOtp(totpSecretDecrypted));
+
+        // when
+        ResponseEntity<LoginCompleteResp> response = totpService.totpLogin(totpCode, req);
+
+        // then
+        UserEntity userEntity = userDao.findByUserId(userId);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        LoginCompleteResp body = response.getBody();
+        assertNotNull(body);
+        assertFalse(redisService.exists(redisKey));
+        assertEquals(userEntity.getVaultKey(), body.getVaultKey());
+        assertNotNull(body.getAccessToken());
+        assertNotNull(body.getRefreshToken());
+        assertNull(body.getTotpCode());
     }
 
     private String createSignature(

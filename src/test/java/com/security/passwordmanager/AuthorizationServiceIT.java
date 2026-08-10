@@ -1,18 +1,16 @@
 package com.security.passwordmanager;
 
-import com.security.passwordmanager.helpers.EmailService;
+import com.security.passwordmanager.helpers.*;
 import com.security.passwordmanager.model.audit.AuditLogDao;
+import com.security.passwordmanager.model.mfa.TotpDao;
+import com.security.passwordmanager.model.mfa.TotpEntity;
 import com.security.passwordmanager.redis.RedisKeys;
 import com.security.passwordmanager.redis.RedisService;
-import com.security.passwordmanager.redis.entities.SessionRedisEntity;
-import com.security.passwordmanager.redis.entities.SrpRedisEntity;
-import com.security.passwordmanager.redis.entities.UserRedisEntity;
+import com.security.passwordmanager.redis.entities.*;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import xyz.segurapass.api.authorization.*;
 import com.security.passwordmanager.exceptions.AuthorizationException;
-import com.security.passwordmanager.helpers.SrpFlow;
-import com.security.passwordmanager.helpers.TokenHasher;
 import com.security.passwordmanager.model.authorization.*;
 import com.security.passwordmanager.service.AuthorizationService;
 import lombok.extern.slf4j.Slf4j;
@@ -44,13 +42,19 @@ public class AuthorizationServiceIT extends AbstractTestInitializer {
     @Autowired
     private TokenHasher tokenHasher;
     @Autowired
+    private TokenGenerator tokenGenerator;
+    @Autowired
     private UserDao userDao;
     @Autowired
     private AuditLogDao auditLogDao;
     @Autowired
+    private TotpDao totpDao;
+    @Autowired
     private SrpFlow srpFlow;
     @Autowired
     private RedisService redisService;
+    @Autowired
+    private EncryptionService encryptionService;
     @MockitoBean
     private EmailService emailService;
 
@@ -63,6 +67,7 @@ public class AuthorizationServiceIT extends AbstractTestInitializer {
 
     @AfterEach
     void cleanup() {
+        totpDao.deleteAll();
         userDao.deleteAll();
         auditLogDao.deleteAll();
         redisService.clearAll();
@@ -265,6 +270,58 @@ public class AuthorizationServiceIT extends AbstractTestInitializer {
         assertNotNull(response.getBody());
         assertEquals(M2, response.getBody().getM2());
         assertEquals(userEntity.getSaltKey(), response.getBody().getSaltKey());
+    }
+
+    @Test
+    void shouldSucceedLoginEndWithTotp() throws Exception {
+        // given
+        String totpSecret = tokenGenerator.generateTotpSecret();
+        TotpRedisEntity totpRedisEntity = encryptionService.encryptTotpSecret(totpSecret);
+        String A = Base64.getEncoder().encodeToString(BigInteger.TEN.toByteArray());
+        UserEntity userEntity = userDao.findByEmail(email);
+        TotpEntity totpEntity = generateTotpEntity(
+                userEntity,
+                totpRedisEntity.getEncryptedTotpSecret(),
+                totpRedisEntity.getIv()
+        );
+        totpDao.save(totpEntity);
+        userEntity.setTotpEntity(totpEntity);
+        userEntity.setMfaEnabled(true);
+        userEntity.setMfaRecoveryCode(UUID.randomUUID().toString());
+        userDao.save(userEntity);
+        SrpRedisEntity srpRedisEntity = srpFlow.beginFlow(A, userEntity);
+        BigInteger M1Client = srpFlow.calculateM1Server(srpRedisEntity);
+        String M1 = Base64.getEncoder().encodeToString(M1Client.toByteArray());
+        LoginCompleteReq req = generateLoginCompleteReq(email, M1);
+        String redisKey = RedisKeys.srp(
+                userEntity.getUserId().toString(),
+                req.getDeviceId().toString()
+        );
+        redisService.save(
+                redisKey,
+                srpRedisEntity,
+                Duration.of(10, ChronoUnit.SECONDS)
+        );
+        assertTrue(redisService.exists(redisKey));
+
+        // when
+        ResponseEntity<LoginCompleteResp> response = authorizationService.loginUserEnd(req);
+        String M2 = Base64.getEncoder().encodeToString(srpFlow.calculateM2Server(srpRedisEntity, M1Client).toByteArray());
+
+        // then
+        assertFalse(redisService.exists(redisKey));
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(M2, response.getBody().getM2());
+        String totpCode = response.getBody().getTotpCode();
+        String redisTotpLoginKey = RedisKeys.totpLogin(tokenHasher.generateSha256(totpCode));
+        assertTrue(redisService.exists(redisTotpLoginKey));
+        TotpLoginEntity totpLoginEntity = redisService.get(redisTotpLoginKey, TotpLoginEntity.class);
+        assertEquals(totpLoginEntity.getUserId(), userEntity.getUserId());
+        assertEquals(totpLoginEntity.getEncryptedTotpSecret(), userEntity.getTotpEntity().getEncryptedToken());
+        assertEquals(totpLoginEntity.getTotpIv(), userEntity.getTotpEntity().getTokenIv());
+        assertNull(response.getBody().getAccessToken());
+        assertNull(response.getBody().getRefreshToken());
     }
 
     @Test

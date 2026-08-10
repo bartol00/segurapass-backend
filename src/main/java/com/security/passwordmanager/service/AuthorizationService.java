@@ -1,10 +1,12 @@
 package com.security.passwordmanager.service;
 
 import com.security.passwordmanager.config.JwtService;
+import com.security.passwordmanager.model.mfa.TotpEntity;
 import com.security.passwordmanager.redis.RedisKeys;
 import com.security.passwordmanager.redis.RedisService;
 import com.security.passwordmanager.redis.entities.SessionRedisEntity;
 import com.security.passwordmanager.redis.entities.SrpRedisEntity;
+import com.security.passwordmanager.redis.entities.TotpLoginEntity;
 import com.security.passwordmanager.redis.entities.UserRedisEntity;
 import xyz.segurapass.api.authorization.*;
 import com.security.passwordmanager.exceptions.AuthorizationException;
@@ -164,46 +166,12 @@ public class AuthorizationService {
 
         BigInteger M2Server = srpFlow.calculateM2Server(srpRedisEntity, M1Client);
 
-        userEntity.setLastLogin(Instant.now());
-        userDao.save(userEntity);
-
-        String refreshToken = tokenGenerator.generateRefreshToken(32);
-        Instant refreshExpiry = Instant.now().plus(30, ChronoUnit.MINUTES);
-
-        String tokenHash = tokenHasher.generateSha256(refreshToken);
-        SessionRedisEntity sessionRedisEntity = new SessionRedisEntity(
-                userEntity.getUserId(),
-                req.getDeviceId()
-        );
-        redisService.save(
-                RedisKeys.session(tokenHash),
-                sessionRedisEntity,
-                Duration.between(Instant.now(), refreshExpiry)
-        );
-
-        AuditLogEntity auditLogEntity = new AuditLogEntity();
-        auditLogEntity.setUserId(userEntity.getUserId());
-        auditLogEntity.setTimestamp(Instant.now());
-        auditLogEntity.setAction(AuditAction.LOGIN_SUCCESS);
-        auditLogEntity.setIpAddress(MDC.get("clientIp"));
-        auditLogEntity.setSuccess(true);
-        auditLogDao.save(auditLogEntity);
-
-        LoginCompleteResp resp = new LoginCompleteResp(
-                Base64.getEncoder().encodeToString(M2Server.toByteArray()),
-                userEntity.getVaultKey(),
-                userEntity.getIvVaultKey(),
-                userEntity.getSaltKey(),
-                userEntity.getSaltHkdf(),
-                userEntity.getPrivateSigningKey(),
-                userEntity.getPublicSigningKey(),
-                userEntity.getIvPrivateSigningKey(),
-                generateJwt(userEntity.getUserId(), req.getDeviceId()),
-                refreshToken,
-                refreshExpiry
-        );
-
-        log.info("Login Complete for user (email hash): {} - Service", tokenHasher.generateSha256Email(userEntity.getEmail()));
+        LoginCompleteResp resp;
+        if (userEntity.getMfaEnabled() == null || !userEntity.getMfaEnabled()) {
+            resp = generateRespWithoutMfa(userEntity, req, M2Server);
+        } else {
+            resp = generateRespWithMfa(userEntity, req, M2Server);
+        }
 
         return ResponseEntity.ok(resp);
     }
@@ -295,6 +263,82 @@ public class AuthorizationService {
 
         String domain = email.substring(email.lastIndexOf('@') + 1).toLowerCase();
         return ALLOWED_DOMAINS.contains(domain);
+    }
+
+    private LoginCompleteResp generateRespWithoutMfa(
+            UserEntity userEntity,
+            LoginCompleteReq req,
+            BigInteger M2Server
+    ) {
+        userEntity.setLastLogin(Instant.now());
+        userDao.save(userEntity);
+
+        String refreshToken = tokenGenerator.generateRefreshToken(32);
+        Instant refreshExpiry = Instant.now().plus(30, ChronoUnit.MINUTES);
+
+        String tokenHash = tokenHasher.generateSha256(refreshToken);
+        SessionRedisEntity sessionRedisEntity = new SessionRedisEntity(
+                userEntity.getUserId(),
+                req.getDeviceId()
+        );
+        redisService.save(
+                RedisKeys.session(tokenHash),
+                sessionRedisEntity,
+                Duration.between(Instant.now(), refreshExpiry)
+        );
+
+        AuditLogEntity auditLogEntity = new AuditLogEntity();
+        auditLogEntity.setUserId(userEntity.getUserId());
+        auditLogEntity.setTimestamp(Instant.now());
+        auditLogEntity.setAction(AuditAction.LOGIN_SUCCESS);
+        auditLogEntity.setIpAddress(MDC.get("clientIp"));
+        auditLogEntity.setSuccess(true);
+        auditLogDao.save(auditLogEntity);
+
+        LoginCompleteResp resp = new LoginCompleteResp(
+                Base64.getEncoder().encodeToString(M2Server.toByteArray()),
+                userEntity.getVaultKey(),
+                userEntity.getIvVaultKey(),
+                userEntity.getSaltKey(),
+                userEntity.getSaltHkdf(),
+                userEntity.getPrivateSigningKey(),
+                userEntity.getPublicSigningKey(),
+                userEntity.getIvPrivateSigningKey(),
+                generateJwt(userEntity.getUserId(), req.getDeviceId()),
+                refreshToken,
+                refreshExpiry
+        );
+
+        log.info(
+                "Login Complete for user (email hash): {} - Service",
+                tokenHasher.generateSha256Email(userEntity.getEmail())
+        );
+
+        return resp;
+    }
+
+    private LoginCompleteResp generateRespWithMfa(
+            UserEntity userEntity,
+            LoginCompleteReq req,
+            BigInteger M2Server
+    ) {
+        String totpCode = tokenGenerator.generateRandomToken(32);
+        String redisKey = RedisKeys.totpLogin(tokenHasher.generateSha256(totpCode));
+
+        TotpEntity totpEntity = userEntity.getTotpEntity();
+        TotpLoginEntity totpLoginEntity = new TotpLoginEntity(
+                userEntity.getUserId(),
+                req.getDeviceId(),
+                totpEntity.getEncryptedToken(),
+                totpEntity.getTokenIv()
+        );
+
+        redisService.save(redisKey, totpLoginEntity, Duration.of(10, ChronoUnit.MINUTES));
+
+        return new LoginCompleteResp(
+                Base64.getEncoder().encodeToString(M2Server.toByteArray()),
+                totpCode
+        );
     }
 
 }

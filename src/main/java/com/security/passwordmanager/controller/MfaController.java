@@ -7,13 +7,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import xyz.segurapass.api.authorization.LoginCompleteResp;
 import xyz.segurapass.api.credentials.NonceResp;
 import xyz.segurapass.api.mfa.TotpReq;
 import xyz.segurapass.api.mfa.TotpResp;
 import xyz.segurapass.api.mfa.TotpVerifyReq;
 import xyz.segurapass.api.mfa.TotpVerifyResp;
-
-import java.util.UUID;
 
 @RestController
 @RequiredArgsConstructor
@@ -66,6 +65,15 @@ public class MfaController {
     ) {
         log.info("Verify TOTP - Controller");
         return totpService.verifyTotp(req, authenticatedUser.userId(), authenticatedUser.deviceId());
+    }
+
+    @PostMapping("/login-totp/{code}")
+    public ResponseEntity<LoginCompleteResp> loginTotp(
+            @PathVariable String code,
+            @RequestBody TotpVerifyReq req
+    ) {
+        log.info("Login TOTP - Controller");
+        return totpService.totpLogin(code, req);
     }
 
 }

@@ -25,7 +25,8 @@ public enum ErrorEnum {
     MFA_TOTP_ALREADY_EXISTS(HttpStatus.CONFLICT, "TOTP for this user is already set"),
     MFA_TOTP_NOT_EXISTS(HttpStatus.CONFLICT, "TOTP for this user does not exist"),
     MFA_TOTP_VERIFICATION_FAILED(HttpStatus.CONFLICT, "Initial TOTP verification failed"),
-    MFA_TOTP_LOGIN_MISSING_KEY(HttpStatus.NOT_FOUND, "TOTP login session not found");
+    MFA_TOTP_LOGIN_MISSING_KEY(HttpStatus.NOT_FOUND, "TOTP login session not found"),
+    MFA_TOTP_RECOVERY_CODE_MISMATCH(HttpStatus.CONFLICT, "TOTP recovery code is incorrect");
 
     private final HttpStatus httpStatus;
     private final String message;

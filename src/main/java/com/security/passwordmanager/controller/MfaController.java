@@ -9,10 +9,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import xyz.segurapass.api.authorization.LoginCompleteResp;
 import xyz.segurapass.api.credentials.NonceResp;
-import xyz.segurapass.api.mfa.TotpReq;
-import xyz.segurapass.api.mfa.TotpResp;
-import xyz.segurapass.api.mfa.TotpVerifyReq;
-import xyz.segurapass.api.mfa.TotpVerifyResp;
+import xyz.segurapass.api.mfa.*;
 
 @RestController
 @RequiredArgsConstructor
@@ -74,6 +71,15 @@ public class MfaController {
     ) {
         log.info("Login TOTP - Controller");
         return totpService.totpLogin(code, req);
+    }
+
+    @PostMapping("/recovery-totp/{code}")
+    public ResponseEntity<LoginCompleteResp> recoveryTotp(
+            @PathVariable String code,
+            @RequestBody TotpRecoveryReq req
+    ) {
+        log.info("Recovery TOTP - Controller");
+        return totpService.totpLoginMfaRecovery(code, req);
     }
 
 }

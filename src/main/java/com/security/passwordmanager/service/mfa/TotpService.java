@@ -215,6 +215,41 @@ public class TotpService {
         );
     }
 
+    @Transactional
+    public ResponseEntity<LoginCompleteResp> totpLoginMfaRecovery(
+            String totpCode,
+            TotpRecoveryReq req
+    ) {
+        String redisKey = RedisKeys.totpLogin(tokenHasher.generateSha256(totpCode));
+        if (!redisService.exists(redisKey)) {
+            throw new MfaException(MFA_TOTP_LOGIN_MISSING_KEY);
+        }
+
+        String hashedRecoveryCode = tokenHasher.generateSha256(req.getRecoveryCode());
+
+        TotpLoginEntity totpLoginEntity = redisService.get(redisKey, TotpLoginEntity.class);
+        UserEntity userEntity = userDao.findByUserId(totpLoginEntity.getUserId());
+        String mfaRecovery = userEntity.getMfaRecoveryCode();
+
+        if (!hashedRecoveryCode.equals(mfaRecovery)) {
+            throw new MfaException(MFA_TOTP_RECOVERY_CODE_MISMATCH);
+        }
+
+        redisService.delete(redisKey);
+
+        TotpEntity totpEntity = userEntity.getTotpEntity();
+        totpDao.delete(totpEntity);
+
+        userEntity.setMfaEnabled(false);
+        userEntity.setMfaRecoveryCode(null);
+        userEntity.setTotpEntity(null);
+        userDao.save(userEntity);
+
+        return ResponseEntity.ok(
+                generateLoginCompleteResp(totpLoginEntity.getUserId(), totpLoginEntity.getDeviceId())
+        );
+    }
+
     private LoginCompleteResp generateLoginCompleteResp(UUID userId, UUID deviceId) {
         UserEntity userEntity = userDao.findByUserId(userId);
         userEntity.setLastLogin(Instant.now());

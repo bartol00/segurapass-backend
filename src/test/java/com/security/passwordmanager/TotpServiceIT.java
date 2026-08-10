@@ -523,6 +523,85 @@ public class TotpServiceIT extends AbstractTestInitializer {
         assertNull(body.getTotpCode());
     }
 
+    @Test
+    void shouldFailRedisKeyNotExistsRecoveryTotp() {
+        // when
+        MfaException ex = assertThrows(
+                MfaException.class,
+                () -> totpService.totpLoginMfaRecovery(UUID.randomUUID().toString(), null)
+        );
+
+        // then
+        assertEquals(MFA_TOTP_LOGIN_MISSING_KEY.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(MFA_TOTP_LOGIN_MISSING_KEY.getMessage(), ex.getErrorEnum().getMessage());
+    }
+
+    @Test
+    void shouldFailRecoveryCodeMismatchRecoveryTotp() {
+        // given
+        String totpCode = tokenGenerator.generateRandomToken(32);
+        String redisKey = RedisKeys.totpLogin(tokenHasher.generateSha256(totpCode));
+        TotpLoginEntity totpLoginEntity = new TotpLoginEntity(
+                userId,
+                deviceId,
+                null,
+                null
+        );
+        redisService.save(redisKey, totpLoginEntity, Duration.of(10, ChronoUnit.MINUTES));
+        TotpRecoveryReq req = new TotpRecoveryReq(UUID.randomUUID().toString());
+
+        // when
+        MfaException ex = assertThrows(
+                MfaException.class,
+                () -> totpService.totpLoginMfaRecovery(totpCode, req)
+        );
+
+        // then
+        assertEquals(MFA_TOTP_RECOVERY_CODE_MISMATCH.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(MFA_TOTP_RECOVERY_CODE_MISMATCH.getMessage(), ex.getErrorEnum().getMessage());
+    }
+
+    @Test
+    void shouldSucceedRecoveryTotp() {
+        // given
+        String totpCode = tokenGenerator.generateRandomToken(32);
+        String redisKey = RedisKeys.totpLogin(tokenHasher.generateSha256(totpCode));
+        TotpLoginEntity totpLoginEntity = new TotpLoginEntity(
+                userId,
+                deviceId,
+                null,
+                null
+        );
+        redisService.save(redisKey, totpLoginEntity, Duration.of(10, ChronoUnit.MINUTES));
+        String recoveryCode = tokenGenerator.generateRandomToken(32);
+        TotpRecoveryReq req = new TotpRecoveryReq(recoveryCode);
+        UserEntity userEntity = userDao.findByUserId(userId);
+        TotpEntity totpEntity = generateTotpEntity(userEntity);
+        userEntity.setMfaEnabled(true);
+        userEntity.setMfaRecoveryCode(tokenHasher.generateSha256(recoveryCode));
+        userEntity.setTotpEntity(totpEntity);
+        userDao.save(userEntity);
+        assertEquals(1, totpDao.findAll().size());
+
+        // when
+        ResponseEntity<LoginCompleteResp> response = totpService.totpLoginMfaRecovery(totpCode, req);
+
+        // then
+        userEntity = userDao.findByUserId(userId);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        LoginCompleteResp body = response.getBody();
+        assertNotNull(body);
+        assertFalse(redisService.exists(redisKey));
+        assertEquals(userEntity.getVaultKey(), body.getVaultKey());
+        assertNotNull(body.getAccessToken());
+        assertNotNull(body.getRefreshToken());
+        assertNull(body.getTotpCode());
+        assertNull(userEntity.getTotpEntity());
+        assertNull(userEntity.getMfaRecoveryCode());
+        assertFalse(userEntity.getMfaEnabled());
+        assertEquals(0, totpDao.findAll().size());
+    }
+
     private String createSignature(
             TotpReq req,
             PrivateKey privateKey

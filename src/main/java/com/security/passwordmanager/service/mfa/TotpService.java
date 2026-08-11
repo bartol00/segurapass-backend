@@ -126,7 +126,7 @@ public class TotpService {
         verifyNonceAndSignature(userId, deviceId, req, signature);
         totpDao.deleteByUserEntity_UserId(userId);
         UserEntity userEntity = userDao.findByUserId(userId);
-        userEntity.setMfaEnabled(false);
+        userEntity.setTotpEnabled(false);
         userEntity.setMfaRecoveryCode(null);
         userEntity.setTotpEntity(null);
         userDao.save(userEntity);
@@ -172,7 +172,7 @@ public class TotpService {
         String mfaRecoveryCode = tokenGenerator.generateRandomToken(32);
         String recoveryHash = tokenHasher.generateSha256(mfaRecoveryCode);
 
-        userEntity.setMfaEnabled(true);
+        userEntity.setTotpEnabled(true);
         userEntity.setMfaRecoveryCode(recoveryHash);
         userEntity.setTotpEntity(totpEntity);
         userDao.save(userEntity);
@@ -240,7 +240,7 @@ public class TotpService {
         TotpEntity totpEntity = userEntity.getTotpEntity();
         totpDao.delete(totpEntity);
 
-        userEntity.setMfaEnabled(false);
+        userEntity.setTotpEnabled(false);
         userEntity.setMfaRecoveryCode(null);
         userEntity.setTotpEntity(null);
         userDao.save(userEntity);

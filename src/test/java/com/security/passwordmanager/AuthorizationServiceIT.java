@@ -286,7 +286,7 @@ public class AuthorizationServiceIT extends AbstractTestInitializer {
         );
         totpDao.save(totpEntity);
         userEntity.setTotpEntity(totpEntity);
-        userEntity.setMfaEnabled(true);
+        userEntity.setTotpEnabled(true);
         userEntity.setMfaRecoveryCode(UUID.randomUUID().toString());
         userDao.save(userEntity);
         SrpRedisEntity srpRedisEntity = srpFlow.beginFlow(A, userEntity);

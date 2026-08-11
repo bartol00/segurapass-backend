@@ -33,4 +33,13 @@
             <column name="totp_id"/>
         </dropColumn>
     </changeSet>
+
+    <changeSet id="2026-08-11-01-totp-entity" author="bartol">
+        <dropColumn tableName="users">
+            <column name="mfa_enabled" type="BOOLEAN"/>
+        </dropColumn>
+        <addColumn tableName="users" schemaName="password_manager">
+            <column name="totp_enabled" type="BOOLEAN"/>
+        </addColumn>
+    </changeSet>
 </databaseChangeLog>

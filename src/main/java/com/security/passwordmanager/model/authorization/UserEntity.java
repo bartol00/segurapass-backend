@@ -64,8 +64,8 @@ public class UserEntity {
     @Column(name = "LAST_LOGIN")
     private Instant lastLogin;
 
-    @Column(name = "MFA_ENABLED")
-    private Boolean mfaEnabled = false;
+    @Column(name = "TOTP_ENABLED")
+    private Boolean totpEnabled = false;
 
     @Column(name = "MFA_RECOVERY_CODE")
     private String mfaRecoveryCode;

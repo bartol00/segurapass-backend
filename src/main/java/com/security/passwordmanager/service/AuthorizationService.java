@@ -167,7 +167,7 @@ public class AuthorizationService {
         BigInteger M2Server = srpFlow.calculateM2Server(srpRedisEntity, M1Client);
 
         LoginCompleteResp resp;
-        if (userEntity.getMfaEnabled() == null || !userEntity.getMfaEnabled()) {
+        if (userEntity.getTotpEnabled() == null || !userEntity.getTotpEnabled()) {
             resp = generateRespWithoutMfa(userEntity, req, M2Server);
         } else {
             resp = generateRespWithMfa(userEntity, req, M2Server);

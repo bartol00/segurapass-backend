@@ -339,7 +339,7 @@ public class TotpServiceIT extends AbstractTestInitializer {
     void shouldSucceedRemoveTotpEnd() throws Exception {
         // given
         UserEntity userEntity = userDao.findByUserId(userId);
-        userEntity.setMfaEnabled(true);
+        userEntity.setTotpEnabled(true);
         userEntity.setMfaRecoveryCode(UUID.randomUUID().toString());
         userDao.save(userEntity);
         TotpEntity totpEntity = generateTotpEntity(userEntity);
@@ -353,7 +353,7 @@ public class TotpServiceIT extends AbstractTestInitializer {
         String signature = createSignature(req, privateKey);
         assertTrue(redisService.exists(RedisKeys.mfaNonce(nonce)));
         assertNotNull(totpDao.findByUserEntity_UserId(userId));
-        assertTrue(userDao.findByUserId(userId).getMfaEnabled());
+        assertTrue(userDao.findByUserId(userId).getTotpEnabled());
         assertNotNull(userDao.findByUserId(userId).getMfaRecoveryCode());
 
         // when
@@ -363,7 +363,7 @@ public class TotpServiceIT extends AbstractTestInitializer {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertFalse(redisService.exists(RedisKeys.mfaNonce(nonce)));
         assertNull(totpDao.findByUserEntity_UserId(userId));
-        assertFalse(userDao.findByUserId(userId).getMfaEnabled());
+        assertFalse(userDao.findByUserId(userId).getTotpEnabled());
         assertNull(userDao.findByUserId(userId).getMfaRecoveryCode());
     }
 
@@ -400,7 +400,7 @@ public class TotpServiceIT extends AbstractTestInitializer {
                         .getFirst("secret")
         );
         assertNull(totpDao.findByUserEntity_UserId(userId));
-        assertFalse(userDao.findByUserId(userId).getMfaEnabled());
+        assertFalse(userDao.findByUserId(userId).getTotpEnabled());
 
         // when
         String otp = generateOtp(totpSecretBytes);
@@ -417,7 +417,7 @@ public class TotpServiceIT extends AbstractTestInitializer {
         assertEquals(encryptedSecret.getEncryptedTotpSecret(), totpEntity.getEncryptedToken());
         assertEquals(encryptedSecret.getIv(), totpEntity.getTokenIv());
         UserEntity userEntity = userDao.findByUserId(userId);
-        assertTrue(userEntity.getMfaEnabled());
+        assertTrue(userEntity.getTotpEnabled());
         assertEquals(
                 tokenHasher.generateSha256(response.getBody().getRecoveryCode()),
                 userEntity.getMfaRecoveryCode()
@@ -577,7 +577,7 @@ public class TotpServiceIT extends AbstractTestInitializer {
         TotpRecoveryReq req = new TotpRecoveryReq(recoveryCode);
         UserEntity userEntity = userDao.findByUserId(userId);
         TotpEntity totpEntity = generateTotpEntity(userEntity);
-        userEntity.setMfaEnabled(true);
+        userEntity.setTotpEnabled(true);
         userEntity.setMfaRecoveryCode(tokenHasher.generateSha256(recoveryCode));
         userEntity.setTotpEntity(totpEntity);
         userDao.save(userEntity);
@@ -598,7 +598,7 @@ public class TotpServiceIT extends AbstractTestInitializer {
         assertNull(body.getTotpCode());
         assertNull(userEntity.getTotpEntity());
         assertNull(userEntity.getMfaRecoveryCode());
-        assertFalse(userEntity.getMfaEnabled());
+        assertFalse(userEntity.getTotpEnabled());
         assertEquals(0, totpDao.findAll().size());
     }
 

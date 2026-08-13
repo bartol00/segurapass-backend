@@ -30,6 +30,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/credentials/**").authenticated()
                         .requestMatchers("/api/deletion/authorized/**").authenticated()
                         .requestMatchers("/api/password/**").authenticated()
+                        .requestMatchers("/api/mfa/add-totp/**").authenticated()
+                        .requestMatchers("/api/mfa/remove-totp/**").authenticated()
+                        .requestMatchers("/api/mfa/verify-totp").authenticated()
                         .anyRequest().permitAll()
                 )
                 .addFilterBefore(requestFilter, UsernamePasswordAuthenticationFilter.class);

@@ -18,7 +18,15 @@ public enum ErrorEnum {
     INVALID_SIGNATURE(HttpStatus.CONFLICT, "Signature is invalid"),
     PUBLIC_KEY_NOT_READ(HttpStatus.INTERNAL_SERVER_ERROR, "Public key could not be read"),
     TOKEN_NOT_FOUND(HttpStatus.NOT_FOUND, "Token could not be found"),
-    EMAIL_PENDING_VERIFICATION(HttpStatus.CONFLICT, "Email is already pending verification");
+    EMAIL_PENDING_VERIFICATION(HttpStatus.CONFLICT, "Email is already pending verification"),
+    MFA_NONCE_MISSING(HttpStatus.NOT_ACCEPTABLE, "MFA is missing the required Nonce field"),
+    MFA_TOTP_ENCRYPTION_FAILED(HttpStatus.CONFLICT, "TOTP encryption failed"),
+    MFA_TOTP_DECRYPTION_FAILED(HttpStatus.CONFLICT, "TOTP decryption failed"),
+    MFA_TOTP_ALREADY_EXISTS(HttpStatus.CONFLICT, "TOTP for this user is already set"),
+    MFA_TOTP_NOT_EXISTS(HttpStatus.CONFLICT, "TOTP for this user does not exist"),
+    MFA_TOTP_VERIFICATION_FAILED(HttpStatus.CONFLICT, "Initial TOTP verification failed"),
+    MFA_TOTP_LOGIN_MISSING_KEY(HttpStatus.NOT_FOUND, "TOTP login session not found"),
+    MFA_TOTP_RECOVERY_CODE_MISMATCH(HttpStatus.CONFLICT, "TOTP recovery code is incorrect");
 
     private final HttpStatus httpStatus;
     private final String message;

@@ -15,3 +15,5 @@ app:
   rate-limiting:
     ip-enabled: true
     default-window-seconds: 3
+  security:
+    totp-encryption-key: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef

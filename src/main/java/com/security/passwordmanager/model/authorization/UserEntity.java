@@ -1,6 +1,7 @@
 package com.security.passwordmanager.model.authorization;
 
 import com.security.passwordmanager.model.credentials.CredentialsEntity;
+import com.security.passwordmanager.model.mfa.TotpEntity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.Length;
@@ -63,9 +64,19 @@ public class UserEntity {
     @Column(name = "LAST_LOGIN")
     private Instant lastLogin;
 
+    @Column(name = "TOTP_ENABLED")
+    private Boolean totpEnabled = false;
+
+    @Column(name = "MFA_RECOVERY_CODE")
+    private String mfaRecoveryCode;
+
     @OneToMany(mappedBy = "userEntity", cascade = CascadeType.ALL, orphanRemoval = true)
     @ToString.Exclude
     private List<CredentialsEntity> credentialsEntities;
+
+    @OneToOne(mappedBy = "userEntity", cascade = CascadeType.ALL, orphanRemoval = true)
+    @ToString.Exclude
+    private TotpEntity totpEntity;
 
     @Override
     public final boolean equals(Object o) {

@@ -17,16 +17,12 @@ app:
   app-version: @project.version@
   protocol-version: @segurapass.protocol.version@
   base:
-    url: https://segurapass.xyz
-  latest:
-    version: ${LATEST_VERSION:0.0.1}
-    update-time: ${LATEST_UPDATE_TIME:na}
-    description: ${LATEST_APP_DESCRIPTION:latest}
-    download-url: ${LATEST_DOWNLOAD_URL:test.com}
+    url: ${SERVER_URL:https://segurapass.xyz}
   security:
     private-key-path: ${PRIVATE_KEY_PATH}
     public-key-path: ${PUBLIC_KEY_PATH}
     email-hash-salt: ${EMAIL_HASH_SALT}
+    totp-encryption-key: ${TOTP_SECRET_ENCRYPTION_KEY}
   email:
     url: ${EMAIL_SERVICE_URL:emailServiceUrl}
     active: ${EMAIL_SERVICE_ACTIVE:true}

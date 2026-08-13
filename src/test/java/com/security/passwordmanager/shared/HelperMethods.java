@@ -2,6 +2,8 @@ package com.security.passwordmanager.shared;
 
 import com.security.passwordmanager.model.authorization.UserEntity;
 import com.security.passwordmanager.model.credentials.CredentialsEntity;
+import com.security.passwordmanager.model.mfa.TotpEntity;
+import com.security.passwordmanager.redis.entities.TotpNonceEntity;
 import com.security.passwordmanager.redis.entities.UserRedisEntity;
 import xyz.segurapass.api.authorization.LoginCompleteReq;
 import xyz.segurapass.api.authorization.LoginStartReq;
@@ -11,6 +13,8 @@ import xyz.segurapass.api.credentials.CredentialsReq;
 import xyz.segurapass.api.deletion.AuthorizedDeletionCompleteReq;
 import xyz.segurapass.api.deletion.AuthorizedDeletionStartReq;
 import xyz.segurapass.api.deletion.EmailDeletionStartReq;
+import xyz.segurapass.api.mfa.MfaType;
+import xyz.segurapass.api.mfa.TotpVerifyReq;
 import xyz.segurapass.api.password.PasswordChangeCompleteReq;
 import xyz.segurapass.api.password.PasswordChangeStartReq;
 
@@ -176,6 +180,39 @@ public class HelperMethods {
 
     public static String generateJwt(String token) {
         return String.format("Bearer %s", token);
+    }
+
+    // TotpServiceIT helper methods
+    public static TotpEntity generateTotpEntity(
+            UserEntity userEntity,
+            String encryptedToken,
+            String tokenIv
+    ) {
+        TotpEntity totpEntity = generateTotpEntity(userEntity);
+        totpEntity.setEncryptedToken(encryptedToken);
+        totpEntity.setTokenIv(tokenIv);
+        return totpEntity;
+    }
+
+    public static TotpEntity generateTotpEntity(UserEntity userEntity) {
+        TotpEntity totpEntity = new TotpEntity();
+        totpEntity.setEncryptedToken(UUID.randomUUID().toString());
+        totpEntity.setTokenIv(UUID.randomUUID().toString());
+        totpEntity.setCreatedAt(Instant.now());
+        totpEntity.setUserEntity(userEntity);
+        return totpEntity;
+    }
+
+    public static TotpNonceEntity generateTotpNonceEntity(MfaType mfaType) {
+        TotpNonceEntity totpNonceEntity = new TotpNonceEntity();
+        totpNonceEntity.setUserId(UUID.randomUUID());
+        totpNonceEntity.setDeviceId(UUID.randomUUID());
+        totpNonceEntity.setMfaType(mfaType);
+        return totpNonceEntity;
+    }
+
+    public static TotpVerifyReq generateTotpVerifyReq(String otp) {
+        return new TotpVerifyReq(otp);
     }
 
 }

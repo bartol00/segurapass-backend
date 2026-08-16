@@ -79,8 +79,8 @@ public class TotpServiceIT extends AbstractTestInitializer {
         privateKey = keyPair.getPrivate();
 
         UserEntity userEntity = generateUserEntity();
-        userEntity.setPublicSigningKey(
-                Base64.getEncoder().encodeToString(keyPair.getPublic().getEncoded())
+        userEntity.setPublicSigningKeyBytes(
+                keyPair.getPublic().getEncoded()
         );
         userDao.save(userEntity);
     }
@@ -517,7 +517,7 @@ public class TotpServiceIT extends AbstractTestInitializer {
         LoginCompleteResp body = response.getBody();
         assertNotNull(body);
         assertFalse(redisService.exists(redisKey));
-        assertEquals(userEntity.getVaultKey(), body.getVaultKey());
+        assertArrayEquals(userEntity.getVaultKeyBytes(), body.getVaultKey());
         assertNotNull(body.getAccessToken());
         assertNotNull(body.getRefreshToken());
         assertNull(body.getTotpCode());
@@ -592,7 +592,7 @@ public class TotpServiceIT extends AbstractTestInitializer {
         LoginCompleteResp body = response.getBody();
         assertNotNull(body);
         assertFalse(redisService.exists(redisKey));
-        assertEquals(userEntity.getVaultKey(), body.getVaultKey());
+        assertArrayEquals(userEntity.getVaultKeyBytes(), body.getVaultKey());
         assertNotNull(body.getAccessToken());
         assertNotNull(body.getRefreshToken());
         assertNull(body.getTotpCode());

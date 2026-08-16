@@ -1,0 +1,42 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+    <changeSet id="2026-08-16-01-user-entity" author="bartol">
+        <dropColumn tableName="users">
+            <column name="salt_auth" type="VARCHAR(255)"/>
+            <column name="vault_key" type="TEXT"/>
+            <column name="iv_vault_key" type="VARCHAR(255)"/>
+            <column name="salt_key" type="VARCHAR(255)"/>
+            <column name="salt_hkdf" type="VARCHAR(255)"/>
+            <column name="private_signing_key" type="TEXT"/>
+            <column name="public_signing_key" type="TEXT"/>
+            <column name="iv_private_signing_key" type="VARCHAR(255)"/>
+        </dropColumn>
+
+        <addColumn tableName="users">
+            <column name="SALT_AUTH_BYTES" type="BYTEA">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="VAULT_KEY_BYTES" type="BYTEA">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="IV_VAULT_KEY_BYTES" type="BYTEA">
+                <constraints nullable="false"/>
+            </column>
+            <column name="SALT_KEY_BYTES" type="BYTEA">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="SALT_HKDF_BYTES" type="BYTEA">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="PRIVATE_SIGNING_KEY_BYTES" type="BYTEA">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="IV_PRIVATE_SIGNING_KEY_BYTES" type="BYTEA">
+                <constraints nullable="false"/>
+            </column>
+            <column name="PUBLIC_SIGNING_KEY_BYTES" type="BYTEA">
+                <constraints nullable="false" unique="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+</databaseChangeLog>

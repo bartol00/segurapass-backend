@@ -279,13 +279,13 @@ public class TotpService {
 
         LoginCompleteResp resp = new LoginCompleteResp(
                 null,
-                userEntity.getVaultKey(),
-                userEntity.getIvVaultKey(),
-                userEntity.getSaltKey(),
-                userEntity.getSaltHkdf(),
-                userEntity.getPrivateSigningKey(),
-                userEntity.getPublicSigningKey(),
-                userEntity.getIvPrivateSigningKey(),
+                userEntity.getVaultKeyBytes(),
+                userEntity.getIvVaultKeyBytes(),
+                userEntity.getSaltKeyBytes(),
+                userEntity.getSaltHkdfBytes(),
+                userEntity.getPrivateSigningKeyBytes(),
+                userEntity.getPublicSigningKeyBytes(),
+                userEntity.getIvPrivateSigningKeyBytes(),
                 generateJwt(userEntity.getUserId(), deviceId),
                 refreshToken,
                 refreshExpiry
@@ -434,14 +434,13 @@ public class TotpService {
                     new X509EncodedKeySpec(userPublicKeyEntity.getPublicKeyBytes())
             );
         } else {
-            String publicKeyStr = userDao.findByUserId(userId).getPublicSigningKey();
-            byte[] keyBytes = Base64.getDecoder().decode(publicKeyStr);
+            byte[] publicKeyBytes = userDao.findByUserId(userId).getPublicSigningKeyBytes();
 
-            UserPublicKeyEntity userPublicKeyEntity = new UserPublicKeyEntity(keyBytes);
+            UserPublicKeyEntity userPublicKeyEntity = new UserPublicKeyEntity(publicKeyBytes);
             redisService.save(redisKey, userPublicKeyEntity, Duration.of(10, ChronoUnit.MINUTES));
 
             return factory.generatePublic(
-                    new X509EncodedKeySpec(keyBytes)
+                    new X509EncodedKeySpec(publicKeyBytes)
             );
         }
     }

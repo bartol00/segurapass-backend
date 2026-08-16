@@ -178,7 +178,7 @@ public class AuthorizationServiceIT extends AbstractTestInitializer {
         assertTrue(redisService.exists(redisKey));
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertEquals(response.getBody().getSaltAuth(), userEntity.getSaltAuth());
+        assertArrayEquals(response.getBody().getSaltAuth(), userEntity.getSaltAuthBytes());
     }
 
     @Test
@@ -269,7 +269,7 @@ public class AuthorizationServiceIT extends AbstractTestInitializer {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
         assertEquals(M2, response.getBody().getM2());
-        assertEquals(userEntity.getSaltKey(), response.getBody().getSaltKey());
+        assertArrayEquals(userEntity.getSaltKeyBytes(), response.getBody().getSaltKey());
     }
 
     @Test

@@ -31,32 +31,32 @@ public class UserEntity {
     @Column(name = "EMAIL", nullable = false, unique = true)
     private String email;
 
-    @Column(name = "SALT_AUTH", nullable = false, unique = true)
-    private String saltAuth;
+    @Column(name = "SALT_AUTH_BYTES", nullable = false, unique = true)
+    private byte[] saltAuthBytes;
 
     @Column(name = "VERIFIER", nullable = false, unique = true, length = Length.LONG32)
     private String verifier;
 
-    @Column(name = "VAULT_KEY", nullable = false, unique = true, length = Length.LONG32)
-    private String vaultKey;
+    @Column(name = "VAULT_KEY_BYTES", nullable = false, unique = true)
+    private byte[] vaultKeyBytes;
 
-    @Column(name = "IV_VAULT_KEY", nullable = false, unique = true)
-    private String ivVaultKey;
+    @Column(name = "IV_VAULT_KEY_BYTES", nullable = false)
+    private byte[] ivVaultKeyBytes;
 
-    @Column(name = "SALT_KEY", nullable = false, unique = true)
-    private String saltKey;
+    @Column(name = "SALT_KEY_BYTES", nullable = false, unique = true)
+    private byte[] saltKeyBytes;
 
-    @Column(name = "SALT_HKDF", nullable = false, unique = true)
-    private String saltHkdf;
+    @Column(name = "SALT_HKDF_BYTES", nullable = false, unique = true)
+    private byte[] saltHkdfBytes;
 
-    @Column(name = "PRIVATE_SIGNING_KEY", nullable = false, unique = true, length = Length.LONG32)
-    private String privateSigningKey;
+    @Column(name = "PRIVATE_SIGNING_KEY_BYTES", nullable = false, unique = true)
+    private byte[] privateSigningKeyBytes;
 
-    @Column(name = "PUBLIC_SIGNING_KEY", nullable = false, unique = true, length = Length.LONG32)
-    private String publicSigningKey;
+    @Column(name = "IV_PRIVATE_SIGNING_KEY_BYTES", nullable = false)
+    private byte[] ivPrivateSigningKeyBytes;
 
-    @Column(name = "IV_PRIVATE_SIGNING_KEY", nullable = false, unique = true)
-    private String ivPrivateSigningKey;
+    @Column(name = "PUBLIC_SIGNING_KEY_BYTES", nullable = false, unique = true)
+    private byte[] publicSigningKeyBytes;
 
     @Column(name = "CREATION_TIME")
     private Instant creationTime;

@@ -279,14 +279,13 @@ public class CredentialsService {
                     new X509EncodedKeySpec(userPublicKeyEntity.getPublicKeyBytes())
             );
         } else {
-            String publicKeyStr = userDao.findByUserId(userId).getPublicSigningKey();
-            byte[] keyBytes = Base64.getDecoder().decode(publicKeyStr);
+            byte[] publicKeyBytes = userDao.findByUserId(userId).getPublicSigningKeyBytes();
 
             PublicKey publicKey = factory.generatePublic(
-                    new X509EncodedKeySpec(keyBytes)
+                    new X509EncodedKeySpec(publicKeyBytes)
             );
 
-            UserPublicKeyEntity userPublicKeyEntity = new UserPublicKeyEntity(keyBytes);
+            UserPublicKeyEntity userPublicKeyEntity = new UserPublicKeyEntity(publicKeyBytes);
             redisService.save(redisKey, userPublicKeyEntity, Duration.of(10, ChronoUnit.MINUTES));
 
             return publicKey;

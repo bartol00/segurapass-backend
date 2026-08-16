@@ -58,7 +58,7 @@ public class AccountDeletionService {
         );
 
         AuthorizedDeletionStartResp resp = new AuthorizedDeletionStartResp();
-        resp.setSaltAuth(userEntity.getSaltAuth());
+        resp.setSaltAuth(userEntity.getSaltAuthBytes());
         resp.setB(srpRedisEntity.getB());
 
         log.info("Start Account Deletion for user: {} - Service", userId);

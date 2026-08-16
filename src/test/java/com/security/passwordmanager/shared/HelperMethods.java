@@ -18,6 +18,7 @@ import xyz.segurapass.api.mfa.TotpVerifyReq;
 import xyz.segurapass.api.password.PasswordChangeCompleteReq;
 import xyz.segurapass.api.password.PasswordChangeStartReq;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -32,15 +33,15 @@ public class HelperMethods {
         UserEntity userEntity = new UserEntity();
         userEntity.setUserId(userId);
         userEntity.setEmail("user@gmail.com");
-        userEntity.setSaltAuth(UUID.randomUUID().toString());
+        userEntity.setSaltAuthBytes(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8));
         userEntity.setVerifier("verifier");
-        userEntity.setVaultKey("vaultKey");
-        userEntity.setIvVaultKey("ivVaultKey");
-        userEntity.setSaltKey(UUID.randomUUID().toString());
-        userEntity.setSaltHkdf(UUID.randomUUID().toString());
-        userEntity.setPrivateSigningKey("privateSigningKey");
-        userEntity.setPublicSigningKey("publicSigningKey");
-        userEntity.setIvPrivateSigningKey("ivPrivateSigningKey");
+        userEntity.setVaultKeyBytes("vaultKey".getBytes(StandardCharsets.UTF_8));
+        userEntity.setIvVaultKeyBytes("ivVaultKey".getBytes(StandardCharsets.UTF_8));
+        userEntity.setSaltKeyBytes(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8));
+        userEntity.setSaltHkdfBytes(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8));
+        userEntity.setPrivateSigningKeyBytes("privateSigningKey".getBytes(StandardCharsets.UTF_8));
+        userEntity.setPublicSigningKeyBytes("publicSigningKey".getBytes(StandardCharsets.UTF_8));
+        userEntity.setIvPrivateSigningKeyBytes("ivPrivateSigningKey".getBytes(StandardCharsets.UTF_8));
         return userEntity;
     }
 
@@ -67,15 +68,15 @@ public class HelperMethods {
     public static RegistrationReq generateRegistrationReq(String email) {
         return new RegistrationReq(
                 email,
-                "saltAuth",
+                "saltAuth".getBytes(StandardCharsets.UTF_8),
                 "verifier",
-                "vaultKey",
-                "ivVaultKey",
-                "saltKey",
-                "saltHkdf",
-                "privateSigningKey",
-                "publicSigningKey",
-                "privateSigningKeyIv",
+                "vaultKey".getBytes(StandardCharsets.UTF_8),
+                "ivVaultKey".getBytes(StandardCharsets.UTF_8),
+                "saltKey".getBytes(StandardCharsets.UTF_8),
+                "saltHkdf".getBytes(StandardCharsets.UTF_8),
+                "privateSigningKey".getBytes(StandardCharsets.UTF_8),
+                "publicSigningKey".getBytes(StandardCharsets.UTF_8),
+                "privateSigningKeyIv".getBytes(StandardCharsets.UTF_8),
                 UUID.randomUUID()
         );
     }
@@ -104,15 +105,15 @@ public class HelperMethods {
         return new UserRedisEntity(
                 userId,
                 email,
+                UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8),
                 UUID.randomUUID().toString(),
-                UUID.randomUUID().toString(),
-                UUID.randomUUID().toString(),
-                UUID.randomUUID().toString(),
-                UUID.randomUUID().toString(),
-                UUID.randomUUID().toString(),
-                UUID.randomUUID().toString(),
-                UUID.randomUUID().toString(),
-                UUID.randomUUID().toString(),
+                UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8),
+                UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8),
+                UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8),
+                UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8),
+                UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8),
+                UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8),
+                UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8),
                 Instant.now()
         );
     }
@@ -156,14 +157,14 @@ public class HelperMethods {
         return new PasswordChangeCompleteReq(
                 deviceId,
                 M1,
+                UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8),
                 UUID.randomUUID().toString(),
-                UUID.randomUUID().toString(),
-                UUID.randomUUID().toString(),
-                UUID.randomUUID().toString(),
-                UUID.randomUUID().toString(),
-                UUID.randomUUID().toString(),
-                UUID.randomUUID().toString(),
-                UUID.randomUUID().toString()
+                UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8),
+                UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8),
+                UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8),
+                UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8),
+                UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8),
+                UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8)
         );
     }
 

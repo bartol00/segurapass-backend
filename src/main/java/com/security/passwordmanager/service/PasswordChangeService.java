@@ -57,7 +57,7 @@ public class PasswordChangeService {
 
         PasswordChangeStartResp resp = new PasswordChangeStartResp(
                 srpRedisEntity.getB(),
-                userEntity.getSaltAuth()
+                userEntity.getSaltAuthBytes()
         );
 
         log.info("Start Password Change for user: {} - Service", userId);
@@ -89,14 +89,14 @@ public class PasswordChangeService {
             throw new PasswordChangeException(SRP_VERIFICATION_FAILED);
         }
 
-        userEntity.setSaltAuth(req.getNewSaltAuth());
+        userEntity.setSaltAuthBytes(req.getNewSaltAuth());
         userEntity.setVerifier(req.getNewVerifier());
-        userEntity.setVaultKey(req.getNewVaultKey());
-        userEntity.setIvVaultKey(req.getNewIvVaultKey());
-        userEntity.setSaltKey(req.getNewSaltKey());
-        userEntity.setSaltHkdf(req.getNewSaltHkdf());
-        userEntity.setPrivateSigningKey(req.getNewPrivateSigningKey());
-        userEntity.setIvPrivateSigningKey(req.getNewIvPrivateSigningKey());
+        userEntity.setVaultKeyBytes(req.getNewVaultKey());
+        userEntity.setIvVaultKeyBytes(req.getNewIvVaultKey());
+        userEntity.setSaltKeyBytes(req.getNewSaltKey());
+        userEntity.setSaltHkdfBytes(req.getNewSaltHkdf());
+        userEntity.setPrivateSigningKeyBytes(req.getNewPrivateSigningKey());
+        userEntity.setIvPrivateSigningKeyBytes(req.getNewIvPrivateSigningKey());
         userEntity = userDao.save(userEntity);
 
         AuditLogEntity auditLogEntity = new AuditLogEntity();

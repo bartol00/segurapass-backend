@@ -61,8 +61,8 @@ public class CredentialsServiceIT extends AbstractTestInitializer {
         privateKey = keyPair.getPrivate();
 
         UserEntity userEntity = generateUserEntity();
-        userEntity.setPublicSigningKey(
-                Base64.getEncoder().encodeToString(keyPair.getPublic().getEncoded())
+        userEntity.setPublicSigningKeyBytes(
+                keyPair.getPublic().getEncoded()
         );
         userDao.save(userEntity);
 

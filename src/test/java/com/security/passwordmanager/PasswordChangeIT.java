@@ -94,7 +94,7 @@ public class PasswordChangeIT extends AbstractTestInitializer {
         assertTrue(redisService.exists(redisKey));
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertEquals(userEntity.getSaltAuth(), response.getBody().getSaltAuth());
+        assertArrayEquals(userEntity.getSaltAuthBytes(), response.getBody().getSaltAuth());
     }
 
     @Test

@@ -329,8 +329,8 @@ public class AuthorizationService {
         TotpLoginEntity totpLoginEntity = new TotpLoginEntity(
                 userEntity.getUserId(),
                 req.getDeviceId(),
-                totpEntity.getEncryptedToken(),
-                totpEntity.getTokenIv()
+                totpEntity.getTotpTokenBytes(),
+                totpEntity.getTotpTokenIv()
         );
 
         redisService.save(redisKey, totpLoginEntity, Duration.of(10, ChronoUnit.MINUTES));

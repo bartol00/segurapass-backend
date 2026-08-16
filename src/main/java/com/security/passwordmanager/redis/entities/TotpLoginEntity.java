@@ -12,6 +12,6 @@ import java.util.UUID;
 public class TotpLoginEntity {
     private UUID userId;
     private UUID deviceId;
-    private String encryptedTotpSecret;
-    private String totpIv;
+    private byte[] totpSecretBytes;
+    private byte[] totpSecretIv;
 }

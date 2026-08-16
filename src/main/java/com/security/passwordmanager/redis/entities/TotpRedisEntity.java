@@ -8,6 +8,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class TotpRedisEntity {
-    private String encryptedTotpSecret;
-    private String iv;
+    private byte[] totpSecretBytes;
+    private byte[] totpSecretIv;
 }

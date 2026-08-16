@@ -71,4 +71,20 @@
             </column>
         </addColumn>
     </changeSet>
+
+    <changeSet id="2026-08-16-03-totp-entity" author="bartol">
+        <dropColumn tableName="totp">
+            <column name="ENCRYPTED_TOKEN" type="VARCHAR(255)"/>
+            <column name="TOKEN_IV" type="VARCHAR(255)"/>
+        </dropColumn>
+
+        <addColumn tableName="totp">
+            <column name="TOTP_TOKEN" type="BYTEA">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="TOTP_TOKEN_IV" type="BYTEA">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
 </databaseChangeLog>

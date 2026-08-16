@@ -22,11 +22,11 @@ public class TotpEntity {
     @Column(nullable = false, unique = true)
     private Long id;
 
-    @Column(name = "ENCRYPTED_TOKEN", nullable = false, unique = true)
-    private String encryptedToken;
+    @Column(name = "TOTP_TOKEN", nullable = false, unique = true)
+    private byte[] totpTokenBytes;
 
-    @Column(name = "TOKEN_IV", nullable = false, unique = true)
-    private String tokenIv;
+    @Column(name = "TOTP_TOKEN_IV", nullable = false)
+    private byte[] totpTokenIv;
 
     @Column(name = "CREATED_AT", nullable = false)
     private Instant createdAt;

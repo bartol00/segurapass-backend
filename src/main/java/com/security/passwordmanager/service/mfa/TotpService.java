@@ -149,8 +149,8 @@ public class TotpService {
         byte[] totpSecretBytes;
         try {
             totpSecretBytes = encryptionService.decryptTotpSecret(
-                    totpRedisEntity.getEncryptedTotpSecret(),
-                    totpRedisEntity.getIv()
+                    totpRedisEntity.getTotpSecretBytes(),
+                    totpRedisEntity.getTotpSecretIv()
             );
         } catch (Exception e) {
             throw new MfaException(MFA_TOTP_DECRYPTION_FAILED);
@@ -163,8 +163,8 @@ public class TotpService {
         UserEntity userEntity = userDao.findByUserId(userId);
 
         TotpEntity totpEntity = new TotpEntity();
-        totpEntity.setEncryptedToken(totpRedisEntity.getEncryptedTotpSecret());
-        totpEntity.setTokenIv(totpRedisEntity.getIv());
+        totpEntity.setTotpTokenBytes(totpRedisEntity.getTotpSecretBytes());
+        totpEntity.setTotpTokenIv(totpRedisEntity.getTotpSecretIv());
         totpEntity.setCreatedAt(Instant.now());
         totpEntity.setUserEntity(userEntity);
         totpDao.save(totpEntity);
@@ -197,8 +197,8 @@ public class TotpService {
         byte[] totpSecretBytes;
         try {
             totpSecretBytes = encryptionService.decryptTotpSecret(
-                    totpLoginEntity.getEncryptedTotpSecret(),
-                    totpLoginEntity.getTotpIv()
+                    totpLoginEntity.getTotpSecretBytes(),
+                    totpLoginEntity.getTotpSecretIv()
             );
         } catch (Exception e) {
             throw new MfaException(MFA_TOTP_DECRYPTION_FAILED);

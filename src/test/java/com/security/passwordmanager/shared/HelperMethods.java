@@ -186,19 +186,19 @@ public class HelperMethods {
     // TotpServiceIT helper methods
     public static TotpEntity generateTotpEntity(
             UserEntity userEntity,
-            String encryptedToken,
-            String tokenIv
+            byte[] totpSecretBytes,
+            byte[] totpSecretIv
     ) {
         TotpEntity totpEntity = generateTotpEntity(userEntity);
-        totpEntity.setEncryptedToken(encryptedToken);
-        totpEntity.setTokenIv(tokenIv);
+        totpEntity.setTotpTokenBytes(totpSecretBytes);
+        totpEntity.setTotpTokenIv(totpSecretIv);
         return totpEntity;
     }
 
     public static TotpEntity generateTotpEntity(UserEntity userEntity) {
         TotpEntity totpEntity = new TotpEntity();
-        totpEntity.setEncryptedToken(UUID.randomUUID().toString());
-        totpEntity.setTokenIv(UUID.randomUUID().toString());
+        totpEntity.setTotpTokenBytes(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8));
+        totpEntity.setTotpTokenIv(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8));
         totpEntity.setCreatedAt(Instant.now());
         totpEntity.setUserEntity(userEntity);
         return totpEntity;

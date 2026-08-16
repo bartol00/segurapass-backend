@@ -281,8 +281,8 @@ public class AuthorizationServiceIT extends AbstractTestInitializer {
         UserEntity userEntity = userDao.findByEmail(email);
         TotpEntity totpEntity = generateTotpEntity(
                 userEntity,
-                totpRedisEntity.getEncryptedTotpSecret(),
-                totpRedisEntity.getIv()
+                totpRedisEntity.getTotpSecretBytes(),
+                totpRedisEntity.getTotpSecretIv()
         );
         totpDao.save(totpEntity);
         userEntity.setTotpEntity(totpEntity);
@@ -318,8 +318,8 @@ public class AuthorizationServiceIT extends AbstractTestInitializer {
         assertTrue(redisService.exists(redisTotpLoginKey));
         TotpLoginEntity totpLoginEntity = redisService.get(redisTotpLoginKey, TotpLoginEntity.class);
         assertEquals(totpLoginEntity.getUserId(), userEntity.getUserId());
-        assertEquals(totpLoginEntity.getEncryptedTotpSecret(), userEntity.getTotpEntity().getEncryptedToken());
-        assertEquals(totpLoginEntity.getTotpIv(), userEntity.getTotpEntity().getTokenIv());
+        assertArrayEquals(totpLoginEntity.getTotpSecretBytes(), userEntity.getTotpEntity().getTotpTokenBytes());
+        assertArrayEquals(totpLoginEntity.getTotpSecretIv(), userEntity.getTotpEntity().getTotpTokenIv());
         assertNull(response.getBody().getAccessToken());
         assertNull(response.getBody().getRefreshToken());
     }

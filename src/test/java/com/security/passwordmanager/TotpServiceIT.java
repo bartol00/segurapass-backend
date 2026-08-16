@@ -34,6 +34,7 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.net.URI;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
@@ -389,8 +390,8 @@ public class TotpServiceIT extends AbstractTestInitializer {
         assertTrue(redisService.exists(redisKey));
         TotpRedisEntity encryptedSecret = redisService.get(redisKey, TotpRedisEntity.class);
         byte[] totpSecretBytes = encryptionService.decryptTotpSecret(
-                encryptedSecret.getEncryptedTotpSecret(),
-                encryptedSecret.getIv()
+                encryptedSecret.getTotpSecretBytes(),
+                encryptedSecret.getTotpSecretIv()
         );
         assertEquals(
                 new Base32().encodeToString(totpSecretBytes),
@@ -414,8 +415,8 @@ public class TotpServiceIT extends AbstractTestInitializer {
         assertFalse(redisService.exists(redisKey));
         TotpEntity totpEntity = totpDao.findByUserEntity_UserId(userId);
         assertNotNull(totpEntity);
-        assertEquals(encryptedSecret.getEncryptedTotpSecret(), totpEntity.getEncryptedToken());
-        assertEquals(encryptedSecret.getIv(), totpEntity.getTokenIv());
+        assertArrayEquals(encryptedSecret.getTotpSecretBytes(), totpEntity.getTotpTokenBytes());
+        assertArrayEquals(encryptedSecret.getTotpSecretIv(), totpEntity.getTotpTokenIv());
         UserEntity userEntity = userDao.findByUserId(userId);
         assertTrue(userEntity.getTotpEnabled());
         assertEquals(
@@ -443,8 +444,8 @@ public class TotpServiceIT extends AbstractTestInitializer {
         TotpLoginEntity totpLoginEntity = new TotpLoginEntity(
                 userId,
                 deviceId,
-                UUID.randomUUID().toString(),
-                UUID.randomUUID().toString()
+                UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8),
+                UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8)
         );
         String totpCode = tokenGenerator.generateRandomToken(32);
         String redisKey = RedisKeys.totpLogin(tokenHasher.generateSha256(totpCode));
@@ -469,8 +470,8 @@ public class TotpServiceIT extends AbstractTestInitializer {
         TotpLoginEntity totpLoginEntity = new TotpLoginEntity(
                 userId,
                 deviceId,
-                totpRedisEntity.getEncryptedTotpSecret(),
-                totpRedisEntity.getIv()
+                totpRedisEntity.getTotpSecretBytes(),
+                totpRedisEntity.getTotpSecretIv()
         );
         String totpCode = tokenGenerator.generateRandomToken(32);
         String redisKey = RedisKeys.totpLogin(tokenHasher.generateSha256(totpCode));
@@ -496,15 +497,15 @@ public class TotpServiceIT extends AbstractTestInitializer {
         TotpLoginEntity totpLoginEntity = new TotpLoginEntity(
                 userId,
                 deviceId,
-                totpRedisEntity.getEncryptedTotpSecret(),
-                totpRedisEntity.getIv()
+                totpRedisEntity.getTotpSecretBytes(),
+                totpRedisEntity.getTotpSecretIv()
         );
         String totpCode = tokenGenerator.generateRandomToken(32);
         String redisKey = RedisKeys.totpLogin(tokenHasher.generateSha256(totpCode));
         redisService.save(redisKey, totpLoginEntity, Duration.of(10, ChronoUnit.MINUTES));
         byte[] totpSecretDecrypted = encryptionService.decryptTotpSecret(
-                totpRedisEntity.getEncryptedTotpSecret(),
-                totpRedisEntity.getIv()
+                totpRedisEntity.getTotpSecretBytes(),
+                totpRedisEntity.getTotpSecretIv()
         );
         TotpVerifyReq req = new TotpVerifyReq(generateOtp(totpSecretDecrypted));
 

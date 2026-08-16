@@ -121,24 +121,24 @@ public class HelperMethods {
     // CredentialsServiceIT helper methods
     public static CredentialsReq generateCredentialsReq() {
         CredentialsReq credentialsReq = new CredentialsReq();
-        credentialsReq.setWebsite("unique website");
-        credentialsReq.setUsername("unique username");
-        credentialsReq.setPassword("unique password");
-        credentialsReq.setIvWebsite(UUID.randomUUID().toString());
-        credentialsReq.setIvUsername(UUID.randomUUID().toString());
-        credentialsReq.setIvPassword(UUID.randomUUID().toString());
+        credentialsReq.setWebsiteBytes("unique website".getBytes(StandardCharsets.UTF_8));
+        credentialsReq.setUsernameBytes("unique username".getBytes(StandardCharsets.UTF_8));
+        credentialsReq.setPasswordBytes("unique password".getBytes(StandardCharsets.UTF_8));
+        credentialsReq.setIvWebsiteBytes(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8));
+        credentialsReq.setIvUsernameBytes(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8));
+        credentialsReq.setIvPasswordBytes(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8));
         return credentialsReq;
     }
 
     public static CredentialsEntity generateCredentialsEntity(UserEntity userEntity) {
         CredentialsEntity credentialsEntity = new CredentialsEntity();
         credentialsEntity.setCredentialsId(UUID.randomUUID());
-        credentialsEntity.setWebsite(UUID.randomUUID().toString());
-        credentialsEntity.setUsername(UUID.randomUUID().toString());
-        credentialsEntity.setPassword(UUID.randomUUID().toString());
-        credentialsEntity.setIvWebsite(UUID.randomUUID().toString());
-        credentialsEntity.setIvUsername(UUID.randomUUID().toString());
-        credentialsEntity.setIvPassword(UUID.randomUUID().toString());
+        credentialsEntity.setWebsiteBytes(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8));
+        credentialsEntity.setUsernameBytes(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8));
+        credentialsEntity.setPasswordBytes(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8));
+        credentialsEntity.setIvWebsiteBytes(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8));
+        credentialsEntity.setIvUsernameBytes(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8));
+        credentialsEntity.setIvPasswordBytes(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8));
         credentialsEntity.setCreatedAt(Instant.now());
         credentialsEntity.setLastUpdated(Instant.now());
         credentialsEntity.setUserEntity(userEntity);

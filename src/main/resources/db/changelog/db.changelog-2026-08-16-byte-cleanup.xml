@@ -39,4 +39,36 @@
             </column>
         </addColumn>
     </changeSet>
+
+    <changeSet id="2026-08-16-02-user-entity" author="bartol">
+        <dropColumn tableName="credentials">
+            <column name="ENCRYPTED_WEBSITE" type="VARCHAR(255)"/>
+            <column name="ENCRYPTED_USERNAME" type="VARCHAR(255)"/>
+            <column name="ENCRYPTED_PASSWORD" type="VARCHAR(255)"/>
+            <column name="IV_WEBSITE" type="VARCHAR(255)"/>
+            <column name="IV_USERNAME" type="VARCHAR(255)"/>
+            <column name="IV_PASSWORD" type="VARCHAR(255)"/>
+        </dropColumn>
+        
+        <addColumn tableName="credentials">
+            <column name="WEBSITE_BYTES" type="BYTEA">
+                <constraints nullable="false"/>
+            </column>
+            <column name="IV_WEBSITE_BYTES" type="BYTEA">
+                <constraints nullable="false"/>
+            </column>
+            <column name="USERNAME_BYTES" type="BYTEA">
+                <constraints nullable="false"/>
+            </column>
+            <column name="IV_USERNAME_BYTES" type="BYTEA">
+                <constraints nullable="false"/>
+            </column>
+            <column name="PASSWORD_BYTES" type="BYTEA">
+                <constraints nullable="false"/>
+            </column>
+            <column name="IV_PASSWORD_BYTES" type="BYTEA">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
 </databaseChangeLog>

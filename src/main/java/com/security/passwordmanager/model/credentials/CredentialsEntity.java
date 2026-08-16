@@ -25,23 +25,23 @@ public class CredentialsEntity {
     @Column(name = "CREDENTIALS_ID", nullable = false, unique = true)
     private UUID credentialsId;
 
-    @Column(name = "ENCRYPTED_WEBSITE", nullable = false)
-    private String website;
+    @Column(name = "WEBSITE_BYTES", nullable = false)
+    private byte[] websiteBytes;
 
-    @Column(name = "ENCRYPTED_USERNAME", nullable = false)
-    private String username;
+    @Column(name = "IV_WEBSITE_BYTES", nullable = false)
+    private byte[] ivWebsiteBytes;
 
-    @Column(name = "ENCRYPTED_PASSWORD", nullable = false)
-    private String password;
+    @Column(name = "USERNAME_BYTES", nullable = false)
+    private byte[] usernameBytes;
 
-    @Column(name = "IV_WEBSITE", nullable = false, unique = true)
-    private String ivWebsite;
+    @Column(name = "IV_USERNAME_BYTES", nullable = false)
+    private byte[] ivUsernameBytes;
 
-    @Column(name = "IV_USERNAME", nullable = false, unique = true)
-    private String ivUsername;
+    @Column(name = "PASSWORD_BYTES", nullable = false)
+    private byte[] passwordBytes;
 
-    @Column(name = "IV_PASSWORD", nullable = false, unique = true)
-    private String ivPassword;
+    @Column(name = "IV_PASSWORD_BYTES", nullable = false)
+    private byte[] ivPasswordBytes;
 
     @Column(name = "CREATED_AT", nullable = false)
     private Instant createdAt;

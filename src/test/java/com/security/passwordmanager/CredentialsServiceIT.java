@@ -24,10 +24,7 @@ import org.springframework.http.ResponseEntity;
 import java.security.*;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
-import java.util.Base64;
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 
 import static com.security.passwordmanager.exceptions.ErrorEnum.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -61,8 +58,8 @@ public class CredentialsServiceIT extends AbstractTestInitializer {
         privateKey = keyPair.getPrivate();
 
         UserEntity userEntity = generateUserEntity();
-        userEntity.setPublicSigningKey(
-                Base64.getEncoder().encodeToString(keyPair.getPublic().getEncoded())
+        userEntity.setPublicSigningKeyBytes(
+                keyPair.getPublic().getEncoded()
         );
         userDao.save(userEntity);
 
@@ -127,8 +124,8 @@ public class CredentialsServiceIT extends AbstractTestInitializer {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(resp);
         assertEquals(resp.getCredentialsId(), credentialsEntity.getCredentialsId());
-        assertEquals(resp.getWebsite(), credentialsEntity.getWebsite());
-        assertEquals(resp.getIvWebsite(), credentialsEntity.getIvWebsite());
+        assertArrayEquals(resp.getWebsiteBytes(), credentialsEntity.getWebsiteBytes());
+        assertArrayEquals(resp.getIvWebsiteBytes(), credentialsEntity.getIvWebsiteBytes());
     }
 
     @Test
@@ -344,8 +341,8 @@ public class CredentialsServiceIT extends AbstractTestInitializer {
         assertEquals(1, auditLogDao.findAll().size());
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(resp);
-        assertEquals(resp.getWebsite(), req.getWebsite());
-        assertEquals(resp.getIvWebsite(), req.getIvWebsite());
+        assertArrayEquals(resp.getWebsiteBytes(), req.getWebsiteBytes());
+        assertArrayEquals(resp.getIvWebsiteBytes(), req.getIvWebsiteBytes());
     }
 
     @Test
@@ -408,7 +405,7 @@ public class CredentialsServiceIT extends AbstractTestInitializer {
                 credentialsService.updateCredentialsStart(credentialsId, userId, deviceId).getBody()
         ).getNonce();
         CredentialsReq req = generateCredentialsReq();
-        req.setIvWebsite(null);
+        req.setIvWebsiteBytes(null);
         req.setNonce(nonce);
         req.setOperation(CredentialsOperation.UPDATE);
         String signature = createSignature(req, credentialsId, privateKey);
@@ -448,9 +445,9 @@ public class CredentialsServiceIT extends AbstractTestInitializer {
         assertEquals(1, auditLogDao.findAll().size());
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(resp);
-        assertNotEquals(credentialsEntity.getIvWebsite(), resp.getIvWebsite());
-        assertNotEquals(credentialsEntity.getIvUsername(), resp.getIvUsername());
-        assertNotEquals(credentialsEntity.getIvPassword(), resp.getIvUsername());
+        assertFalse(Arrays.equals(credentialsEntity.getIvWebsiteBytes(), resp.getIvWebsiteBytes()));
+        assertFalse(Arrays.equals(credentialsEntity.getIvUsernameBytes(), resp.getIvUsernameBytes()));
+        assertFalse(Arrays.equals(credentialsEntity.getIvPasswordBytes(), resp.getIvUsernameBytes()));
     }
 
     @Test
@@ -533,12 +530,12 @@ public class CredentialsServiceIT extends AbstractTestInitializer {
     private String createSignature(CredentialsReq req, UUID credentialsId, PrivateKey privateKey) throws Exception {
         CredentialsWritePayload payload =
                 new CredentialsWritePayload(
-                        req.getWebsite(),
-                        req.getUsername(),
-                        req.getPassword(),
-                        req.getIvWebsite(),
-                        req.getIvUsername(),
-                        req.getIvPassword(),
+                        req.getWebsiteBytes(),
+                        req.getUsernameBytes(),
+                        req.getPasswordBytes(),
+                        req.getIvWebsiteBytes(),
+                        req.getIvUsernameBytes(),
+                        req.getIvPasswordBytes(),
                         req.getNonce(),
                         req.getOperation(),
                         credentialsId

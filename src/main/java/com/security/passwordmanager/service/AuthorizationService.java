@@ -132,7 +132,7 @@ public class AuthorizationService {
 
         LoginStartResp resp = new LoginStartResp(
                 srpRedisEntity.getB(),
-                userEntity.getSaltAuth()
+                userEntity.getSaltAuthBytes()
         );
 
         log.info("Login Start for user (email hash): {} - Service", tokenHasher.generateSha256Email(userEntity.getEmail()));
@@ -228,15 +228,15 @@ public class AuthorizationService {
         UserEntity userEntity = new UserEntity();
         userEntity.setUserId(userRedisEntity.getUserId());
         userEntity.setEmail(userRedisEntity.getEmail());
-        userEntity.setSaltAuth(userRedisEntity.getSaltAuth());
+        userEntity.setSaltAuthBytes(userRedisEntity.getSaltAuth());
         userEntity.setVerifier(userRedisEntity.getVerifier());
-        userEntity.setVaultKey(userRedisEntity.getVaultKey());
-        userEntity.setIvVaultKey(userRedisEntity.getIvVaultKey());
-        userEntity.setSaltKey(userRedisEntity.getSaltKey());
-        userEntity.setSaltHkdf(userRedisEntity.getSaltHkdf());
-        userEntity.setPrivateSigningKey(userRedisEntity.getPrivateSigningKey());
-        userEntity.setPublicSigningKey(userRedisEntity.getPublicSigningKey());
-        userEntity.setIvPrivateSigningKey(userRedisEntity.getIvPrivateSigningKey());
+        userEntity.setVaultKeyBytes(userRedisEntity.getVaultKey());
+        userEntity.setIvVaultKeyBytes(userRedisEntity.getIvVaultKey());
+        userEntity.setSaltKeyBytes(userRedisEntity.getSaltKey());
+        userEntity.setSaltHkdfBytes(userRedisEntity.getSaltHkdf());
+        userEntity.setPrivateSigningKeyBytes(userRedisEntity.getPrivateSigningKey());
+        userEntity.setPublicSigningKeyBytes(userRedisEntity.getPublicSigningKey());
+        userEntity.setIvPrivateSigningKeyBytes(userRedisEntity.getIvPrivateSigningKey());
         userEntity.setCreationTime(userRedisEntity.getCreationTime());
         userEntity.setLastLogin(Instant.now());
         userDao.save(userEntity);
@@ -297,13 +297,13 @@ public class AuthorizationService {
 
         LoginCompleteResp resp = new LoginCompleteResp(
                 Base64.getEncoder().encodeToString(M2Server.toByteArray()),
-                userEntity.getVaultKey(),
-                userEntity.getIvVaultKey(),
-                userEntity.getSaltKey(),
-                userEntity.getSaltHkdf(),
-                userEntity.getPrivateSigningKey(),
-                userEntity.getPublicSigningKey(),
-                userEntity.getIvPrivateSigningKey(),
+                userEntity.getVaultKeyBytes(),
+                userEntity.getIvVaultKeyBytes(),
+                userEntity.getSaltKeyBytes(),
+                userEntity.getSaltHkdfBytes(),
+                userEntity.getPrivateSigningKeyBytes(),
+                userEntity.getPublicSigningKeyBytes(),
+                userEntity.getIvPrivateSigningKeyBytes(),
                 generateJwt(userEntity.getUserId(), req.getDeviceId()),
                 refreshToken,
                 refreshExpiry
@@ -329,8 +329,8 @@ public class AuthorizationService {
         TotpLoginEntity totpLoginEntity = new TotpLoginEntity(
                 userEntity.getUserId(),
                 req.getDeviceId(),
-                totpEntity.getEncryptedToken(),
-                totpEntity.getTokenIv()
+                totpEntity.getTotpTokenBytes(),
+                totpEntity.getTotpTokenIv()
         );
 
         redisService.save(redisKey, totpLoginEntity, Duration.of(10, ChronoUnit.MINUTES));

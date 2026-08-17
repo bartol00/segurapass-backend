@@ -11,7 +11,6 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
-import java.util.Base64;
 
 @Component
 public class EncryptionServiceImpl implements EncryptionService {
@@ -38,22 +37,17 @@ public class EncryptionServiceImpl implements EncryptionService {
         GCMParameterSpec spec = new GCMParameterSpec(GCM_TAG_LENGTH, iv);
         cipher.init(Cipher.ENCRYPT_MODE, secretKey, spec);
 
-        byte[] ciphertext = cipher.doFinal(
-                totpSecret.getBytes(StandardCharsets.UTF_8)
-        );
+        byte[] ciphertext = cipher.doFinal(totpSecret.getBytes(StandardCharsets.UTF_8));
 
         return new TotpRedisEntity(
-                Base64.getEncoder().encodeToString(ciphertext),
-                Base64.getEncoder().encodeToString(iv)
+                ciphertext,
+                iv
         );
     }
 
     @Override
-    public byte[] decryptTotpSecret(String encryptedSecret, String ivStr) throws Exception {
+    public byte[] decryptTotpSecret(byte[] ciphertext, byte[] iv) throws Exception {
         SecretKey secretKey = mfaConfig.getSecretKey();
-
-        byte[] ciphertext = Base64.getDecoder().decode(encryptedSecret);
-        byte[] iv = Base64.getDecoder().decode(ivStr);
 
         Cipher cipher = Cipher.getInstance(CIPHER_INSTANCE);
         GCMParameterSpec spec = new GCMParameterSpec(GCM_TAG_LENGTH, iv);

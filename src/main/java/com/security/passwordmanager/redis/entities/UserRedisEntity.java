@@ -13,14 +13,14 @@ import java.util.UUID;
 public class UserRedisEntity {
     private UUID userId;
     private String email;
-    private String saltAuth;
+    private byte[] saltAuth;
     private String verifier;
-    private String vaultKey;
-    private String ivVaultKey;
-    private String saltKey;
-    private String saltHkdf;
-    private String privateSigningKey;
-    private String publicSigningKey;
-    private String ivPrivateSigningKey;
+    private byte[] vaultKey;
+    private byte[] ivVaultKey;
+    private byte[] saltKey;
+    private byte[] saltHkdf;
+    private byte[] privateSigningKey;
+    private byte[] publicSigningKey;
+    private byte[] ivPrivateSigningKey;
     private Instant creationTime;
 }

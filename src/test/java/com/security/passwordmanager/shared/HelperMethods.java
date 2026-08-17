@@ -18,6 +18,7 @@ import xyz.segurapass.api.mfa.TotpVerifyReq;
 import xyz.segurapass.api.password.PasswordChangeCompleteReq;
 import xyz.segurapass.api.password.PasswordChangeStartReq;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -32,15 +33,15 @@ public class HelperMethods {
         UserEntity userEntity = new UserEntity();
         userEntity.setUserId(userId);
         userEntity.setEmail("user@gmail.com");
-        userEntity.setSaltAuth(UUID.randomUUID().toString());
+        userEntity.setSaltAuthBytes(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8));
         userEntity.setVerifier("verifier");
-        userEntity.setVaultKey("vaultKey");
-        userEntity.setIvVaultKey("ivVaultKey");
-        userEntity.setSaltKey(UUID.randomUUID().toString());
-        userEntity.setSaltHkdf(UUID.randomUUID().toString());
-        userEntity.setPrivateSigningKey("privateSigningKey");
-        userEntity.setPublicSigningKey("publicSigningKey");
-        userEntity.setIvPrivateSigningKey("ivPrivateSigningKey");
+        userEntity.setVaultKeyBytes("vaultKey".getBytes(StandardCharsets.UTF_8));
+        userEntity.setIvVaultKeyBytes("ivVaultKey".getBytes(StandardCharsets.UTF_8));
+        userEntity.setSaltKeyBytes(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8));
+        userEntity.setSaltHkdfBytes(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8));
+        userEntity.setPrivateSigningKeyBytes("privateSigningKey".getBytes(StandardCharsets.UTF_8));
+        userEntity.setPublicSigningKeyBytes("publicSigningKey".getBytes(StandardCharsets.UTF_8));
+        userEntity.setIvPrivateSigningKeyBytes("ivPrivateSigningKey".getBytes(StandardCharsets.UTF_8));
         return userEntity;
     }
 
@@ -67,15 +68,15 @@ public class HelperMethods {
     public static RegistrationReq generateRegistrationReq(String email) {
         return new RegistrationReq(
                 email,
-                "saltAuth",
+                "saltAuth".getBytes(StandardCharsets.UTF_8),
                 "verifier",
-                "vaultKey",
-                "ivVaultKey",
-                "saltKey",
-                "saltHkdf",
-                "privateSigningKey",
-                "publicSigningKey",
-                "privateSigningKeyIv",
+                "vaultKey".getBytes(StandardCharsets.UTF_8),
+                "ivVaultKey".getBytes(StandardCharsets.UTF_8),
+                "saltKey".getBytes(StandardCharsets.UTF_8),
+                "saltHkdf".getBytes(StandardCharsets.UTF_8),
+                "privateSigningKey".getBytes(StandardCharsets.UTF_8),
+                "publicSigningKey".getBytes(StandardCharsets.UTF_8),
+                "privateSigningKeyIv".getBytes(StandardCharsets.UTF_8),
                 UUID.randomUUID()
         );
     }
@@ -104,15 +105,15 @@ public class HelperMethods {
         return new UserRedisEntity(
                 userId,
                 email,
+                UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8),
                 UUID.randomUUID().toString(),
-                UUID.randomUUID().toString(),
-                UUID.randomUUID().toString(),
-                UUID.randomUUID().toString(),
-                UUID.randomUUID().toString(),
-                UUID.randomUUID().toString(),
-                UUID.randomUUID().toString(),
-                UUID.randomUUID().toString(),
-                UUID.randomUUID().toString(),
+                UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8),
+                UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8),
+                UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8),
+                UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8),
+                UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8),
+                UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8),
+                UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8),
                 Instant.now()
         );
     }
@@ -120,24 +121,24 @@ public class HelperMethods {
     // CredentialsServiceIT helper methods
     public static CredentialsReq generateCredentialsReq() {
         CredentialsReq credentialsReq = new CredentialsReq();
-        credentialsReq.setWebsite("unique website");
-        credentialsReq.setUsername("unique username");
-        credentialsReq.setPassword("unique password");
-        credentialsReq.setIvWebsite(UUID.randomUUID().toString());
-        credentialsReq.setIvUsername(UUID.randomUUID().toString());
-        credentialsReq.setIvPassword(UUID.randomUUID().toString());
+        credentialsReq.setWebsiteBytes("unique website".getBytes(StandardCharsets.UTF_8));
+        credentialsReq.setUsernameBytes("unique username".getBytes(StandardCharsets.UTF_8));
+        credentialsReq.setPasswordBytes("unique password".getBytes(StandardCharsets.UTF_8));
+        credentialsReq.setIvWebsiteBytes(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8));
+        credentialsReq.setIvUsernameBytes(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8));
+        credentialsReq.setIvPasswordBytes(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8));
         return credentialsReq;
     }
 
     public static CredentialsEntity generateCredentialsEntity(UserEntity userEntity) {
         CredentialsEntity credentialsEntity = new CredentialsEntity();
         credentialsEntity.setCredentialsId(UUID.randomUUID());
-        credentialsEntity.setWebsite(UUID.randomUUID().toString());
-        credentialsEntity.setUsername(UUID.randomUUID().toString());
-        credentialsEntity.setPassword(UUID.randomUUID().toString());
-        credentialsEntity.setIvWebsite(UUID.randomUUID().toString());
-        credentialsEntity.setIvUsername(UUID.randomUUID().toString());
-        credentialsEntity.setIvPassword(UUID.randomUUID().toString());
+        credentialsEntity.setWebsiteBytes(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8));
+        credentialsEntity.setUsernameBytes(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8));
+        credentialsEntity.setPasswordBytes(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8));
+        credentialsEntity.setIvWebsiteBytes(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8));
+        credentialsEntity.setIvUsernameBytes(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8));
+        credentialsEntity.setIvPasswordBytes(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8));
         credentialsEntity.setCreatedAt(Instant.now());
         credentialsEntity.setLastUpdated(Instant.now());
         credentialsEntity.setUserEntity(userEntity);
@@ -156,14 +157,14 @@ public class HelperMethods {
         return new PasswordChangeCompleteReq(
                 deviceId,
                 M1,
+                UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8),
                 UUID.randomUUID().toString(),
-                UUID.randomUUID().toString(),
-                UUID.randomUUID().toString(),
-                UUID.randomUUID().toString(),
-                UUID.randomUUID().toString(),
-                UUID.randomUUID().toString(),
-                UUID.randomUUID().toString(),
-                UUID.randomUUID().toString()
+                UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8),
+                UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8),
+                UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8),
+                UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8),
+                UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8),
+                UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8)
         );
     }
 
@@ -185,19 +186,19 @@ public class HelperMethods {
     // TotpServiceIT helper methods
     public static TotpEntity generateTotpEntity(
             UserEntity userEntity,
-            String encryptedToken,
-            String tokenIv
+            byte[] totpSecretBytes,
+            byte[] totpSecretIv
     ) {
         TotpEntity totpEntity = generateTotpEntity(userEntity);
-        totpEntity.setEncryptedToken(encryptedToken);
-        totpEntity.setTokenIv(tokenIv);
+        totpEntity.setTotpTokenBytes(totpSecretBytes);
+        totpEntity.setTotpTokenIv(totpSecretIv);
         return totpEntity;
     }
 
     public static TotpEntity generateTotpEntity(UserEntity userEntity) {
         TotpEntity totpEntity = new TotpEntity();
-        totpEntity.setEncryptedToken(UUID.randomUUID().toString());
-        totpEntity.setTokenIv(UUID.randomUUID().toString());
+        totpEntity.setTotpTokenBytes(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8));
+        totpEntity.setTotpTokenIv(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8));
         totpEntity.setCreatedAt(Instant.now());
         totpEntity.setUserEntity(userEntity);
         return totpEntity;

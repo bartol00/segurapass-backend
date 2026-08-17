@@ -149,8 +149,8 @@ public class TotpService {
         byte[] totpSecretBytes;
         try {
             totpSecretBytes = encryptionService.decryptTotpSecret(
-                    totpRedisEntity.getEncryptedTotpSecret(),
-                    totpRedisEntity.getIv()
+                    totpRedisEntity.getTotpSecretBytes(),
+                    totpRedisEntity.getTotpSecretIv()
             );
         } catch (Exception e) {
             throw new MfaException(MFA_TOTP_DECRYPTION_FAILED);
@@ -163,8 +163,8 @@ public class TotpService {
         UserEntity userEntity = userDao.findByUserId(userId);
 
         TotpEntity totpEntity = new TotpEntity();
-        totpEntity.setEncryptedToken(totpRedisEntity.getEncryptedTotpSecret());
-        totpEntity.setTokenIv(totpRedisEntity.getIv());
+        totpEntity.setTotpTokenBytes(totpRedisEntity.getTotpSecretBytes());
+        totpEntity.setTotpTokenIv(totpRedisEntity.getTotpSecretIv());
         totpEntity.setCreatedAt(Instant.now());
         totpEntity.setUserEntity(userEntity);
         totpDao.save(totpEntity);
@@ -197,8 +197,8 @@ public class TotpService {
         byte[] totpSecretBytes;
         try {
             totpSecretBytes = encryptionService.decryptTotpSecret(
-                    totpLoginEntity.getEncryptedTotpSecret(),
-                    totpLoginEntity.getTotpIv()
+                    totpLoginEntity.getTotpSecretBytes(),
+                    totpLoginEntity.getTotpSecretIv()
             );
         } catch (Exception e) {
             throw new MfaException(MFA_TOTP_DECRYPTION_FAILED);
@@ -279,13 +279,13 @@ public class TotpService {
 
         LoginCompleteResp resp = new LoginCompleteResp(
                 null,
-                userEntity.getVaultKey(),
-                userEntity.getIvVaultKey(),
-                userEntity.getSaltKey(),
-                userEntity.getSaltHkdf(),
-                userEntity.getPrivateSigningKey(),
-                userEntity.getPublicSigningKey(),
-                userEntity.getIvPrivateSigningKey(),
+                userEntity.getVaultKeyBytes(),
+                userEntity.getIvVaultKeyBytes(),
+                userEntity.getSaltKeyBytes(),
+                userEntity.getSaltHkdfBytes(),
+                userEntity.getPrivateSigningKeyBytes(),
+                userEntity.getPublicSigningKeyBytes(),
+                userEntity.getIvPrivateSigningKeyBytes(),
                 generateJwt(userEntity.getUserId(), deviceId),
                 refreshToken,
                 refreshExpiry
@@ -434,14 +434,13 @@ public class TotpService {
                     new X509EncodedKeySpec(userPublicKeyEntity.getPublicKeyBytes())
             );
         } else {
-            String publicKeyStr = userDao.findByUserId(userId).getPublicSigningKey();
-            byte[] keyBytes = Base64.getDecoder().decode(publicKeyStr);
+            byte[] publicKeyBytes = userDao.findByUserId(userId).getPublicSigningKeyBytes();
 
-            UserPublicKeyEntity userPublicKeyEntity = new UserPublicKeyEntity(keyBytes);
+            UserPublicKeyEntity userPublicKeyEntity = new UserPublicKeyEntity(publicKeyBytes);
             redisService.save(redisKey, userPublicKeyEntity, Duration.of(10, ChronoUnit.MINUTES));
 
             return factory.generatePublic(
-                    new X509EncodedKeySpec(keyBytes)
+                    new X509EncodedKeySpec(publicKeyBytes)
             );
         }
     }

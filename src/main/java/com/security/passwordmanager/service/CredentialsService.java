@@ -125,26 +125,26 @@ public class CredentialsService {
             throw new CredentialsException(CREDENTIAL_NOT_EXISTS);
         }
 
-        if (req.getWebsite() != null && !req.getWebsite().isBlank()) {
-            if (req.getIvWebsite() == null || req.getIvWebsite().isBlank()) {
+        if (req.getWebsiteBytes() != null) {
+            if (req.getIvWebsiteBytes() == null) {
                 throw new CredentialsException(CREDENTIAL_UPDATE_IV_MISSING);
             }
-            entity.setWebsite(req.getWebsite());
-            entity.setIvWebsite(req.getIvWebsite());
+            entity.setWebsiteBytes(req.getWebsiteBytes());
+            entity.setIvWebsiteBytes(req.getIvWebsiteBytes());
         }
-        if (req.getUsername() != null && !req.getUsername().isBlank()) {
-            if (req.getIvUsername() == null || req.getIvUsername().isBlank()) {
+        if (req.getUsernameBytes() != null) {
+            if (req.getIvUsernameBytes() == null) {
                 throw new CredentialsException(CREDENTIAL_UPDATE_IV_MISSING);
             }
-            entity.setUsername(req.getUsername());
-            entity.setIvUsername(req.getIvUsername());
+            entity.setUsernameBytes(req.getUsernameBytes());
+            entity.setIvUsernameBytes(req.getIvUsernameBytes());
         }
-        if (req.getPassword() != null && !req.getPassword().isBlank()) {
-            if (req.getIvPassword() == null || req.getIvPassword().isBlank()) {
+        if (req.getPasswordBytes() != null) {
+            if (req.getIvPasswordBytes() == null) {
                 throw new CredentialsException(CREDENTIAL_UPDATE_IV_MISSING);
             }
-            entity.setPassword(req.getPassword());
-            entity.setIvPassword(req.getIvPassword());
+            entity.setPasswordBytes(req.getPasswordBytes());
+            entity.setIvPasswordBytes(req.getIvPasswordBytes());
         }
         Instant now = Instant.now();
         entity.setLastUpdated(now);
@@ -248,12 +248,12 @@ public class CredentialsService {
             PublicKey publicKey = getPublicKey(userId);
             CredentialsWritePayload payload =
                     new CredentialsWritePayload(
-                            req.getWebsite(),
-                            req.getUsername(),
-                            req.getPassword(),
-                            req.getIvWebsite(),
-                            req.getIvUsername(),
-                            req.getIvPassword(),
+                            req.getWebsiteBytes(),
+                            req.getUsernameBytes(),
+                            req.getPasswordBytes(),
+                            req.getIvWebsiteBytes(),
+                            req.getIvUsernameBytes(),
+                            req.getIvPasswordBytes(),
                             req.getNonce(),
                             req.getOperation(),
                             credentialsId
@@ -279,14 +279,13 @@ public class CredentialsService {
                     new X509EncodedKeySpec(userPublicKeyEntity.getPublicKeyBytes())
             );
         } else {
-            String publicKeyStr = userDao.findByUserId(userId).getPublicSigningKey();
-            byte[] keyBytes = Base64.getDecoder().decode(publicKeyStr);
+            byte[] publicKeyBytes = userDao.findByUserId(userId).getPublicSigningKeyBytes();
 
             PublicKey publicKey = factory.generatePublic(
-                    new X509EncodedKeySpec(keyBytes)
+                    new X509EncodedKeySpec(publicKeyBytes)
             );
 
-            UserPublicKeyEntity userPublicKeyEntity = new UserPublicKeyEntity(keyBytes);
+            UserPublicKeyEntity userPublicKeyEntity = new UserPublicKeyEntity(publicKeyBytes);
             redisService.save(redisKey, userPublicKeyEntity, Duration.of(10, ChronoUnit.MINUTES));
 
             return publicKey;

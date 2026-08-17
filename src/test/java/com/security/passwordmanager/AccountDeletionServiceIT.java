@@ -93,7 +93,7 @@ public class AccountDeletionServiceIT extends AbstractTestInitializer {
         // then
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertEquals(userEntity.getSaltAuth(), response.getBody().getSaltAuth());
+        assertArrayEquals(userEntity.getSaltAuthBytes(), response.getBody().getSaltAuth());
         assertTrue(redisService.exists(redisKey));
     }
 

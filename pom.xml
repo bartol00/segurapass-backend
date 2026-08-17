@@ -16,7 +16,7 @@
 
 	<properties>
 		<java.version>21</java.version>
-        <segurapass-api.version>5.0.1-SNAPSHOT</segurapass-api.version>
+        <segurapass-api.version>6.0.0</segurapass-api.version>
         <segurapass.protocol.version>3</segurapass.protocol.version>
         <jjwt.version>0.13.0</jjwt.version>
         <mapstruct.version>1.6.3</mapstruct.version>

@@ -11,6 +11,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.jspecify.annotations.NonNull;
 import org.slf4j.MDC;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -32,9 +33,11 @@ public class RequestFilter extends OncePerRequestFilter {
 
     @SuppressWarnings("RedundantThrows")
     @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(
+            @NonNull HttpServletRequest request,
+            @NonNull HttpServletResponse response,
+            @NonNull FilterChain filterChain
+    ) throws ServletException, IOException {
 
         String ip = extractClientIp(request);
         MDC.put("clientIp", ip);
@@ -127,7 +130,7 @@ public class RequestFilter extends OncePerRequestFilter {
         for (RateLimitRule rule : rules) {
             if (rule.limitType() == LimitType.IP) {
                 String redisKey = RedisKeys.rateLimitIp(ip, rule.pattern());
-                if (!rateLimitService.isAllowed(redisKey, rule.limit(), rule.windowSeconds())) {
+                if (rateLimitService.isForbidden(redisKey, rule.limit(), rule.windowSeconds())) {
                     return false;
                 }
             }
@@ -139,7 +142,7 @@ public class RequestFilter extends OncePerRequestFilter {
         for (RateLimitRule rule : rules) {
             if (rule.limitType() == LimitType.USER) {
                 String redisKey = RedisKeys.rateLimitUserId(userIdString, rule.pattern());
-                if (!rateLimitService.isAllowed(redisKey, rule.limit(), rule.windowSeconds())) {
+                if (rateLimitService.isForbidden(redisKey, rule.limit(), rule.windowSeconds())) {
                     return false;
                 }
             }

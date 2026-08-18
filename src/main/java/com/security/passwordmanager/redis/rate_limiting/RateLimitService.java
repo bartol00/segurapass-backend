@@ -14,18 +14,18 @@ public class RateLimitService {
         this.redisTemplate = redisTemplate;
     }
 
-    public boolean isAllowed(String key, int limit, int windowSeconds) {
+    public boolean isForbidden(String key, int limit, int windowSeconds) {
         Long count = redisTemplate.opsForValue().increment(key);
 
         if (count == null) {
-            return false;
+            return true;
         }
 
         if (count == 1) {
             redisTemplate.expire(key, Duration.ofSeconds(windowSeconds));
         }
 
-        return count <= limit;
+        return count > limit;
     }
 
 }

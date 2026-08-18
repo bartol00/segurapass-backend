@@ -21,10 +21,10 @@ public class RateLimitConfig {
         List<RateLimitRule> rules = new ArrayList<>(List.of(
                 new RateLimitRule("/api/deletion/authorized/**", 10, windowSeconds, LimitType.USER, true),
                 new RateLimitRule("/api/credentials/**", 50, windowSeconds, LimitType.USER, true),
-                new RateLimitRule("/api/password/**", 10, windowSeconds, LimitType.USER, true),
                 new RateLimitRule("/api/mfa/add-totp/**", 10, windowSeconds, LimitType.USER, true),
                 new RateLimitRule("/api/mfa/remove-totp/**", 10, windowSeconds, LimitType.USER, true),
-                new RateLimitRule("/api/mfa/verify-totp", 10, windowSeconds, LimitType.USER, true)
+                new RateLimitRule("/api/mfa/verify-totp", 10, windowSeconds, LimitType.USER, true),
+                new RateLimitRule("/api/password/**", 10, windowSeconds, LimitType.USER, true)
         ));
 
         if (ipRulesEnabled) {

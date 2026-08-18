@@ -21,12 +21,23 @@ public class ExpiredCleanup {
     private AuditLogDao auditLogDao;
 
     @Transactional
-    @Scheduled(cron = "0 5 2,14 * * *")
+    @Scheduled(cron = "0 5 2 * * *")
     public void deleteOldAuditLogs() {
-        auditLogDao.deleteByTimestampLessThan(Instant.now().minus(180, ChronoUnit.DAYS));
-        log.info("Deleted old audit logs");
-        userDao.deleteByLastLoginLessThan(Instant.now().minus(366, ChronoUnit.DAYS));
-        log.info("Deleted expired entities (no login for over a year)");
+        long deletedLogCount = auditLogDao.deleteByTimestampLessThan(
+                Instant.now().minus(180, ChronoUnit.DAYS));
+        if (deletedLogCount > 0) {
+            log.info("Deleted {} old audit logs", deletedLogCount);
+        }
+    }
+
+    @Transactional
+    @Scheduled(cron = "0 7 2 * * *")
+    public void deleteStaleUsers() {
+        long deletedUserCount = userDao.deleteByLastLoginLessThan(
+                Instant.now().minus(366, ChronoUnit.DAYS));
+        if(deletedUserCount > 0) {
+            log.info("Deleted {} stale users (no login for over a year)", deletedUserCount);
+        }
     }
 
 }

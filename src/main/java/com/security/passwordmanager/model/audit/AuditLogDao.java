@@ -5,5 +5,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.time.Instant;
 
 public interface AuditLogDao extends JpaRepository<AuditLogEntity, Long> {
-    void deleteByTimestampLessThan(Instant timestamp);
+    long deleteByTimestampLessThan(Instant timestamp);
 }

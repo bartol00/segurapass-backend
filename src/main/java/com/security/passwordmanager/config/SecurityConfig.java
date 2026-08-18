@@ -18,7 +18,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
@@ -27,12 +27,12 @@ public class SecurityConfig {
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/credentials/**").authenticated()
                         .requestMatchers("/api/deletion/authorized/**").authenticated()
-                        .requestMatchers("/api/password/**").authenticated()
+                        .requestMatchers("/api/credentials/**").authenticated()
                         .requestMatchers("/api/mfa/add-totp/**").authenticated()
                         .requestMatchers("/api/mfa/remove-totp/**").authenticated()
                         .requestMatchers("/api/mfa/verify-totp").authenticated()
+                        .requestMatchers("/api/password/**").authenticated()
                         .anyRequest().permitAll()
                 )
                 .addFilterBefore(requestFilter, UsernamePasswordAuthenticationFilter.class);

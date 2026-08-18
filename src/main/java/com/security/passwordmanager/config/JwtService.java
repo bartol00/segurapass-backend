@@ -21,7 +21,11 @@ public class JwtService {
         this.publicKey = publicKey;
     }
 
-    public String generateToken(String userIdString, Map<String, Object> additionalClaims, long expirationSeconds) {
+    public String generateToken(
+            String userIdString,
+            Map<String, Object> additionalClaims,
+            long expirationSeconds
+    ) {
         Instant now = Instant.now();
         return Jwts.builder()
                 .claims(additionalClaims)

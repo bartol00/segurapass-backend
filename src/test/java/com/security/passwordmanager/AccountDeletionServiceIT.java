@@ -28,7 +28,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
-import static com.security.passwordmanager.exceptions.ErrorEnum.*;
+import static com.security.passwordmanager.exceptions.enums.ErrorEnum.*;
 import static com.security.passwordmanager.shared.HelperMethods.*;
 
 @Slf4j

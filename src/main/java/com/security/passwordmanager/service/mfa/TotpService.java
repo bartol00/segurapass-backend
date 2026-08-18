@@ -45,9 +45,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-import static com.security.passwordmanager.exceptions.ErrorEnum.*;
-import static com.security.passwordmanager.exceptions.ErrorEnum.INVALID_SIGNATURE;
-import static com.security.passwordmanager.exceptions.ErrorEnum.NONCE_ERROR;
+import static com.security.passwordmanager.exceptions.enums.ErrorEnum.*;
+import static com.security.passwordmanager.exceptions.enums.ErrorEnum.INVALID_SIGNATURE;
+import static com.security.passwordmanager.exceptions.enums.ErrorEnum.NONCE_ERROR;
 
 @Service
 @RequiredArgsConstructor

@@ -32,7 +32,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.regex.Pattern;
 
-import static com.security.passwordmanager.exceptions.ErrorEnum.*;
+import static com.security.passwordmanager.exceptions.enums.ErrorEnum.*;
 
 @Service
 @RequiredArgsConstructor

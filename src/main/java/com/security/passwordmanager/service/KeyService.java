@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import static com.security.passwordmanager.exceptions.ErrorEnum.PUBLIC_KEY_NOT_READ;
+import static com.security.passwordmanager.exceptions.enums.ErrorEnum.PUBLIC_KEY_NOT_READ;
 
 @Service
 @Slf4j

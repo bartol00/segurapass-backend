@@ -44,7 +44,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 import static com.security.passwordmanager.shared.HelperMethods.generateUserEntity;
-import static com.security.passwordmanager.exceptions.ErrorEnum.*;
+import static com.security.passwordmanager.exceptions.enums.ErrorEnum.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static com.security.passwordmanager.shared.HelperMethods.*;
 

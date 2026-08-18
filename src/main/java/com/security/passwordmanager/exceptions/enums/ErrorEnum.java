@@ -1,4 +1,4 @@
-package com.security.passwordmanager.exceptions;
+package com.security.passwordmanager.exceptions.enums;
 
 import lombok.Getter;
 import org.springframework.http.HttpStatus;

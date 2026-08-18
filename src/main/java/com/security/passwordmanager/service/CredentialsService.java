@@ -38,7 +38,7 @@ import java.util.Base64;
 import java.util.Objects;
 import java.util.UUID;
 
-import static com.security.passwordmanager.exceptions.ErrorEnum.*;
+import static com.security.passwordmanager.exceptions.enums.ErrorEnum.*;
 
 @Service
 @RequiredArgsConstructor

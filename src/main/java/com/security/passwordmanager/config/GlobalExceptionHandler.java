@@ -1,7 +1,7 @@
 package com.security.passwordmanager.config;
 
 import com.security.passwordmanager.exceptions.*;
-import com.security.passwordmanager.exceptions.ErrorEnum;
+import com.security.passwordmanager.exceptions.enums.ErrorEnum;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

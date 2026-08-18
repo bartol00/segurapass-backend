@@ -18,8 +18,7 @@ public class AppSecurityTestConfig {
     private final String emailHashSalt;
 
     public AppSecurityTestConfig() throws Exception {
-        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
-        keyGen.initialize(2048);
+        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("Ed25519");
         this.keyPair = keyGen.generateKeyPair();
         this.emailHashSalt = UUID.randomUUID().toString();
     }

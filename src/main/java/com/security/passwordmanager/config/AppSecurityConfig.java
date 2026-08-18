@@ -32,7 +32,7 @@ public class AppSecurityConfig {
         try (PemReader pemReader = new PemReader(new FileReader(privateKeyPath))) {
             byte[] content = pemReader.readPemObject().getContent();
             PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(content);
-            return KeyFactory.getInstance("RSA").generatePrivate(spec);
+            return KeyFactory.getInstance("Ed25519").generatePrivate(spec);
         }
     }
 
@@ -41,7 +41,7 @@ public class AppSecurityConfig {
         try (PemReader pemReader = new PemReader(new FileReader(publicKeyPath))) {
             byte[] content = pemReader.readPemObject().getContent();
             X509EncodedKeySpec spec = new X509EncodedKeySpec(content);
-            return KeyFactory.getInstance("RSA").generatePublic(spec);
+            return KeyFactory.getInstance("Ed25519").generatePublic(spec);
         }
     }
 

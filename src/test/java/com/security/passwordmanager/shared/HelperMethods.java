@@ -14,7 +14,6 @@ import xyz.segurapass.api.deletion.AuthorizedDeletionCompleteReq;
 import xyz.segurapass.api.deletion.AuthorizedDeletionStartReq;
 import xyz.segurapass.api.deletion.EmailDeletionStartReq;
 import xyz.segurapass.api.mfa.MfaType;
-import xyz.segurapass.api.mfa.TotpVerifyReq;
 import xyz.segurapass.api.password.PasswordChangeCompleteReq;
 import xyz.segurapass.api.password.PasswordChangeStartReq;
 
@@ -68,15 +67,15 @@ public class HelperMethods {
     public static RegistrationReq generateRegistrationReq(String email) {
         return new RegistrationReq(
                 email,
-                "saltAuth".getBytes(StandardCharsets.UTF_8),
-                "verifier",
-                "vaultKey".getBytes(StandardCharsets.UTF_8),
-                "ivVaultKey".getBytes(StandardCharsets.UTF_8),
-                "saltKey".getBytes(StandardCharsets.UTF_8),
-                "saltHkdf".getBytes(StandardCharsets.UTF_8),
-                "privateSigningKey".getBytes(StandardCharsets.UTF_8),
-                "publicSigningKey".getBytes(StandardCharsets.UTF_8),
-                "privateSigningKeyIv".getBytes(StandardCharsets.UTF_8),
+                UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8),
+                UUID.randomUUID().toString(),
+                UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8),
+                UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8),
+                UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8),
+                UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8),
+                UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8),
+                UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8),
+                UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8),
                 UUID.randomUUID()
         );
     }
@@ -210,10 +209,6 @@ public class HelperMethods {
         totpNonceEntity.setDeviceId(UUID.randomUUID());
         totpNonceEntity.setMfaType(mfaType);
         return totpNonceEntity;
-    }
-
-    public static TotpVerifyReq generateTotpVerifyReq(String otp) {
-        return new TotpVerifyReq(otp);
     }
 
 }

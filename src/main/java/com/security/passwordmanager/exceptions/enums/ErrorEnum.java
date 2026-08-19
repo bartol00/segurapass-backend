@@ -9,6 +9,7 @@ public enum ErrorEnum {
     USER_NOT_EXISTS(HttpStatus.CONFLICT, "User with this email does not exist"),
     USER_EMAIL_INVALID(HttpStatus.CONFLICT, "Email is invalid"),
     USER_VERIFICATION_NOT_EXISTS(HttpStatus.CONFLICT, "Could not verify user email, user verification token does not exist"),
+    EMAIL_VERIFICATION_OFF(HttpStatus.CONFLICT, "Email verification is not enabled on this server"),
     SRP_VERIFICATION_FAILED(HttpStatus.CONFLICT, "Login information is incorrect"),
     CREDENTIAL_NOT_EXISTS(HttpStatus.NOT_FOUND, "Credential with this identifier does not exist"),
     CREDENTIAL_UPDATE_IV_MISSING(HttpStatus.NOT_ACCEPTABLE, "Credential is missing one or multiple required IV fields"),

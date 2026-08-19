@@ -1,5 +1,6 @@
 package com.security.passwordmanager.service;
 
+import com.security.passwordmanager.config.EmailClient;
 import com.security.passwordmanager.config.JwtService;
 import com.security.passwordmanager.model.mfa.TotpEntity;
 import com.security.passwordmanager.redis.RedisKeys;
@@ -44,6 +45,7 @@ public class AuthorizationService {
     private final AuditLogDao auditLogDao;
     private final EmailService emailService;
     private final RedisService redisService;
+    private final EmailClient emailClient;
     private final SrpFlow srpFlow;
     private final TokenGenerator tokenGenerator;
     private final TokenHasher tokenHasher;
@@ -71,14 +73,6 @@ public class AuthorizationService {
             throw new AuthorizationException(USER_EXISTS);
         }
 
-        String emailHash = tokenHasher.generateSha256Email(req.getEmail());
-        String redisEmailKey = RedisKeys.emailUnverifiedEmail(emailHash);
-        if (redisService.exists(redisEmailKey)) {
-            throw new AuthorizationException(EMAIL_PENDING_VERIFICATION);
-        }
-
-        String verificationToken = tokenGenerator.generateRandomToken(32);
-        String tokenHash = tokenHasher.generateSha256(verificationToken);
         UserRedisEntity userRedisEntity = new UserRedisEntity(
                 UUID.randomUUID(),
                 req.getEmail(),
@@ -94,21 +88,37 @@ public class AuthorizationService {
                 Instant.now()
         );
 
-        Instant in15Minutes = Instant.now().plus(15, ChronoUnit.MINUTES);
-        redisService.save(
-                RedisKeys.emailUnverified(tokenHash),
-                userRedisEntity,
-                Duration.between(Instant.now(), in15Minutes)
-        );
-        redisService.save(
-                redisEmailKey,
-                null,
-                Duration.between(Instant.now(), in15Minutes)
-        );
+        if (emailClient.isActive()) {
 
-        emailService.sendVerificationEmail(req.getEmail(), verificationToken);
+            String emailHash = tokenHasher.generateSha256Email(req.getEmail());
+            String redisEmailKey = RedisKeys.emailUnverifiedEmail(emailHash);
+            if (redisService.exists(redisEmailKey)) {
+                throw new AuthorizationException(EMAIL_PENDING_VERIFICATION);
+            }
 
-        log.info("Register User for user (email hash): {} - Service", emailHash);
+            String verificationToken = tokenGenerator.generateRandomToken(32);
+            String tokenHash = tokenHasher.generateSha256(verificationToken);
+
+            Instant in15Minutes = Instant.now().plus(15, ChronoUnit.MINUTES);
+            redisService.save(
+                    RedisKeys.emailUnverified(tokenHash),
+                    userRedisEntity,
+                    Duration.between(Instant.now(), in15Minutes)
+            );
+            redisService.save(
+                    redisEmailKey,
+                    null,
+                    Duration.between(Instant.now(), in15Minutes)
+            );
+
+            emailService.sendVerificationEmail(req.getEmail(), verificationToken);
+
+            log.info("Register User for user (email hash): {} - Service", emailHash);
+
+        } else {
+            UserEntity userEntity = generateUserEntity(userRedisEntity);
+            userDao.save(userEntity);
+        }
 
         return ResponseEntity.ok(null);
     }
@@ -212,6 +222,10 @@ public class AuthorizationService {
 
     @Transactional
     public ResponseEntity<String> verifyEmail(String token) {
+        if (!emailClient.isActive()) {
+            throw new AuthorizationException(EMAIL_VERIFICATION_OFF);
+        }
+
         String tokenHash = tokenHasher.generateSha256(token);
         String redisKey = RedisKeys.emailUnverified(tokenHash);
         if (!redisService.exists(redisKey)) {
@@ -225,6 +239,16 @@ public class AuthorizationService {
         String redisEmailKey = RedisKeys.emailUnverifiedEmail(emailHash);
         redisService.delete(redisEmailKey);
 
+        UserEntity userEntity = generateUserEntity(userRedisEntity);
+        userDao.save(userEntity);
+
+        log.info("Email Verification for user (email hash): {} - Service", emailHash);
+
+        return ResponseEntity.ok("Email has been verified successfully");
+    }
+
+
+    private UserEntity generateUserEntity(UserRedisEntity userRedisEntity) {
         UserEntity userEntity = new UserEntity();
         userEntity.setUserId(userRedisEntity.getUserId());
         userEntity.setEmail(userRedisEntity.getEmail());
@@ -239,11 +263,7 @@ public class AuthorizationService {
         userEntity.setIvPrivateSigningKeyBytes(userRedisEntity.getIvPrivateSigningKey());
         userEntity.setCreationTime(userRedisEntity.getCreationTime());
         userEntity.setLastLogin(Instant.now());
-        userDao.save(userEntity);
-
-        log.info("Email Verification for user (email hash): {} - Service", emailHash);
-
-        return ResponseEntity.ok("Email has been verified successfully");
+        return userEntity;
     }
 
     private String generateJwt(UUID userId, UUID deviceId) {

@@ -1,5 +1,6 @@
 package com.security.passwordmanager.service;
 
+import com.security.passwordmanager.config.EmailClient;
 import com.security.passwordmanager.redis.RedisKeys;
 import com.security.passwordmanager.redis.RedisService;
 import com.security.passwordmanager.redis.entities.EmailDeletionRedisEntity;
@@ -36,6 +37,7 @@ public class AccountDeletionService {
 
     private final RedisService redisService;
     private final EmailService emailService;
+    private final EmailClient emailClient;
     private final TokenGenerator tokenGenerator;
     private final TokenHasher tokenHasher;
     private final SrpFlow srpFlow;
@@ -99,6 +101,10 @@ public class AccountDeletionService {
 
     @Transactional
     public void startDeletionEmail(EmailDeletionStartReq req) {
+        if (!emailClient.isActive()) {
+            throw new AccountDeletionException(EMAIL_VERIFICATION_OFF);
+        }
+
         UserEntity userEntity = userDao.findByEmail(req.getEmail());
         if (userEntity == null) {
             return;
@@ -135,6 +141,10 @@ public class AccountDeletionService {
 
     @Transactional
     public ResponseEntity<String> completeDeletionEmail(String token) {
+        if (!emailClient.isActive()) {
+            throw new AccountDeletionException(EMAIL_VERIFICATION_OFF);
+        }
+
         String tokenHash = tokenHasher.generateSha256(token);
         String redisKey = RedisKeys.emailDeletion(tokenHash);
         if (!redisService.exists(redisKey)) {

@@ -1,5 +1,6 @@
 package com.security.passwordmanager.config;
 
+import lombok.Getter;
 import xyz.segurapass.api.email.EmailReq;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
@@ -9,11 +10,13 @@ import org.springframework.web.reactive.function.client.WebClient;
 public class EmailClient {
 
     private final WebClient webClient;
+    @Getter
     private final boolean active;
 
     public EmailClient(
             @Value("${app.email.url}") String emailUrl,
-            @Value("${app.email.active}") boolean active) {
+            @Value("${app.email.active}") boolean active
+    ) {
         this.webClient = WebClient.builder()
                 .baseUrl(emailUrl)
                 .build();

@@ -1,5 +1,6 @@
 package com.security.passwordmanager;
 
+import com.security.passwordmanager.config.EmailClient;
 import com.security.passwordmanager.helpers.*;
 import com.security.passwordmanager.model.audit.AuditLogDao;
 import com.security.passwordmanager.model.mfa.TotpDao;
@@ -57,6 +58,8 @@ public class AuthorizationServiceIT extends AbstractTestInitializer {
     private EncryptionService encryptionService;
     @MockitoBean
     private EmailService emailService;
+    @MockitoBean
+    private EmailClient emailClient;
 
     @BeforeEach
     void setup() {
@@ -119,6 +122,7 @@ public class AuthorizationServiceIT extends AbstractTestInitializer {
                 Duration.of(10, ChronoUnit.MINUTES)
         );
         assertTrue(redisService.exists(redisEmailKey));
+        when(emailClient.isActive()).thenReturn(true);
 
         // when
         AuthorizationException ex = assertThrows(
@@ -135,6 +139,7 @@ public class AuthorizationServiceIT extends AbstractTestInitializer {
     void shouldSucceedRegisterUser() {
         // given
         RegistrationReq req = generateRegistrationReq("unregistered@gmail.com");
+        when(emailClient.isActive()).thenReturn(true);
 
         // when
         ResponseEntity<Void> response = authorizationService.registerUser(req);
@@ -142,6 +147,21 @@ public class AuthorizationServiceIT extends AbstractTestInitializer {
         // then
         assertEquals(HttpStatus.OK, response.getStatusCode());
         verify(emailService).sendVerificationEmail(any(), any());
+    }
+
+    @Test
+    void shouldSucceedRegisterUserEmailClientNotActive() {
+        // given
+        RegistrationReq req = generateRegistrationReq("unregistered@gmail.com");
+        when(emailClient.isActive()).thenReturn(false);
+        assertNull(userDao.findByEmail(req.getEmail()));
+
+        // when
+        ResponseEntity<Void> response = authorizationService.registerUser(req);
+
+        // then
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(userDao.findByEmail(req.getEmail()));
     }
 
     @Test
@@ -412,9 +432,27 @@ public class AuthorizationServiceIT extends AbstractTestInitializer {
     }
 
     @Test
+    void shouldFailEmailClientNotActiveVerifyEmail() {
+        // given
+        String token = "token";
+        when(emailClient.isActive()).thenReturn(false);
+
+        // when
+        AuthorizationException ex = assertThrows(
+                AuthorizationException.class,
+                () -> authorizationService.verifyEmail(token)
+        );
+
+        // then
+        assertEquals(EMAIL_VERIFICATION_OFF.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(EMAIL_VERIFICATION_OFF.getMessage(), ex.getErrorEnum().getMessage());
+    }
+
+    @Test
     void shouldFailUserVerificationNotExistsVerifyEmail() {
         // given
         String token = "token";
+        when(emailClient.isActive()).thenReturn(true);
 
         // when
         AuthorizationException ex = assertThrows(
@@ -453,6 +491,7 @@ public class AuthorizationServiceIT extends AbstractTestInitializer {
         assertTrue(redisService.exists(redisKey));
         assertTrue(redisService.exists(redisKeyEmail));
         assertNull(userDao.findByEmail(email));
+        when(emailClient.isActive()).thenReturn(true);
 
         // when
         ResponseEntity<String> response = authorizationService.verifyEmail(token);

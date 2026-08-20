@@ -1,11 +1,11 @@
 package com.security.passwordmanager.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.security.passwordmanager.helpers.SignatureService;
 import com.security.passwordmanager.helpers.TokenGenerator;
 import com.security.passwordmanager.redis.RedisKeys;
 import com.security.passwordmanager.redis.RedisService;
 import com.security.passwordmanager.redis.entities.CredentialsWriteEntity;
-import com.security.passwordmanager.redis.entities.UserPublicKeyEntity;
 import xyz.segurapass.api.credentials.*;
 import com.security.passwordmanager.exceptions.CredentialsException;
 import com.security.passwordmanager.mapper.CredentialMapper;
@@ -27,14 +27,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import xyz.segurapass.api.credentials.CredentialsOperation;
 
-import java.security.KeyFactory;
 import java.security.PublicKey;
-import java.security.Signature;
-import java.security.spec.X509EncodedKeySpec;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Base64;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -49,6 +45,7 @@ public class CredentialsService {
 
     private final TokenGenerator tokenGenerator;
     private final RedisService redisService;
+    private final SignatureService signatureService;
 
     private final CredentialsDao credentialsDao;
     private final UserDao userDao;
@@ -245,7 +242,7 @@ public class CredentialsService {
         }
 
         try {
-            PublicKey publicKey = getPublicKey(userId);
+            PublicKey publicKey = signatureService.getPublicKey(userId);
             CredentialsWritePayload payload =
                     new CredentialsWritePayload(
                             req.getWebsiteBytes(),
@@ -259,7 +256,7 @@ public class CredentialsService {
                             credentialsId
                     );
             byte[] payloadBytes = objectMapper.writeValueAsBytes(payload);
-            boolean verified = verifySignature(publicKey, payloadBytes, signature);
+            boolean verified = signatureService.verifySignature(publicKey, payloadBytes, signature);
             if (!verified) {
                 throw new CredentialsException(INVALID_SIGNATURE);
             }
@@ -267,43 +264,6 @@ public class CredentialsService {
         } catch (Exception e) {
             throw new CredentialsException(INVALID_SIGNATURE);
         }
-    }
-
-    private PublicKey getPublicKey(UUID userId) throws Exception {
-        String redisKey = RedisKeys.userPublicKey(userId.toString());
-        KeyFactory factory = KeyFactory.getInstance("Ed25519");
-
-        if (redisService.exists(redisKey)) {
-            UserPublicKeyEntity userPublicKeyEntity = redisService.get(redisKey, UserPublicKeyEntity.class);
-            return factory.generatePublic(
-                    new X509EncodedKeySpec(userPublicKeyEntity.getPublicKeyBytes())
-            );
-        } else {
-            byte[] publicKeyBytes = userDao.findByUserId(userId).getPublicSigningKeyBytes();
-
-            PublicKey publicKey = factory.generatePublic(
-                    new X509EncodedKeySpec(publicKeyBytes)
-            );
-
-            UserPublicKeyEntity userPublicKeyEntity = new UserPublicKeyEntity(publicKeyBytes);
-            redisService.save(redisKey, userPublicKeyEntity, Duration.of(10, ChronoUnit.MINUTES));
-
-            return publicKey;
-        }
-    }
-
-    private boolean verifySignature(
-            PublicKey publicKey,
-            byte[] payload,
-            String signatureBase64
-    ) throws Exception {
-        byte[] signatureBytes = Base64.getDecoder().decode(signatureBase64);
-
-        Signature signature = Signature.getInstance("Ed25519");
-        signature.initVerify(publicKey);
-        signature.update(payload);
-
-        return signature.verify(signatureBytes);
     }
 
 }

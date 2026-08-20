@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.security.passwordmanager.config.JwtService;
 import com.security.passwordmanager.exceptions.MfaException;
 import com.security.passwordmanager.helpers.EncryptionService;
+import com.security.passwordmanager.helpers.SignatureService;
 import com.security.passwordmanager.helpers.TokenGenerator;
 import com.security.passwordmanager.helpers.TokenHasher;
 import com.security.passwordmanager.model.audit.AuditAction;
@@ -32,17 +33,11 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.security.KeyFactory;
 import java.security.MessageDigest;
 import java.security.PublicKey;
-import java.security.Signature;
-import java.security.spec.X509EncodedKeySpec;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.UUID;
 
 import static com.security.passwordmanager.exceptions.enums.ErrorEnum.*;
@@ -59,6 +54,7 @@ public class TotpService {
     private final RedisService redisService;
     private final EncryptionService encryptionService;
     private final JwtService jwtService;
+    private final SignatureService signatureService;
 
     private final UserDao userDao;
     private final TotpDao totpDao;
@@ -286,7 +282,7 @@ public class TotpService {
                 userEntity.getPrivateSigningKeyBytes(),
                 userEntity.getPublicSigningKeyBytes(),
                 userEntity.getIvPrivateSigningKeyBytes(),
-                generateJwt(userEntity.getUserId(), deviceId),
+                jwtService.generateJwt(userEntity.getUserId(), deviceId),
                 refreshToken,
                 refreshExpiry
         );
@@ -297,12 +293,6 @@ public class TotpService {
         );
 
         return resp;
-    }
-
-    private String generateJwt(UUID userId, UUID deviceId) {
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("deviceId", deviceId);
-        return jwtService.generateToken(userId.toString(), claims, 180);
     }
 
     private String createTotpUri(String email, String secret) {
@@ -408,13 +398,13 @@ public class TotpService {
         }
 
         try {
-            PublicKey publicKey = getPublicKey(userId);
+            PublicKey publicKey = signatureService.getPublicKey(userId);
             TotpPayload payload = new TotpPayload(
                     req.getMfaType(),
                     req.getNonce()
             );
             byte[] payloadBytes = objectMapper.writeValueAsBytes(payload);
-            boolean verified = verifySignature(publicKey, payloadBytes, signature);
+            boolean verified = signatureService.verifySignature(publicKey, payloadBytes, signature);
             if (!verified) {
                 throw new MfaException(INVALID_SIGNATURE);
             }
@@ -422,41 +412,6 @@ public class TotpService {
         } catch (Exception e) {
             throw new MfaException(INVALID_SIGNATURE);
         }
-    }
-
-    private PublicKey getPublicKey(UUID userId) throws Exception {
-        String redisKey = RedisKeys.userPublicKey(userId.toString());
-        KeyFactory factory = KeyFactory.getInstance("Ed25519");
-
-        if (redisService.exists(redisKey)) {
-            UserPublicKeyEntity userPublicKeyEntity = redisService.get(redisKey, UserPublicKeyEntity.class);
-            return factory.generatePublic(
-                    new X509EncodedKeySpec(userPublicKeyEntity.getPublicKeyBytes())
-            );
-        } else {
-            byte[] publicKeyBytes = userDao.findByUserId(userId).getPublicSigningKeyBytes();
-
-            UserPublicKeyEntity userPublicKeyEntity = new UserPublicKeyEntity(publicKeyBytes);
-            redisService.save(redisKey, userPublicKeyEntity, Duration.of(10, ChronoUnit.MINUTES));
-
-            return factory.generatePublic(
-                    new X509EncodedKeySpec(publicKeyBytes)
-            );
-        }
-    }
-
-    private boolean verifySignature(
-            PublicKey publicKey,
-            byte[] payload,
-            String signatureBase64
-    ) throws Exception {
-        byte[] signatureBytes = Base64.getDecoder().decode(signatureBase64);
-
-        Signature signature = Signature.getInstance("Ed25519");
-        signature.initVerify(publicKey);
-        signature.update(payload);
-
-        return signature.verify(signatureBytes);
     }
 
 }

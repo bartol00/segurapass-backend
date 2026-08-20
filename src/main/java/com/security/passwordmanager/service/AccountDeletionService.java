@@ -43,7 +43,10 @@ public class AccountDeletionService {
     private final SrpFlow srpFlow;
 
     @Transactional
-    public ResponseEntity<AuthorizedDeletionStartResp> startAuthorizedDeletion(UUID userId, AuthorizedDeletionStartReq req) {
+    public ResponseEntity<AuthorizedDeletionStartResp> startAuthorizedDeletion(
+            UUID userId,
+            AuthorizedDeletionStartReq req
+    ) {
         UserEntity userEntity = userDao.findByUserId(userId);
         if (userEntity == null) {
             throw new AccountDeletionException(USER_NOT_EXISTS);
@@ -69,7 +72,10 @@ public class AccountDeletionService {
     }
 
     @Transactional
-    public ResponseEntity<Void> completeAuthorizedDeletion(UUID userId, AuthorizedDeletionCompleteReq req) {
+    public ResponseEntity<Void> completeAuthorizedDeletion(
+            UUID userId,
+            AuthorizedDeletionCompleteReq req
+    ) {
         UserEntity userEntity = userDao.findByUserId(userId);
         if (userEntity == null) {
             throw new AccountDeletionException(USER_NOT_EXISTS);

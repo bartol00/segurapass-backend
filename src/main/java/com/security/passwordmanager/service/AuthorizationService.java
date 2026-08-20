@@ -197,7 +197,7 @@ public class AuthorizationService {
         UserEntity userEntity = userDao.findByUserId(sessionRedisEntity.getUserId());
 
         RefreshResp resp = new RefreshResp();
-        resp.setAccessToken(generateJwt(userEntity.getUserId(), sessionRedisEntity.getDeviceId()));
+        resp.setAccessToken(jwtService.generateJwt(userEntity.getUserId(), sessionRedisEntity.getDeviceId()));
 
         log.info("JWT Refresh for user: {} - Service", sessionRedisEntity.getUserId());
 
@@ -266,13 +266,11 @@ public class AuthorizationService {
         return userEntity;
     }
 
-    private String generateJwt(UUID userId, UUID deviceId) {
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("deviceId", deviceId);
-        return jwtService.generateToken(userId.toString(), claims, 180);
-    }
-
     private boolean isValidEmail(String email) {
+        if (!emailClient.isActive()) {
+            return true;
+        }
+
         if (email == null || email.isBlank()) {
             return false;
         }
@@ -324,7 +322,7 @@ public class AuthorizationService {
                 userEntity.getPrivateSigningKeyBytes(),
                 userEntity.getPublicSigningKeyBytes(),
                 userEntity.getIvPrivateSigningKeyBytes(),
-                generateJwt(userEntity.getUserId(), req.getDeviceId()),
+                jwtService.generateJwt(userEntity.getUserId(), req.getDeviceId()),
                 refreshToken,
                 refreshExpiry
         );

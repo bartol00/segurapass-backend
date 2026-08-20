@@ -8,7 +8,9 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.time.Instant;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 @Configuration
 public class JwtService {
@@ -19,6 +21,12 @@ public class JwtService {
     public JwtService(PrivateKey privateKey, PublicKey publicKey) {
         this.privateKey = privateKey;
         this.publicKey = publicKey;
+    }
+
+    public String generateJwt(UUID userId, UUID deviceId) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("deviceId", deviceId);
+        return generateToken(userId.toString(), claims, 180);
     }
 
     public String generateToken(

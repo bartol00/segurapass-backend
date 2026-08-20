@@ -79,6 +79,7 @@ public class AuthorizationServiceIT extends AbstractTestInitializer {
     void shouldFailInvalidEmailErrorRegisterUser() {
         // given
         RegistrationReq req = generateRegistrationReq("invalid@email.com");
+        when(emailClient.isActive()).thenReturn(true);
 
         // when
         AuthorizationException ex = assertThrows(

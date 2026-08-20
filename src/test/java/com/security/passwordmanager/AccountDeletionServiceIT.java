@@ -14,7 +14,6 @@ import com.security.passwordmanager.helpers.SrpFlow;
 import com.security.passwordmanager.model.authorization.UserDao;
 import com.security.passwordmanager.model.authorization.UserEntity;
 import com.security.passwordmanager.service.AccountDeletionService;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
@@ -32,7 +31,6 @@ import static org.mockito.Mockito.*;
 import static com.security.passwordmanager.exceptions.enums.ErrorEnum.*;
 import static com.security.passwordmanager.shared.HelperMethods.*;
 
-@Slf4j
 @SpringBootTest
 public class AccountDeletionServiceIT extends AbstractTestInitializer {
 

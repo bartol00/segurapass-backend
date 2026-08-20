@@ -13,7 +13,6 @@ import com.security.passwordmanager.model.authorization.UserEntity;
 import com.security.passwordmanager.model.credentials.CredentialsDao;
 import com.security.passwordmanager.model.credentials.CredentialsEntity;
 import com.security.passwordmanager.service.CredentialsService;
-import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -30,7 +29,6 @@ import static com.security.passwordmanager.exceptions.enums.ErrorEnum.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static com.security.passwordmanager.shared.HelperMethods.*;
 
-@Slf4j
 @SpringBootTest
 public class CredentialsServiceIT extends AbstractTestInitializer {
 

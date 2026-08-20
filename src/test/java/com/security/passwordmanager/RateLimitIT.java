@@ -4,7 +4,6 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import xyz.segurapass.api.authorization.*;
 import com.security.passwordmanager.controller.AuthorizationController;
 import com.security.passwordmanager.config.JwtService;
-import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,7 +27,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static com.security.passwordmanager.shared.HelperMethods.*;
 
-@Slf4j
 @SpringBootTest
 @AutoConfigureMockMvc
 class RateLimitIT extends AbstractTestInitializer {

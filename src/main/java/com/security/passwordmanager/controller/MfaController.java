@@ -3,7 +3,6 @@ package com.security.passwordmanager.controller;
 import com.security.passwordmanager.config.AuthenticatedUser;
 import com.security.passwordmanager.service.mfa.TotpService;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -14,7 +13,6 @@ import xyz.segurapass.api.mfa.*;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/mfa")
-@Slf4j
 public class MfaController {
 
     private final TotpService totpService;
@@ -23,7 +21,6 @@ public class MfaController {
     public ResponseEntity<NonceResp> addTotpStart(
             @AuthenticationPrincipal AuthenticatedUser authenticatedUser
     ) {
-        log.info("Add TOTP Start - Controller");
         return totpService.addTotpStart(authenticatedUser.userId(), authenticatedUser.deviceId());
     }
 
@@ -33,7 +30,6 @@ public class MfaController {
             @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
             @RequestHeader("X-SeguraPass-Signature") String signature
     ) {
-        log.info("Add TOTP End - Controller");
         return totpService.addTotpEnd(req, authenticatedUser.userId(), authenticatedUser.deviceId(), signature);
     }
 
@@ -41,7 +37,6 @@ public class MfaController {
     public ResponseEntity<NonceResp> removeTotpStart(
             @AuthenticationPrincipal AuthenticatedUser authenticatedUser
     ) {
-        log.info("Remove TOTP Start - Controller");
         return totpService.removeTotpStart(authenticatedUser.userId(), authenticatedUser.deviceId());
     }
 
@@ -51,7 +46,6 @@ public class MfaController {
             @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
             @RequestHeader("X-SeguraPass-Signature") String signature
     ) {
-        log.info("Remove TOTP End - Controller");
         return totpService.removeTotpEnd(req, authenticatedUser.userId(), authenticatedUser.deviceId(), signature);
     }
 
@@ -60,7 +54,6 @@ public class MfaController {
             @RequestBody TotpVerifyReq req,
             @AuthenticationPrincipal AuthenticatedUser authenticatedUser
     ) {
-        log.info("Verify TOTP - Controller");
         return totpService.verifyTotp(req, authenticatedUser.userId(), authenticatedUser.deviceId());
     }
 
@@ -69,7 +62,6 @@ public class MfaController {
             @PathVariable String code,
             @RequestBody TotpVerifyReq req
     ) {
-        log.info("Login TOTP - Controller");
         return totpService.totpLogin(code, req);
     }
 
@@ -78,7 +70,6 @@ public class MfaController {
             @PathVariable String code,
             @RequestBody TotpRecoveryReq req
     ) {
-        log.info("Recovery TOTP - Controller");
         return totpService.totpLoginMfaRecovery(code, req);
     }
 

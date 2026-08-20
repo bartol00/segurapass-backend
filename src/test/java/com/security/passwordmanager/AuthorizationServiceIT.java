@@ -14,7 +14,6 @@ import xyz.segurapass.api.authorization.*;
 import com.security.passwordmanager.exceptions.AuthorizationException;
 import com.security.passwordmanager.model.authorization.*;
 import com.security.passwordmanager.service.AuthorizationService;
-import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,7 +33,6 @@ import static org.mockito.Mockito.*;
 import static com.security.passwordmanager.exceptions.enums.ErrorEnum.*;
 import static com.security.passwordmanager.shared.HelperMethods.*;
 
-@Slf4j
 @SpringBootTest
 public class AuthorizationServiceIT extends AbstractTestInitializer {
 

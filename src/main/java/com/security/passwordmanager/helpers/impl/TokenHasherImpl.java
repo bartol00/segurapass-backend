@@ -1,7 +1,6 @@
 package com.security.passwordmanager.helpers.impl;
 
 import com.security.passwordmanager.helpers.TokenHasher;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
@@ -9,7 +8,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 
 @Component
-@Slf4j
 public class TokenHasherImpl implements TokenHasher {
 
     private final String emailHashSalt;

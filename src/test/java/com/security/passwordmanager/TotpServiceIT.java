@@ -15,7 +15,6 @@ import com.security.passwordmanager.redis.entities.TotpLoginEntity;
 import com.security.passwordmanager.redis.entities.TotpNonceEntity;
 import com.security.passwordmanager.redis.entities.TotpRedisEntity;
 import com.security.passwordmanager.service.mfa.TotpService;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Base32;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -48,7 +47,6 @@ import static com.security.passwordmanager.exceptions.enums.ErrorEnum.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static com.security.passwordmanager.shared.HelperMethods.*;
 
-@Slf4j
 @SpringBootTest
 public class TotpServiceIT extends AbstractTestInitializer {
 

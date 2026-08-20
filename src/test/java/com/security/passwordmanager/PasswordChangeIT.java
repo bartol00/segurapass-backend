@@ -9,7 +9,6 @@ import com.security.passwordmanager.redis.RedisKeys;
 import com.security.passwordmanager.redis.RedisService;
 import com.security.passwordmanager.redis.entities.SrpRedisEntity;
 import com.security.passwordmanager.service.PasswordChangeService;
-import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,7 +29,6 @@ import static com.security.passwordmanager.exceptions.enums.ErrorEnum.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static com.security.passwordmanager.shared.HelperMethods.*;
 
-@Slf4j
 @SpringBootTest
 public class PasswordChangeIT extends AbstractTestInitializer {
 

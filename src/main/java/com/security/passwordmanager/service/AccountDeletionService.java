@@ -66,7 +66,7 @@ public class AccountDeletionService {
         resp.setSaltAuth(userEntity.getSaltAuthBytes());
         resp.setB(srpRedisEntity.getB());
 
-        log.info("Start Account Deletion for user: {} - Service", userId);
+        log.info("Start Account Deletion for user {}", userId);
 
         return ResponseEntity.ok(resp);
     }
@@ -100,7 +100,7 @@ public class AccountDeletionService {
 
         userDao.deleteByUserId(userId);
 
-        log.info("Complete Account Deletion for user: {} - Service", userId);
+        log.info("Complete Account Deletion for user {}", userId);
 
         return ResponseEntity.ok(null);
     }
@@ -142,7 +142,7 @@ public class AccountDeletionService {
 
         emailService.sendDeletionEmail(userEntity.getEmail(), deletionToken);
 
-        log.info("Start Email Deletion for user (email hash): {} - Service", emailHash);
+        log.info("Start Email Deletion for user {}", userEntity.getUserId());
     }
 
     @Transactional
@@ -169,10 +169,9 @@ public class AccountDeletionService {
         redisService.delete(emailHashRedisKey);
 
         UserEntity userEntity = userDao.findByUserId(userId);
-        String emailHash = tokenHasher.generateSha256Email(userEntity.getEmail());
         userDao.delete(userEntity);
 
-        log.info("Complete Email Deletion for user (email hash): {} - Service", emailHash);
+        log.info("Complete Email Deletion for user {}", userId);
 
         return ResponseEntity.ok("Account successfully deleted");
     }

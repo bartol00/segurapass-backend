@@ -1,15 +1,8 @@
 package com.security.passwordmanager.service.mfa;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.security.passwordmanager.config.JwtService;
 import com.security.passwordmanager.exceptions.MfaException;
-import com.security.passwordmanager.helpers.EncryptionService;
-import com.security.passwordmanager.helpers.SignatureService;
-import com.security.passwordmanager.helpers.TokenGenerator;
-import com.security.passwordmanager.helpers.TokenHasher;
-import com.security.passwordmanager.model.audit.AuditAction;
-import com.security.passwordmanager.model.audit.AuditLogDao;
-import com.security.passwordmanager.model.audit.AuditLogEntity;
+import com.security.passwordmanager.helpers.*;
 import com.security.passwordmanager.model.authorization.UserDao;
 import com.security.passwordmanager.model.authorization.UserEntity;
 import com.security.passwordmanager.model.mfa.TotpDao;
@@ -21,7 +14,6 @@ import jakarta.transaction.Transactional;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.MDC;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -53,12 +45,12 @@ public class TotpService {
     private final TokenHasher tokenHasher;
     private final RedisService redisService;
     private final EncryptionService encryptionService;
-    private final JwtService jwtService;
     private final SignatureService signatureService;
+    private final LoginHelper loginHelper;
+    private final NonceHelper nonceHelper;
 
     private final UserDao userDao;
     private final TotpDao totpDao;
-    private final AuditLogDao auditLogDao;
 
     private final ObjectMapper objectMapper;
 
@@ -75,6 +67,7 @@ public class TotpService {
             throw new MfaException(MFA_TOTP_ALREADY_EXISTS);
         }
         String nonce = generateNonce(userId, deviceId, MfaType.TOTP_ADD);
+        log.info("Start TOTP Add for user {}", userId);
         return ResponseEntity.ok(new NonceResp(nonce));
     }
 
@@ -101,6 +94,8 @@ public class TotpService {
         String redisKey = RedisKeys.totpVerification(userId.toString(), deviceId.toString());
         redisService.save(redisKey, totpRedisEntity, Duration.of(10, ChronoUnit.MINUTES));
 
+        log.info("Complete TOTP Add for user {}", userId);
+
         return ResponseEntity.ok(new TotpResp(totpUri));
     }
 
@@ -109,6 +104,7 @@ public class TotpService {
             throw new MfaException(MFA_TOTP_NOT_EXISTS);
         }
         String nonce = generateNonce(userId, deviceId, MfaType.TOTP_REMOVE);
+        log.info("Start TOTP Remove for user {}", userId);
         return ResponseEntity.ok(new NonceResp(nonce));
     }
 
@@ -126,6 +122,7 @@ public class TotpService {
         userEntity.setMfaRecoveryCode(null);
         userEntity.setTotpEntity(null);
         userDao.save(userEntity);
+        log.info("Complete TOTP Remove for user {}", userId);
         return ResponseEntity.ok(null);
     }
 
@@ -175,6 +172,8 @@ public class TotpService {
 
         redisService.delete(redisKey);
 
+        log.info("TOTP Verified for user {}", userId);
+
         return ResponseEntity.ok(new TotpVerifyResp(mfaRecoveryCode));
     }
 
@@ -206,8 +205,12 @@ public class TotpService {
 
         redisService.delete(redisKey);
 
+        UUID userId = totpLoginEntity.getUserId();
+
+        log.info("Completed Login with TOTP for user {}", userId);
+
         return ResponseEntity.ok(
-                generateLoginCompleteResp(totpLoginEntity.getUserId(), totpLoginEntity.getDeviceId())
+                loginHelper.generateLoginCompleteResp(userId, totpLoginEntity.getDeviceId())
         );
     }
 
@@ -241,58 +244,11 @@ public class TotpService {
         userEntity.setTotpEntity(null);
         userDao.save(userEntity);
 
+        log.info("Completed MFA Recovery Login for user {}", totpLoginEntity.getUserId());
+
         return ResponseEntity.ok(
-                generateLoginCompleteResp(totpLoginEntity.getUserId(), totpLoginEntity.getDeviceId())
+                loginHelper.generateLoginCompleteResp(totpLoginEntity.getUserId(), totpLoginEntity.getDeviceId())
         );
-    }
-
-    private LoginCompleteResp generateLoginCompleteResp(UUID userId, UUID deviceId) {
-        UserEntity userEntity = userDao.findByUserId(userId);
-        userEntity.setLastLogin(Instant.now());
-        userDao.save(userEntity);
-
-        String refreshToken = tokenGenerator.generateRefreshToken(32);
-        Instant refreshExpiry = Instant.now().plus(30, ChronoUnit.MINUTES);
-
-        String tokenHash = tokenHasher.generateSha256(refreshToken);
-        SessionRedisEntity sessionRedisEntity = new SessionRedisEntity(
-                userEntity.getUserId(),
-                deviceId
-        );
-        redisService.save(
-                RedisKeys.session(tokenHash),
-                sessionRedisEntity,
-                Duration.between(Instant.now(), refreshExpiry)
-        );
-
-        AuditLogEntity auditLogEntity = new AuditLogEntity();
-        auditLogEntity.setUserId(userEntity.getUserId());
-        auditLogEntity.setTimestamp(Instant.now());
-        auditLogEntity.setAction(AuditAction.LOGIN_SUCCESS);
-        auditLogEntity.setIpAddress(MDC.get("clientIp"));
-        auditLogEntity.setSuccess(true);
-        auditLogDao.save(auditLogEntity);
-
-        LoginCompleteResp resp = new LoginCompleteResp(
-                null,
-                userEntity.getVaultKeyBytes(),
-                userEntity.getIvVaultKeyBytes(),
-                userEntity.getSaltKeyBytes(),
-                userEntity.getSaltHkdfBytes(),
-                userEntity.getPrivateSigningKeyBytes(),
-                userEntity.getPublicSigningKeyBytes(),
-                userEntity.getIvPrivateSigningKeyBytes(),
-                jwtService.generateJwt(userEntity.getUserId(), deviceId),
-                refreshToken,
-                refreshExpiry
-        );
-
-        log.info(
-                "Login Complete for user (email hash): {} - Service",
-                tokenHasher.generateSha256Email(userEntity.getEmail())
-        );
-
-        return resp;
     }
 
     private String createTotpUri(String email, String secret) {
@@ -310,6 +266,7 @@ public class TotpService {
                 .toUriString();
     }
 
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     private boolean verifyTotp(byte[] secret, String otp) {
         try {
             if (secret == null || otp == null || !otp.matches("\\d{6}")) {
@@ -352,19 +309,17 @@ public class TotpService {
         }
     }
 
-    private String generateNonce(UUID userId, UUID deviceId, MfaType mfaType) {
-        String nonce = tokenGenerator.generateRandomToken(48);
-
-        String redisKey = RedisKeys.mfaNonce(nonce);
+    private String generateNonce(
+            UUID userId,
+            UUID deviceId,
+            MfaType mfaType
+    ) {
         TotpNonceEntity nonceEntity = new TotpNonceEntity(
                 userId,
                 deviceId,
                 mfaType
         );
-
-        redisService.save(redisKey, nonceEntity, Duration.of(60, ChronoUnit.SECONDS));
-
-        return nonce;
+        return nonceHelper.generateNonce(nonceEntity, RedisKeys::mfaNonce);
     }
 
     private void verifyNonceAndSignature(

@@ -1,8 +1,8 @@
 package com.security.passwordmanager.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.security.passwordmanager.helpers.NonceHelper;
 import com.security.passwordmanager.helpers.SignatureService;
-import com.security.passwordmanager.helpers.TokenGenerator;
 import com.security.passwordmanager.redis.RedisKeys;
 import com.security.passwordmanager.redis.RedisService;
 import com.security.passwordmanager.redis.entities.CredentialsWriteEntity;
@@ -28,9 +28,7 @@ import org.springframework.stereotype.Service;
 import xyz.segurapass.api.credentials.CredentialsOperation;
 
 import java.security.PublicKey;
-import java.time.Duration;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -43,9 +41,9 @@ public class CredentialsService {
 
     private final CredentialMapper mapper;
 
-    private final TokenGenerator tokenGenerator;
     private final RedisService redisService;
     private final SignatureService signatureService;
+    private final NonceHelper nonceHelper;
 
     private final CredentialsDao credentialsDao;
     private final UserDao userDao;
@@ -57,7 +55,7 @@ public class CredentialsService {
         Pageable pageable = PageRequest.of(page, size);
         Page<CredentialsEntity> credentialsEntityPage = credentialsDao.findByUserEntity_UserId(userId, pageable);
 
-        log.info("Get Credentials for user: {} - Service", userId);
+        log.info("Get Credentials for user {}", userId);
 
         return ResponseEntity.ok(mapper.toCredentialsRespPage(credentialsEntityPage));
     }
@@ -69,13 +67,14 @@ public class CredentialsService {
             throw new CredentialsException(CREDENTIAL_NOT_EXISTS);
         }
 
-        log.info("Get Credentials By ID for user: {} - Service", userId);
+        log.info("Get Credential {} By ID for user {}", id, userId);
 
         return ResponseEntity.ok(mapper.toCredentialsResp(credentialsEntity));
     }
 
     public ResponseEntity<NonceResp> createCredentialsStart(UUID userId, UUID deviceId) {
-        String nonce = generateNonce(null, userId, deviceId, CredentialsOperation.CREATE);
+        String nonce = generateCredentialsNonce(userId, deviceId, CredentialsOperation.CREATE, null);
+        log.info("Start Credential Create for user {}", userId);
         return ResponseEntity.ok(new NonceResp(nonce));
     }
 
@@ -103,13 +102,14 @@ public class CredentialsService {
         auditLogEntity.setComment("Created credential with ID: " + credentialsEntity.getCredentialsId());
         auditLogDao.save(auditLogEntity);
 
-        log.info("Create Credentials End for user: {} - Service", userId);
+        log.info("Complete Credentials Create for user {}", userId);
 
         return ResponseEntity.ok(mapper.toCredentialsResp(credentialsEntity));
     }
 
     public ResponseEntity<NonceResp> updateCredentialsStart(UUID credentialsId, UUID userId, UUID deviceId) {
-        String nonce = generateNonce(credentialsId, userId, deviceId, CredentialsOperation.UPDATE);
+        String nonce = generateCredentialsNonce(userId, deviceId, CredentialsOperation.UPDATE, credentialsId);
+        log.info("Start Credential Update for user {}", userId);
         return ResponseEntity.ok(new NonceResp(nonce));
     }
 
@@ -156,13 +156,14 @@ public class CredentialsService {
         auditLogEntity.setComment("Updated credential with ID: " + entity.getCredentialsId());
         auditLogDao.save(auditLogEntity);
 
-        log.info("Update Credentials End for user: {} - Service", userId);
+        log.info("Complete Credentials Update for user {}", userId);
 
         return ResponseEntity.ok(mapper.toCredentialsResp(entity));
     }
 
     public ResponseEntity<NonceResp> deleteCredentialsStart(UUID credentialsId, UUID userId, UUID deviceId) {
-        String nonce = generateNonce(credentialsId, userId, deviceId, CredentialsOperation.DELETE);
+        String nonce = generateCredentialsNonce(userId, deviceId, CredentialsOperation.DELETE, credentialsId);
+        log.info("Start Credential Delete for user {}", userId);
         return ResponseEntity.ok(new NonceResp(nonce));
     }
 
@@ -186,25 +187,24 @@ public class CredentialsService {
         auditLogEntity.setComment("Deleted credential with ID: " + credentialsEntity.getCredentialsId());
         auditLogDao.save(auditLogEntity);
 
-        log.info("Delete Credentials End for user: {} - Service", userId);
+        log.info("Complete Credentials Delete for user {}", userId);
 
         return ResponseEntity.ok(null);
     }
 
-    private String generateNonce(UUID credentialsId, UUID userId, UUID deviceId, CredentialsOperation operation) {
-        String nonce = tokenGenerator.generateRandomToken(48);
-
-        String redisKey = RedisKeys.credentialsNonce(nonce);
+    private String generateCredentialsNonce(
+            UUID userId,
+            UUID deviceId,
+            CredentialsOperation operation,
+            UUID credentialsId
+    ) {
         CredentialsWriteEntity writeEntity = new CredentialsWriteEntity(
                 userId,
                 deviceId,
                 operation,
                 credentialsId
         );
-
-        redisService.save(redisKey,writeEntity, Duration.of(60, ChronoUnit.SECONDS));
-
-        return nonce;
+        return nonceHelper.generateNonce(writeEntity, RedisKeys::credentialsNonce);
     }
 
     private void verifyNonceAndSignature(

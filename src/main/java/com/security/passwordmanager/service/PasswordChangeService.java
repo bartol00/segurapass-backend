@@ -60,7 +60,7 @@ public class PasswordChangeService {
                 userEntity.getSaltAuthBytes()
         );
 
-        log.info("Start Password Change for user: {} - Service", userId);
+        log.info("Start Password Change for user {}", userId);
 
         return ResponseEntity.ok(resp);
     }
@@ -107,7 +107,7 @@ public class PasswordChangeService {
         auditLogEntity.setSuccess(true);
         auditLogDao.save(auditLogEntity);
 
-        log.info("Complete Password Change for user: {} - Service", userId);
+        log.info("Complete Password Change for user {}", userId);
 
         return ResponseEntity.ok(null);
     }

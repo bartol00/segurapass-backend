@@ -18,19 +18,21 @@ import static com.security.passwordmanager.exceptions.enums.ErrorEnum.PUBLIC_KEY
 @Profile("!test")
 public class KeyService {
 
-    @Value("${app.security.public-key-path}")
-    private String publicKeyPath;
+    private final String publicKeyPem;
 
-    public ResponseEntity<PublicKeyResp> getPublicKey() {
+    public KeyService(@Value("${app.security.public-key-path}") String publicKeyPath) {
         try {
-            String pem = Files.readString(Path.of(publicKeyPath));
-            PublicKeyResp resp = new PublicKeyResp(pem);
+            this.publicKeyPem = Files.readString(Path.of(publicKeyPath));
             log.info("Public key found");
-            return ResponseEntity.ok(resp);
         } catch (Exception e) {
-            log.warn("Public key could not be found");
+            log.error("Public key could not be found");
             throw new KeysException(PUBLIC_KEY_NOT_READ);
         }
+    }
+
+    public ResponseEntity<PublicKeyResp> getPublicKey() {
+        PublicKeyResp resp = new PublicKeyResp(publicKeyPem);
+        return ResponseEntity.ok(resp);
     }
 
 }

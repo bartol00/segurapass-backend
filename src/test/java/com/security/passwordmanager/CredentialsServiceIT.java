@@ -145,6 +145,40 @@ public class CredentialsServiceIT extends AbstractTestInitializer {
     }
 
     @Test
+    void shouldFailCredentialReqLenTooLargeCredentialsEnd() {
+        // given
+        CredentialsReq req = new CredentialsReq();
+        req.setWebsiteBytes(new byte[1025]);
+
+        // when
+        CredentialsException ex = assertThrows(
+                CredentialsException.class,
+                () -> credentialsService.createCredentialsEnd(req, userId, deviceId, null)
+        );
+
+        // then
+        assertEquals(CREDENTIAL_REQ_BYTES_TOO_LONG.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(CREDENTIAL_REQ_BYTES_TOO_LONG.getMessage(), ex.getErrorEnum().getMessage());
+    }
+
+    @Test
+    void shouldFailCredentialIvLenErrorCredentialsEnd() {
+        // given
+        CredentialsReq req = new CredentialsReq();
+        req.setIvWebsiteBytes(new byte[10]);
+
+        // when
+        CredentialsException ex = assertThrows(
+                CredentialsException.class,
+                () -> credentialsService.createCredentialsEnd(req, userId, deviceId, null)
+        );
+
+        // then
+        assertEquals(CREDENTIAL_REQ_IV_BYTES_LEN_ERROR.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(CREDENTIAL_REQ_IV_BYTES_LEN_ERROR.getMessage(), ex.getErrorEnum().getMessage());
+    }
+
+    @Test
     void shouldFailCredentialNonceMissingCreateCredentialsEnd() {
         // given
         CredentialsReq req = new CredentialsReq();

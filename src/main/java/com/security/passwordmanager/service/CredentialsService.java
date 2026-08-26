@@ -50,6 +50,11 @@ public class CredentialsService {
     private final AuditLogDao auditLogDao;
     private final ObjectMapper objectMapper;
 
+    @SuppressWarnings("FieldCanBeLocal")
+    private final int MAX_REQUEST_BYTES_LEN = 1024;
+    @SuppressWarnings("FieldCanBeLocal")
+    private final int IV_BYTES_LEN = 12;
+
     @Transactional
     public ResponseEntity<Page<CredentialsResp>> getCredentials(UUID userId, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
@@ -79,7 +84,13 @@ public class CredentialsService {
     }
 
     @Transactional
-    public ResponseEntity<CredentialsResp> createCredentialsEnd(CredentialsReq req, UUID userId, UUID deviceId, String signature) {
+    public ResponseEntity<CredentialsResp> createCredentialsEnd(
+            CredentialsReq req,
+            UUID userId,
+            UUID deviceId,
+            String signature
+    ) {
+        validateCredentialsReq(req);
         verifyNonceAndSignature(null, userId, deviceId, req, signature);
 
         UserEntity userEntity = userDao.findByUserId(userId);
@@ -114,7 +125,14 @@ public class CredentialsService {
     }
 
     @Transactional
-    public ResponseEntity<CredentialsResp> updateCredentialsEnd(UUID id, CredentialsReq req, UUID userId, UUID deviceId,String signature) {
+    public ResponseEntity<CredentialsResp> updateCredentialsEnd(
+            UUID id,
+            CredentialsReq req,
+            UUID userId,
+            UUID deviceId,
+            String signature
+    ) {
+        validateCredentialsReq(req);
         verifyNonceAndSignature(id, userId, deviceId, req, signature);
 
         CredentialsEntity entity = credentialsDao.findByCredentialsIdAndUserEntity_UserId(id, userId);
@@ -168,7 +186,13 @@ public class CredentialsService {
     }
 
     @Transactional
-    public ResponseEntity<Void> deleteCredentialsEnd(UUID id, CredentialsReq req, UUID userId, UUID deviceId, String signature) {
+    public ResponseEntity<Void> deleteCredentialsEnd(
+            UUID id,
+            CredentialsReq req,
+            UUID userId,
+            UUID deviceId,
+            String signature
+    ) {
         verifyNonceAndSignature(id, userId, deviceId, req, signature);
 
         CredentialsEntity credentialsEntity = credentialsDao.findByCredentialsIdAndUserEntity_UserId(id, userId);
@@ -205,6 +229,20 @@ public class CredentialsService {
                 credentialsId
         );
         return nonceHelper.generateNonce(writeEntity, RedisKeys::credentialsNonce);
+    }
+
+    private void validateCredentialsReq(CredentialsReq req) {
+        if ((req.getWebsiteBytes() != null && req.getWebsiteBytes().length > MAX_REQUEST_BYTES_LEN)
+        || (req.getUsernameBytes() != null && req.getUsernameBytes().length > MAX_REQUEST_BYTES_LEN)
+        || (req.getPasswordBytes() != null && req.getPasswordBytes().length > MAX_REQUEST_BYTES_LEN)) {
+            throw new CredentialsException(CREDENTIAL_REQ_BYTES_TOO_LONG);
+        }
+
+        if ((req.getIvWebsiteBytes() != null && req.getIvWebsiteBytes().length != IV_BYTES_LEN)
+        || (req.getIvUsernameBytes() != null && req.getIvUsernameBytes().length != IV_BYTES_LEN)
+        || (req.getIvPasswordBytes() != null && req.getIvPasswordBytes().length != IV_BYTES_LEN)) {
+            throw new CredentialsException(CREDENTIAL_REQ_IV_BYTES_LEN_ERROR);
+        }
     }
 
     private void verifyNonceAndSignature(

@@ -123,9 +123,9 @@ public class HelperMethods {
         credentialsReq.setWebsiteBytes("unique website".getBytes(StandardCharsets.UTF_8));
         credentialsReq.setUsernameBytes("unique username".getBytes(StandardCharsets.UTF_8));
         credentialsReq.setPasswordBytes("unique password".getBytes(StandardCharsets.UTF_8));
-        credentialsReq.setIvWebsiteBytes(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8));
-        credentialsReq.setIvUsernameBytes(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8));
-        credentialsReq.setIvPasswordBytes(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8));
+        credentialsReq.setIvWebsiteBytes(new byte[12]);
+        credentialsReq.setIvUsernameBytes(new byte[12]);
+        credentialsReq.setIvPasswordBytes(new byte[12]);
         return credentialsReq;
     }
 

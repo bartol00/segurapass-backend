@@ -155,8 +155,8 @@ public class AccountDeletionServiceIT extends AbstractTestInitializer {
         );
 
         // then
-        assertEquals(SRP_VERIFICATION_FAILED.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
-        assertEquals(SRP_VERIFICATION_FAILED.getMessage(), ex.getErrorEnum().getMessage());
+        assertEquals(PASSWORD_INCORRECT.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(PASSWORD_INCORRECT.getMessage(), ex.getErrorEnum().getMessage());
     }
 
     @Test

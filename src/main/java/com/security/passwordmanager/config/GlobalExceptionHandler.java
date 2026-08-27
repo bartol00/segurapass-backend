@@ -15,42 +15,36 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AccountDeletionException.class)
     public ResponseEntity<String> handleAccountDeletionException(AccountDeletionException ex) {
         ErrorEnum errorEnum = ex.getErrorEnum();
-        log.warn("Account Deletion Exception: {}", errorEnum.getMessage());
         return ResponseEntity.status(errorEnum.getHttpStatus()).body(errorEnum.getMessage());
     }
 
     @ExceptionHandler(AuthorizationException.class)
     public ResponseEntity<String> handleAuthorizationException(AuthorizationException ex) {
         ErrorEnum errorEnum = ex.getErrorEnum();
-        log.warn("Authorization Exception: {}", errorEnum.getMessage());
         return ResponseEntity.status(errorEnum.getHttpStatus()).body(errorEnum.getMessage());
     }
 
     @ExceptionHandler(CredentialsException.class)
     public ResponseEntity<String> handleCredentialsException(CredentialsException ex) {
         ErrorEnum errorEnum = ex.getErrorEnum();
-        log.warn("Credentials Exception: {}", errorEnum.getMessage());
         return ResponseEntity.status(errorEnum.getHttpStatus()).body(errorEnum.getMessage());
     }
 
     @ExceptionHandler(KeysException.class)
     public ResponseEntity<String> handleKeysException(KeysException ex) {
         ErrorEnum errorEnum = ex.getErrorEnum();
-        log.warn("Keys Exception: {}", errorEnum.getMessage());
         return ResponseEntity.status(errorEnum.getHttpStatus()).body(errorEnum.getMessage());
     }
 
     @ExceptionHandler(MfaException.class)
     public ResponseEntity<String> handleMfaException(MfaException ex) {
         ErrorEnum errorEnum = ex.getErrorEnum();
-        log.warn("MFA Exception: {}", errorEnum.getMessage());
         return ResponseEntity.status(errorEnum.getHttpStatus()).body(errorEnum.getMessage());
     }
 
     @ExceptionHandler(PasswordChangeException.class)
     public ResponseEntity<String> handlePasswordChangeException(PasswordChangeException ex) {
         ErrorEnum errorEnum = ex.getErrorEnum();
-        log.warn("Password Change Exception: {}", errorEnum.getMessage());
         return ResponseEntity.status(errorEnum.getHttpStatus()).body(errorEnum.getMessage());
     }
 

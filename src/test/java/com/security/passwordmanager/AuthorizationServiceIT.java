@@ -175,8 +175,8 @@ public class AuthorizationServiceIT extends AbstractTestInitializer {
         );
 
         // then
-        assertEquals(USER_NOT_EXISTS.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
-        assertEquals(USER_NOT_EXISTS.getMessage(), ex.getErrorEnum().getMessage());
+        assertEquals(LOGIN_INFORMATION_INCORRECT.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(LOGIN_INFORMATION_INCORRECT.getMessage(), ex.getErrorEnum().getMessage());
     }
 
     @Test
@@ -212,8 +212,8 @@ public class AuthorizationServiceIT extends AbstractTestInitializer {
         );
 
         // then
-        assertEquals(USER_NOT_EXISTS.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
-        assertEquals(USER_NOT_EXISTS.getMessage(), ex.getErrorEnum().getMessage());
+        assertEquals(LOGIN_INFORMATION_INCORRECT.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(LOGIN_INFORMATION_INCORRECT.getMessage(), ex.getErrorEnum().getMessage());
     }
 
     @Test
@@ -228,8 +228,8 @@ public class AuthorizationServiceIT extends AbstractTestInitializer {
         );
 
         // then
-        assertEquals(TOKEN_NOT_FOUND.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
-        assertEquals(TOKEN_NOT_FOUND.getMessage(), ex.getErrorEnum().getMessage());
+        assertEquals(LOGIN_INFORMATION_INCORRECT.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(LOGIN_INFORMATION_INCORRECT.getMessage(), ex.getErrorEnum().getMessage());
     }
 
     @Test
@@ -254,8 +254,8 @@ public class AuthorizationServiceIT extends AbstractTestInitializer {
         AuthorizationException ex = assertThrows(AuthorizationException.class, () -> authorizationService.loginUserEnd(req));
 
         // then
-        assertEquals(SRP_VERIFICATION_FAILED.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
-        assertEquals(SRP_VERIFICATION_FAILED.getMessage(), ex.getErrorEnum().getMessage());
+        assertEquals(LOGIN_INFORMATION_INCORRECT.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(LOGIN_INFORMATION_INCORRECT.getMessage(), ex.getErrorEnum().getMessage());
     }
 
     @Test

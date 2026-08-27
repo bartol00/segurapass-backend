@@ -49,6 +49,7 @@ public class AccountDeletionService {
     ) {
         UserEntity userEntity = userDao.findByUserId(userId);
         if (userEntity == null) {
+            log.warn("User does not exist - Authorized Deletion Start");
             throw new AccountDeletionException(USER_NOT_EXISTS);
         }
 
@@ -66,7 +67,7 @@ public class AccountDeletionService {
         resp.setSaltAuth(userEntity.getSaltAuthBytes());
         resp.setB(srpRedisEntity.getB());
 
-        log.info("Start Account Deletion for user {}", userId);
+        log.info("Account Deletion Start");
 
         return ResponseEntity.ok(resp);
     }
@@ -78,6 +79,7 @@ public class AccountDeletionService {
     ) {
         UserEntity userEntity = userDao.findByUserId(userId);
         if (userEntity == null) {
+            log.warn("User does not exist - Authorized Deletion Complete");
             throw new AccountDeletionException(USER_NOT_EXISTS);
         }
 
@@ -85,6 +87,7 @@ public class AccountDeletionService {
         String deviceIdString = req.getDeviceId().toString();
         String redisKey = RedisKeys.accountDeletion(userIdString, deviceIdString);
         if (!redisService.exists(redisKey)) {
+            log.warn("Token could not be found {} - Authorized Deletion Complete", redisKey);
             throw new AccountDeletionException(TOKEN_NOT_FOUND);
         }
 
@@ -95,12 +98,13 @@ public class AccountDeletionService {
         BigInteger M1Client = new BigInteger(1, Base64.getDecoder().decode(req.getM1()));
 
         if (!M1Server.equals(M1Client)) {
-            throw new AccountDeletionException(SRP_VERIFICATION_FAILED);
+            log.warn("M1 could not be verified - Account Deletion Complete");
+            throw new AccountDeletionException(PASSWORD_INCORRECT);
         }
 
         userDao.deleteByUserId(userId);
 
-        log.info("Complete Account Deletion for user {}", userId);
+        log.info("Account Deletion Complete");
 
         return ResponseEntity.ok(null);
     }
@@ -111,13 +115,17 @@ public class AccountDeletionService {
             throw new AccountDeletionException(EMAIL_VERIFICATION_OFF);
         }
 
+        String emailHash = tokenHasher.generateSha256Email(req.getEmail());
+
         UserEntity userEntity = userDao.findByEmail(req.getEmail());
         if (userEntity == null) {
+            log.warn("Email does not exist {} - Email Deletion Start", emailHash);
             return;
         }
-        String emailHash = tokenHasher.generateSha256Email(userEntity.getEmail());
+
         String redisEmailKey = RedisKeys.emailDeletionEmail(emailHash);
         if (redisService.exists(redisEmailKey)) {
+            log.warn("Token already exists {} - Email Deletion Start", redisEmailKey);
             return;
         }
 
@@ -142,7 +150,7 @@ public class AccountDeletionService {
 
         emailService.sendDeletionEmail(userEntity.getEmail(), deletionToken);
 
-        log.info("Start Email Deletion for user {}", userEntity.getUserId());
+        log.info("Email Deletion Start for user {}", userEntity.getUserId());
     }
 
     @Transactional
@@ -154,6 +162,7 @@ public class AccountDeletionService {
         String tokenHash = tokenHasher.generateSha256(token);
         String redisKey = RedisKeys.emailDeletion(tokenHash);
         if (!redisService.exists(redisKey)) {
+            log.warn("Token could not be found {} - Email Deletion Complete", redisKey);
             throw new AccountDeletionException(TOKEN_NOT_FOUND);
         }
 
@@ -171,7 +180,7 @@ public class AccountDeletionService {
         UserEntity userEntity = userDao.findByUserId(userId);
         userDao.delete(userEntity);
 
-        log.info("Complete Email Deletion for user {}", userId);
+        log.info("Email Deletion Complete for user {}", userId);
 
         return ResponseEntity.ok("Account successfully deleted");
     }

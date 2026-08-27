@@ -64,10 +64,11 @@ public class TotpService {
 
     public ResponseEntity<NonceResp> addTotpStart(UUID userId, UUID deviceId) {
         if (totpDao.findByUserEntity_UserId(userId) != null) {
+            log.warn("TOTP already exists for this user - Add TOTP Start");
             throw new MfaException(MFA_TOTP_ALREADY_EXISTS);
         }
         String nonce = generateNonce(userId, deviceId, MfaType.TOTP_ADD);
-        log.info("Start TOTP Add for user {}", userId);
+        log.info("Start TOTP Add");
         return ResponseEntity.ok(new NonceResp(nonce));
     }
 
@@ -88,23 +89,25 @@ public class TotpService {
         try {
             totpRedisEntity = encryptionService.encryptTotpSecret(totpSecret);
         } catch (Exception e) {
+            log.warn("Exception occurred during TOTP secret encryption", e);
             throw new MfaException(MFA_TOTP_ENCRYPTION_FAILED);
         }
 
         String redisKey = RedisKeys.totpVerification(userId.toString(), deviceId.toString());
         redisService.save(redisKey, totpRedisEntity, Duration.of(10, ChronoUnit.MINUTES));
 
-        log.info("Complete TOTP Add for user {}", userId);
+        log.info("Complete TOTP Add");
 
         return ResponseEntity.ok(new TotpResp(totpUri));
     }
 
     public ResponseEntity<NonceResp> removeTotpStart(UUID userId, UUID deviceId) {
         if (totpDao.findByUserEntity_UserId(userId) == null) {
+            log.warn("TOTP for this user does not exist");
             throw new MfaException(MFA_TOTP_NOT_EXISTS);
         }
         String nonce = generateNonce(userId, deviceId, MfaType.TOTP_REMOVE);
-        log.info("Start TOTP Remove for user {}", userId);
+        log.info("Start TOTP Remove");
         return ResponseEntity.ok(new NonceResp(nonce));
     }
 
@@ -122,7 +125,7 @@ public class TotpService {
         userEntity.setMfaRecoveryCode(null);
         userEntity.setTotpEntity(null);
         userDao.save(userEntity);
-        log.info("Complete TOTP Remove for user {}", userId);
+        log.info("Complete TOTP Remove");
         return ResponseEntity.ok(null);
     }
 
@@ -133,6 +136,7 @@ public class TotpService {
             UUID deviceId
     ) {
         if (totpDao.findByUserEntity_UserId(userId) != null) {
+            log.warn("TOTP already exists for this user - Verify TOTP");
             throw new MfaException(MFA_TOTP_ALREADY_EXISTS);
         }
 
@@ -146,10 +150,12 @@ public class TotpService {
                     totpRedisEntity.getTotpSecretIv()
             );
         } catch (Exception e) {
+            log.warn("Exception occurred during TOTP secret decryption - TOTP Verification", e);
             throw new MfaException(MFA_TOTP_DECRYPTION_FAILED);
         }
 
         if (!verifyTotp(totpSecretBytes, req.getOtp())) {
+            log.warn("TOTP verification failed - TOTP Verify");
             throw new MfaException(MFA_TOTP_VERIFICATION_FAILED);
         }
 
@@ -172,7 +178,7 @@ public class TotpService {
 
         redisService.delete(redisKey);
 
-        log.info("TOTP Verified for user {}", userId);
+        log.info("TOTP Verified");
 
         return ResponseEntity.ok(new TotpVerifyResp(mfaRecoveryCode));
     }
@@ -184,6 +190,7 @@ public class TotpService {
     ) {
         String redisKey = RedisKeys.totpLogin(tokenHasher.generateSha256(totpCode));
         if (!redisService.exists(redisKey)) {
+            log.warn("Token does not exist {} - TOTP Login", redisKey);
             throw new MfaException(MFA_TOTP_LOGIN_MISSING_KEY);
         }
 
@@ -196,10 +203,12 @@ public class TotpService {
                     totpLoginEntity.getTotpSecretIv()
             );
         } catch (Exception e) {
+            log.warn("Exception occurred during TOTP secret decryption - TOTP Login", e);
             throw new MfaException(MFA_TOTP_DECRYPTION_FAILED);
         }
 
         if (!verifyTotp(totpSecretBytes, req.getOtp())) {
+            log.warn("TOTP verification failed - TOTP Login");
             throw new MfaException(MFA_TOTP_VERIFICATION_FAILED);
         }
 
@@ -221,6 +230,7 @@ public class TotpService {
     ) {
         String redisKey = RedisKeys.totpLogin(tokenHasher.generateSha256(totpCode));
         if (!redisService.exists(redisKey)) {
+            log.warn("Token does not exist {} - TOTP Recovery", redisKey);
             throw new MfaException(MFA_TOTP_LOGIN_MISSING_KEY);
         }
 
@@ -231,6 +241,7 @@ public class TotpService {
         String mfaRecovery = userEntity.getMfaRecoveryCode();
 
         if (!hashedRecoveryCode.equals(mfaRecovery)) {
+            log.warn("TOTP recovery failed");
             throw new MfaException(MFA_TOTP_RECOVERY_CODE_MISMATCH);
         }
 
@@ -329,26 +340,32 @@ public class TotpService {
             String signature
     ) {
         if (req.getNonce() == null || req.getNonce().isEmpty()) {
+            log.warn("TOTP nonce is null or empty");
             throw new MfaException(MFA_NONCE_MISSING);
         }
 
         String redisKey = RedisKeys.mfaNonce(req.getNonce());
         if (!redisService.exists(redisKey)) {
+            log.warn("TOTP nonce could not be found {}", redisKey);
             throw new MfaException(NONCE_NOT_FOUND);
         }
 
         TotpNonceEntity nonceEntity = redisService.get(redisKey, TotpNonceEntity.class);
 
         if (nonceEntity == null) {
+            log.warn("Write entity is null");
             throw new MfaException(NONCE_ERROR);
         }
         if (!nonceEntity.getUserId().equals(userId)) {
+            log.warn("Write entity user ID mismatch");
             throw new MfaException(NONCE_ERROR);
         }
         if (!nonceEntity.getDeviceId().equals(deviceId)) {
+            log.warn("Write entity device ID mismatch");
             throw new MfaException(NONCE_ERROR);
         }
         if (!nonceEntity.getMfaType().equals(req.getMfaType())) {
+            log.warn("Write entity MFA type mismatch");
             throw new MfaException(NONCE_ERROR);
         }
 
@@ -361,10 +378,12 @@ public class TotpService {
             byte[] payloadBytes = objectMapper.writeValueAsBytes(payload);
             boolean verified = signatureService.verifySignature(publicKey, payloadBytes, signature);
             if (!verified) {
+                log.warn("Signature could not be verified");
                 throw new MfaException(INVALID_SIGNATURE);
             }
             redisService.delete(redisKey);
         } catch (Exception e) {
+            log.warn("Exception occurred during signature verification", e);
             throw new MfaException(INVALID_SIGNATURE);
         }
     }

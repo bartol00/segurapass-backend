@@ -42,6 +42,7 @@ public class PasswordChangeService {
     public ResponseEntity<PasswordChangeStartResp> startPasswordChange(UUID userId, PasswordChangeStartReq req) {
         UserEntity userEntity = userDao.findByUserId(userId);
         if (userEntity == null) {
+            log.warn("User does not exist - Password Change Start");
             throw new PasswordChangeException(USER_NOT_EXISTS);
         }
 
@@ -60,7 +61,7 @@ public class PasswordChangeService {
                 userEntity.getSaltAuthBytes()
         );
 
-        log.info("Start Password Change for user {}", userId);
+        log.info("Start Password Change");
 
         return ResponseEntity.ok(resp);
     }
@@ -69,6 +70,7 @@ public class PasswordChangeService {
     public ResponseEntity<Void> completePasswordChange(UUID userId, PasswordChangeCompleteReq req) {
         UserEntity userEntity = userDao.findByUserId(userId);
         if (userEntity == null) {
+            log.warn("User does not exist - Password Change Complete");
             throw new PasswordChangeException(USER_NOT_EXISTS);
         }
 
@@ -76,6 +78,7 @@ public class PasswordChangeService {
         String deviceIdString = req.getDeviceId().toString();
         String redisKey = RedisKeys.passwordChange(userIdString, deviceIdString);
         if (!redisService.exists(redisKey)) {
+            log.warn("Token does not exist {} - Password Change Complete", redisKey);
             throw new PasswordChangeException(TOKEN_NOT_FOUND);
         }
 
@@ -86,7 +89,8 @@ public class PasswordChangeService {
         BigInteger M1Client = new BigInteger(1, Base64.getDecoder().decode(req.getM1()));
 
         if (!M1Server.equals(M1Client)) {
-            throw new PasswordChangeException(SRP_VERIFICATION_FAILED);
+            log.warn("M1 could not be verified - Password Change Complete");
+            throw new PasswordChangeException(PASSWORD_INCORRECT);
         }
 
         userEntity.setSaltAuthBytes(req.getNewSaltAuth());
@@ -107,7 +111,7 @@ public class PasswordChangeService {
         auditLogEntity.setSuccess(true);
         auditLogDao.save(auditLogEntity);
 
-        log.info("Complete Password Change for user {}", userId);
+        log.info("Complete Password Change");
 
         return ResponseEntity.ok(null);
     }

@@ -93,6 +93,9 @@ public class RequestFilter extends OncePerRequestFilter {
                         );
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
+
+                MDC.put("userId", userId.toString());
+                MDC.put("deviceId", deviceId.toString());
             }
 
             filterChain.doFilter(request, response);
@@ -103,6 +106,8 @@ public class RequestFilter extends OncePerRequestFilter {
         } finally {
             MDC.remove("clientIp");
             MDC.remove("requestId");
+            MDC.remove("userId");
+            MDC.remove("deviceId");
         }
     }
 

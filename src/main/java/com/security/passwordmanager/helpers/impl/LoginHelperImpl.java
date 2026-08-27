@@ -87,7 +87,7 @@ public class LoginHelperImpl implements LoginHelper {
                 refreshExpiry
         );
 
-        log.info("Complete Login for user {}", userEntity.getUserId());
+        log.info("Login Complete for user {}", userEntity.getUserId());
 
         return resp;
     }
@@ -110,6 +110,8 @@ public class LoginHelperImpl implements LoginHelper {
         );
 
         redisService.save(redisKey, totpLoginEntity, Duration.of(10, ChronoUnit.MINUTES));
+
+        log.info("Generated TOTP code for user {}", userEntity.getUserId());
 
         return new LoginCompleteResp(
                 Base64.getEncoder().encodeToString(M2Server.toByteArray()),

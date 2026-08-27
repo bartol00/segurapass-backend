@@ -58,9 +58,14 @@ public class AuthorizationService {
     @Transactional
     public ResponseEntity<Void> registerUser(RegistrationReq req) {
         if (!isValidEmail(req.getEmail())) {
+            log.warn("Email {} is not valid", req.getEmail());
             throw new AuthorizationException(USER_EMAIL_INVALID);
         }
+
+        String emailHash = tokenHasher.generateSha256Email(req.getEmail());
+
         if (userDao.existsByEmail(req.getEmail())) {
+            log.warn("Email {} already exists", emailHash);
             throw new AuthorizationException(USER_EXISTS);
         }
 
@@ -80,12 +85,11 @@ public class AuthorizationService {
                 Instant.now()
         );
 
-        String emailHash = tokenHasher.generateSha256Email(req.getEmail());
-
         if (emailClient.isActive()) {
 
             String redisEmailKey = RedisKeys.emailUnverifiedEmail(emailHash);
             if (redisService.exists(redisEmailKey)) {
+                log.warn("Email {} is still pending verification", emailHash);
                 throw new AuthorizationException(EMAIL_PENDING_VERIFICATION);
             }
 
@@ -111,9 +115,10 @@ public class AuthorizationService {
         } else {
             UserEntity userEntity = generateUserEntity(userRedisEntity);
             userDao.save(userEntity);
+            log.info("User registered directly with email {}", emailHash);
         }
 
-        log.info("Register User for user {}", userId);
+        log.info("Registered User {}", userId);
 
         return ResponseEntity.ok(null);
     }
@@ -122,7 +127,8 @@ public class AuthorizationService {
     public ResponseEntity<LoginStartResp> loginUserStart(LoginStartReq req) {
         UserEntity userEntity = userDao.findByEmail(req.getEmail());
         if (userEntity == null) {
-            throw new AuthorizationException(USER_NOT_EXISTS);
+            log.warn("User with email {} does not exist - Login Start", tokenHasher.generateSha256Email(req.getEmail()));
+            throw new AuthorizationException(LOGIN_INFORMATION_INCORRECT);
         }
 
         String userIdString = userEntity.getUserId().toString();
@@ -149,14 +155,16 @@ public class AuthorizationService {
     public ResponseEntity<LoginCompleteResp> loginUserEnd(LoginCompleteReq req) {
         UserEntity userEntity = userDao.findByEmail(req.getEmail());
         if (userEntity == null) {
-            throw new AuthorizationException(USER_NOT_EXISTS);
+            log.warn("User with email {} does not exist - Login Complete", tokenHasher.generateSha256Email(req.getEmail()));
+            throw new AuthorizationException(LOGIN_INFORMATION_INCORRECT);
         }
 
         String userIdString = userEntity.getUserId().toString();
         String deviceIdString = req.getDeviceId().toString();
         String redisKey = RedisKeys.srp(userIdString, deviceIdString);
         if (!redisService.exists(redisKey)) {
-            throw new AuthorizationException(TOKEN_NOT_FOUND);
+            log.warn("Token key could not be found {} - Login Complete", redisKey);
+            throw new AuthorizationException(LOGIN_INFORMATION_INCORRECT);
         }
 
         SrpRedisEntity srpRedisEntity = redisService.get(redisKey, SrpRedisEntity.class);
@@ -166,7 +174,8 @@ public class AuthorizationService {
         BigInteger M1Client = new BigInteger(1, Base64.getDecoder().decode(req.getM1()));
 
         if (!M1Server.equals(M1Client)) {
-            throw new AuthorizationException(SRP_VERIFICATION_FAILED);
+            log.warn("M1 could not be verified - Login Complete");
+            throw new AuthorizationException(LOGIN_INFORMATION_INCORRECT);
         }
 
         BigInteger M2Server = srpFlow.calculateM2Server(srpRedisEntity, M1Client);
@@ -186,6 +195,7 @@ public class AuthorizationService {
         String tokenHash = tokenHasher.generateSha256(req.getRefreshToken());
         String redisKey = RedisKeys.session(tokenHash);
         if (!redisService.exists(redisKey)) {
+            log.warn("Refresh token could not be found {} - Refresh JWT", redisKey);
             throw new AuthorizationException(TOKEN_NOT_FOUND);
         }
 
@@ -195,7 +205,7 @@ public class AuthorizationService {
         RefreshResp resp = new RefreshResp();
         resp.setAccessToken(jwtService.generateJwt(userEntity.getUserId(), sessionRedisEntity.getDeviceId()));
 
-        log.info("JWT Refresh for user {}", sessionRedisEntity.getUserId());
+        log.info("Refreshed JWT {}", redisKey);
 
         return ResponseEntity.ok(resp);
     }
@@ -204,6 +214,7 @@ public class AuthorizationService {
         String tokenHash = tokenHasher.generateSha256(req.getRefreshToken());
         String redisKey = RedisKeys.session(tokenHash);
         if (!redisService.exists(redisKey)) {
+            log.warn("Refresh token could not be found {} - Logout", redisKey);
             throw new AuthorizationException(TOKEN_NOT_FOUND);
         }
 
@@ -211,7 +222,7 @@ public class AuthorizationService {
 
         redisService.delete(redisKey);
 
-        log.info("Logout for user {}", sessionRedisEntity.getUserId());
+        log.info("Logged out user {}", sessionRedisEntity.getUserId());
 
         return ResponseEntity.ok(null);
     }
@@ -225,6 +236,7 @@ public class AuthorizationService {
         String tokenHash = tokenHasher.generateSha256(token);
         String redisKey = RedisKeys.emailUnverified(tokenHash);
         if (!redisService.exists(redisKey)) {
+            log.warn("User verification token does not exist {} - Verify Email", redisKey);
             throw new AuthorizationException(USER_VERIFICATION_NOT_EXISTS);
         }
 
@@ -238,7 +250,7 @@ public class AuthorizationService {
         UserEntity userEntity = generateUserEntity(userRedisEntity);
         userDao.save(userEntity);
 
-        log.info("Verified Email for user email {}", emailHash);
+        log.info("Verified Email for email {}", emailHash);
 
         return ResponseEntity.ok("Email has been verified successfully");
     }

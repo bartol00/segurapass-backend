@@ -60,7 +60,7 @@ public class CredentialsService {
         Pageable pageable = PageRequest.of(page, size);
         Page<CredentialsEntity> credentialsEntityPage = credentialsDao.findByUserEntity_UserId(userId, pageable);
 
-        log.info("Get Credentials for user {}", userId);
+        log.info("Get Credentials");
 
         return ResponseEntity.ok(mapper.toCredentialsRespPage(credentialsEntityPage));
     }
@@ -72,14 +72,14 @@ public class CredentialsService {
             throw new CredentialsException(CREDENTIAL_NOT_EXISTS);
         }
 
-        log.info("Get Credential {} By ID for user {}", id, userId);
+        log.info("Get Credential By ID {}", id);
 
         return ResponseEntity.ok(mapper.toCredentialsResp(credentialsEntity));
     }
 
     public ResponseEntity<NonceResp> createCredentialsStart(UUID userId, UUID deviceId) {
         String nonce = generateCredentialsNonce(userId, deviceId, CredentialsOperation.CREATE, null);
-        log.info("Start Credential Create for user {}", userId);
+        log.info("Start Credential Create");
         return ResponseEntity.ok(new NonceResp(nonce));
     }
 
@@ -113,14 +113,14 @@ public class CredentialsService {
         auditLogEntity.setComment("Created credential with ID: " + credentialsEntity.getCredentialsId());
         auditLogDao.save(auditLogEntity);
 
-        log.info("Complete Credentials Create for user {}", userId);
+        log.info("Complete Credentials Create");
 
         return ResponseEntity.ok(mapper.toCredentialsResp(credentialsEntity));
     }
 
     public ResponseEntity<NonceResp> updateCredentialsStart(UUID credentialsId, UUID userId, UUID deviceId) {
         String nonce = generateCredentialsNonce(userId, deviceId, CredentialsOperation.UPDATE, credentialsId);
-        log.info("Start Credential Update for user {}", userId);
+        log.info("Start Credential Update");
         return ResponseEntity.ok(new NonceResp(nonce));
     }
 
@@ -137,11 +137,13 @@ public class CredentialsService {
 
         CredentialsEntity entity = credentialsDao.findByCredentialsIdAndUserEntity_UserId(id, userId);
         if (entity == null) {
+            log.warn("Credential with ID {} does not exist - Credential Update", id);
             throw new CredentialsException(CREDENTIAL_NOT_EXISTS);
         }
 
         if (req.getWebsiteBytes() != null) {
             if (req.getIvWebsiteBytes() == null) {
+                log.warn("Credential has website bytes but is missing IV");
                 throw new CredentialsException(CREDENTIAL_UPDATE_IV_MISSING);
             }
             entity.setWebsiteBytes(req.getWebsiteBytes());
@@ -149,6 +151,7 @@ public class CredentialsService {
         }
         if (req.getUsernameBytes() != null) {
             if (req.getIvUsernameBytes() == null) {
+                log.warn("Credential has username bytes but is missing IV");
                 throw new CredentialsException(CREDENTIAL_UPDATE_IV_MISSING);
             }
             entity.setUsernameBytes(req.getUsernameBytes());
@@ -156,6 +159,7 @@ public class CredentialsService {
         }
         if (req.getPasswordBytes() != null) {
             if (req.getIvPasswordBytes() == null) {
+                log.warn("Credential has password bytes but is missing IV");
                 throw new CredentialsException(CREDENTIAL_UPDATE_IV_MISSING);
             }
             entity.setPasswordBytes(req.getPasswordBytes());
@@ -174,14 +178,14 @@ public class CredentialsService {
         auditLogEntity.setComment("Updated credential with ID: " + entity.getCredentialsId());
         auditLogDao.save(auditLogEntity);
 
-        log.info("Complete Credentials Update for user {}", userId);
+        log.info("Complete Credentials Update");
 
         return ResponseEntity.ok(mapper.toCredentialsResp(entity));
     }
 
     public ResponseEntity<NonceResp> deleteCredentialsStart(UUID credentialsId, UUID userId, UUID deviceId) {
         String nonce = generateCredentialsNonce(userId, deviceId, CredentialsOperation.DELETE, credentialsId);
-        log.info("Start Credential Delete for user {}", userId);
+        log.info("Start Credential Delete");
         return ResponseEntity.ok(new NonceResp(nonce));
     }
 
@@ -197,6 +201,7 @@ public class CredentialsService {
 
         CredentialsEntity credentialsEntity = credentialsDao.findByCredentialsIdAndUserEntity_UserId(id, userId);
         if (credentialsEntity == null) {
+            log.warn("Credential with ID {} does not exist - Credential Delete", id);
             throw new CredentialsException(CREDENTIAL_NOT_EXISTS);
         }
 
@@ -211,7 +216,7 @@ public class CredentialsService {
         auditLogEntity.setComment("Deleted credential with ID: " + credentialsEntity.getCredentialsId());
         auditLogDao.save(auditLogEntity);
 
-        log.info("Complete Credentials Delete for user {}", userId);
+        log.info("Complete Credentials Delete");
 
         return ResponseEntity.ok(null);
     }
@@ -235,12 +240,14 @@ public class CredentialsService {
         if ((req.getWebsiteBytes() != null && req.getWebsiteBytes().length > MAX_REQUEST_BYTES_LEN)
         || (req.getUsernameBytes() != null && req.getUsernameBytes().length > MAX_REQUEST_BYTES_LEN)
         || (req.getPasswordBytes() != null && req.getPasswordBytes().length > MAX_REQUEST_BYTES_LEN)) {
+            log.warn("Credentials request bytes are longer than {} bytes", MAX_REQUEST_BYTES_LEN);
             throw new CredentialsException(CREDENTIAL_REQ_BYTES_TOO_LONG);
         }
 
         if ((req.getIvWebsiteBytes() != null && req.getIvWebsiteBytes().length != IV_BYTES_LEN)
         || (req.getIvUsernameBytes() != null && req.getIvUsernameBytes().length != IV_BYTES_LEN)
         || (req.getIvPasswordBytes() != null && req.getIvPasswordBytes().length != IV_BYTES_LEN)) {
+            log.warn("Credentials IV bytes is not exactly {} bytes long", IV_BYTES_LEN);
             throw new CredentialsException(CREDENTIAL_REQ_IV_BYTES_LEN_ERROR);
         }
     }
@@ -253,29 +260,36 @@ public class CredentialsService {
             String signature
     ) {
         if (req.getNonce() == null || req.getNonce().isEmpty()) {
+            log.warn("Credentials nonce is null or empty");
             throw new CredentialsException(CREDENTIAL_NONCE_MISSING);
         }
 
         String redisKey = RedisKeys.credentialsNonce(req.getNonce());
         if (!redisService.exists(redisKey)) {
+            log.warn("Credentials nonce could not be found {}", redisKey);
             throw new CredentialsException(NONCE_NOT_FOUND);
         }
 
         CredentialsWriteEntity writeEntity = redisService.get(redisKey, CredentialsWriteEntity.class);
 
         if (writeEntity == null) {
+            log.warn("Write entity is null");
             throw new CredentialsException(NONCE_ERROR);
         }
         if (!writeEntity.getUserId().equals(userId)) {
+            log.warn("Write entity user ID mismatch");
             throw new CredentialsException(NONCE_ERROR);
         }
         if (!writeEntity.getDeviceId().equals(deviceId)) {
+            log.warn("Write entity device ID mismatch");
             throw new CredentialsException(NONCE_ERROR);
         }
         if (!writeEntity.getOperation().equals(req.getOperation())) {
+            log.warn("Write entity operation mismatch");
             throw new CredentialsException(NONCE_ERROR);
         }
         if (!Objects.equals(writeEntity.getCredentialsId(), credentialsId)) {
+            log.warn("Write entity credentials ID mismatch");
             throw new CredentialsException(NONCE_ERROR);
         }
 
@@ -296,10 +310,12 @@ public class CredentialsService {
             byte[] payloadBytes = objectMapper.writeValueAsBytes(payload);
             boolean verified = signatureService.verifySignature(publicKey, payloadBytes, signature);
             if (!verified) {
+                log.warn("Signature could not be verified");
                 throw new CredentialsException(INVALID_SIGNATURE);
             }
             redisService.delete(redisKey);
         } catch (Exception e) {
+            log.warn("Exception occurred during signature verification", e);
             throw new CredentialsException(INVALID_SIGNATURE);
         }
     }

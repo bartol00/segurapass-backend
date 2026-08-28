@@ -24,7 +24,7 @@ public class AppSecurityConfig {
     @Value("${app.security.public-key-path}")
     private String publicKeyPath;
 
-    @Value("${app.security.email-hash-salt}")
+    @Value("${app.email.email-hash-salt}")
     private String emailHashSalt;
 
     @Bean

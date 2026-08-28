@@ -21,11 +21,11 @@ app:
   security:
     private-key-path: ${PRIVATE_KEY_PATH}
     public-key-path: ${PUBLIC_KEY_PATH}
-    email-hash-salt: ${EMAIL_HASH_SALT}
     totp-encryption-key: ${TOTP_SECRET_ENCRYPTION_KEY}
   email:
-    url: ${EMAIL_SERVICE_URL:emailServiceUrl}
+    url: ${EMAIL_SERVICE_URL:}
     active: ${EMAIL_SERVICE_ACTIVE:false}
+    email-hash-salt: ${EMAIL_HASH_SALT:}
   rate-limiting:
     ip-enabled: ${IP_LIMITING_ENABLED:false}
     default-window-seconds: ${DEFAULT_LIMITING_SECONDS:60}

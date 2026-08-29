@@ -1,0 +1,137 @@
+services:
+  segurapass:
+    build:
+      context: ../..
+      dockerfile: deployment/selfhosted/Dockerfile
+
+    image: ${IMAGE_NAME:-segurapass}:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+
+    ports:
+      - "${SERVER_PORT:-8080}:8080"
+
+    environment:
+      # Application
+      SERVER_URL: ${SERVER_URL:-http://localhost:8080}
+
+      # Database
+      DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-segurapass}
+      DB_USERNAME: ${POSTGRES_USER:-segurapass}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+
+      # Redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+
+      # JWT keys
+      PRIVATE_KEY_PATH: /app/keys/private_key.pem
+      PUBLIC_KEY_PATH: /app/keys/public_key.pem
+
+      # TOTP encryption
+      TOTP_SECRET_ENCRYPTION_KEY: ${TOTP_SECRET_ENCRYPTION_KEY}
+
+      # Email
+      EMAIL_SERVICE_URL: ${EMAIL_SERVICE_URL:-}
+      EMAIL_SERVICE_ACTIVE: ${EMAIL_SERVICE_ACTIVE:-false}
+      EMAIL_HASH_SALT: ${EMAIL_HASH_SALT:-}
+
+      # Rate limiting
+      IP_LIMITING_ENABLED: ${IP_LIMITING_ENABLED:-false}
+      DEFAULT_LIMITING_SECONDS: ${DEFAULT_LIMITING_SECONDS:-60}
+
+    volumes:
+      - segurapass_keys:/app/keys
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      jwt-init:
+        condition: service_completed_successfully
+
+  postgres:
+    image: postgres:18
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-segurapass}
+      POSTGRES_USER: ${POSTGRES_USER:-segurapass}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
+    volumes:
+      - segurapass_postgres:/var/lib/postgresql
+      - ./init-db:/docker-entrypoint-initdb.d:ro
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-segurapass} -d ${POSTGRES_DB:-segurapass}"
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:8-alpine
+    restart: unless-stopped
+
+    volumes:
+      - segurapass_redis:/data
+
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  jwt-init:
+    image: alpine:3.22
+    restart: "no"
+
+    volumes:
+      - segurapass_keys:/app/keys
+
+    entrypoint: [ "/bin/sh", "-c" ]
+
+    command:
+      - |
+        set -eu
+
+        PRIVATE_KEY="/app/keys/private_key.pem"
+        PUBLIC_KEY="/app/keys/public_key.pem"
+
+        if [ -f "$$PRIVATE_KEY" ] && [ -f "$$PUBLIC_KEY" ]; then
+          echo "JWT keypair already exists. Reusing it."
+          exit 0
+        fi
+          
+        if [ -f "$$PRIVATE_KEY" ] || [ -f "$$PUBLIC_KEY" ]; then
+          echo "ERROR: Incomplete JWT keypair found."
+          echo "Both private_key.pem and public_key.pem must exist."
+          echo "Regenerating the JWT keypair..."
+        fi
+
+        echo "JWT keypair not found. Generating Ed25519 keypair..."
+
+        apk add --no-cache openssl
+
+        openssl genpkey \
+          -algorithm Ed25519 \
+          -out "$$PRIVATE_KEY"
+
+        openssl pkey \
+          -in "$$PRIVATE_KEY" \
+          -pubout \
+          -out "$$PUBLIC_KEY"
+
+        chmod 600 "$$PRIVATE_KEY"
+        chmod 644 "$$PUBLIC_KEY"
+
+        echo "JWT keypair generated successfully."
+
+volumes:
+  segurapass_keys:
+  segurapass_postgres:
+  segurapass_redis:

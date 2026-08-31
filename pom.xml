@@ -10,14 +10,14 @@
 	</parent>
 	<groupId>xyz.segurapass</groupId>
 	<artifactId>segurapass-backend</artifactId>
-	<version>6.0.1-SNAPSHOT</version>
+	<version>7.0.0</version>
 	<name>segurapass-backend</name>
 	<description>SeguraPass backend component</description>
 
 	<properties>
 		<java.version>21</java.version>
         <segurapass-api.version>7.0.0</segurapass-api.version>
-        <segurapass.protocol.version>4</segurapass.protocol.version>
+        <segurapass.protocol.version>5</segurapass.protocol.version>
         <jjwt.version>0.13.0</jjwt.version>
         <mapstruct.version>1.6.3</mapstruct.version>
         <bcprov-jdk18on.version>1.84</bcprov-jdk18on.version>

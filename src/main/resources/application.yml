@@ -5,7 +5,7 @@ spring:
     change-log: classpath:db/changelog/db.changelog-master.xml
     enabled: true
     default-schema: password_manager
-    liquibase-schema: password_manager
+    liquibase-schema: public
   profiles:
     active: prod
   data:

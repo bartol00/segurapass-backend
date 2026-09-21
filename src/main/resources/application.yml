@@ -16,6 +16,7 @@ spring:
 app:
   app-version: @project.version@
   protocol-version: @segurapass.protocol.version@
+  credentials-limit: ${CREDENTIALS_LIMIT:25}
   base:
     url: ${SERVER_URL:https://segurapass.xyz}
   security:

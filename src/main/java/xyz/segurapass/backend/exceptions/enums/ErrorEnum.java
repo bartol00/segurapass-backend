@@ -18,6 +18,8 @@ public enum ErrorEnum {
     CREDENTIAL_NONCE_MISSING(HttpStatus.NOT_ACCEPTABLE, "Credential is missing the required Nonce field"),
     CREDENTIAL_REQ_BYTES_TOO_LONG(HttpStatus.NOT_ACCEPTABLE, "Credential is too large"),
     CREDENTIAL_REQ_IV_BYTES_LEN_ERROR(HttpStatus.NOT_ACCEPTABLE, "IV is not of target length"),
+    CREDENTIAL_COUNT_ABOVE_LIMIT(HttpStatus.NOT_ACCEPTABLE, "Credential count cannot be above limit"),
+    CREDENTIAL_COUNT_BELOW_ZERO(HttpStatus.NOT_ACCEPTABLE, "Credential count cannot be below zero"),
     NONCE_NOT_FOUND(HttpStatus.NOT_FOUND, "Nonce with this identifier does not exist"),
     NONCE_ERROR(HttpStatus.CONFLICT, "Nonce metadata is incorrect"),
     INVALID_SIGNATURE(HttpStatus.CONFLICT, "Signature is invalid"),

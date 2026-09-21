@@ -62,4 +62,8 @@ public final class RedisKeys {
         return "segurapass:rate_limit:user:%s:%s".formatted(userId, pattern);
     }
 
+    public static String userCredentialsCount(String userId) {
+        return "segurapass:user_credentials_count:%s".formatted(userId);
+    }
+
 }

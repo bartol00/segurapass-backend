@@ -42,6 +42,10 @@ public class RedisService {
         }
     }
 
+    public void increment(String key, long amount) {
+        redisTemplate.opsForValue().increment(key, amount);
+    }
+
     public boolean exists(String key) {
         return redisTemplate.hasKey(key);
     }

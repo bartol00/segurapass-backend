@@ -1,6 +1,7 @@
 package xyz.segurapass.backend.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import xyz.segurapass.backend.config.AppProperties;
 import xyz.segurapass.backend.helpers.NonceHelper;
 import xyz.segurapass.backend.helpers.SignatureService;
 import xyz.segurapass.backend.redis.RedisKeys;
@@ -28,7 +29,9 @@ import org.springframework.stereotype.Service;
 import xyz.segurapass.api.credentials.CredentialsOperation;
 
 import java.security.PublicKey;
+import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -44,6 +47,7 @@ public class CredentialsService {
     private final RedisService redisService;
     private final SignatureService signatureService;
     private final NonceHelper nonceHelper;
+    private final AppProperties appProperties;
 
     private final CredentialsDao credentialsDao;
     private final UserDao userDao;
@@ -78,6 +82,7 @@ public class CredentialsService {
     }
 
     public ResponseEntity<NonceResp> createCredentialsStart(UUID userId, UUID deviceId) {
+        checkIncrement(userId);
         String nonce = generateCredentialsNonce(userId, deviceId, CredentialsOperation.CREATE, null);
         log.info("Start Credential Create");
         return ResponseEntity.ok(new NonceResp(nonce));
@@ -112,6 +117,8 @@ public class CredentialsService {
         auditLogEntity.setSuccess(true);
         auditLogEntity.setComment("Created credential with ID: " + credentialsEntity.getCredentialsId());
         auditLogDao.save(auditLogEntity);
+
+        incrementCount(userId);
 
         log.info("Complete Credentials Create");
 
@@ -184,6 +191,7 @@ public class CredentialsService {
     }
 
     public ResponseEntity<NonceResp> deleteCredentialsStart(UUID credentialsId, UUID userId, UUID deviceId) {
+        checkDecrement(userId);
         String nonce = generateCredentialsNonce(userId, deviceId, CredentialsOperation.DELETE, credentialsId);
         log.info("Start Credential Delete");
         return ResponseEntity.ok(new NonceResp(nonce));
@@ -215,6 +223,8 @@ public class CredentialsService {
         auditLogEntity.setSuccess(true);
         auditLogEntity.setComment("Deleted credential with ID: " + credentialsEntity.getCredentialsId());
         auditLogDao.save(auditLogEntity);
+
+        decrementCount(userId);
 
         log.info("Complete Credentials Delete");
 
@@ -318,6 +328,44 @@ public class CredentialsService {
             log.warn("Exception occurred during signature verification", e);
             throw new CredentialsException(INVALID_SIGNATURE);
         }
+    }
+
+    private void checkIncrement(UUID userId) {
+        int count = getUserCredentialsCount(userId);
+        if (count >= appProperties.getCredentialsLimit()) {
+            throw new CredentialsException(CREDENTIAL_COUNT_ABOVE_LIMIT);
+        }
+    }
+
+    private void checkDecrement(UUID userId) {
+        int count = getUserCredentialsCount(userId);
+        if (count <= 0) {
+            throw new CredentialsException(CREDENTIAL_COUNT_BELOW_ZERO);
+        }
+    }
+
+    private void incrementCount(UUID userId) {
+        getUserCredentialsCount(userId);
+        String redisKey = RedisKeys.userCredentialsCount(userId.toString());
+        redisService.increment(redisKey, 1);
+    }
+
+    private void decrementCount(UUID userId) {
+        getUserCredentialsCount(userId);
+        String redisKey = RedisKeys.userCredentialsCount(userId.toString());
+        redisService.increment(redisKey, -1);
+    }
+
+    private int getUserCredentialsCount(UUID userId) {
+        String redisKey = RedisKeys.userCredentialsCount(userId.toString());
+        int count;
+        if (!redisService.exists(redisKey)) {
+            count = credentialsDao.countByUserEntity_UserId(userId);
+            redisService.save(redisKey, count, Duration.of(30, ChronoUnit.MINUTES));
+        } else {
+            count = redisService.get(redisKey, Integer.class);
+        }
+        return count;
     }
 
 }

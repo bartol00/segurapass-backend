@@ -1,6 +1,7 @@
 package xyz.segurapass.backend;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import xyz.segurapass.backend.config.AppProperties;
 import xyz.segurapass.backend.model.audit.AuditLogDao;
 import xyz.segurapass.backend.redis.RedisKeys;
 import xyz.segurapass.backend.redis.RedisService;
@@ -44,6 +45,8 @@ public class CredentialsServiceIT extends AbstractTestInitializer {
     private RedisService redisService;
     @Autowired
     private ObjectMapper objectMapper;
+    @Autowired
+    private AppProperties appProperties;
 
     private PrivateKey privateKey;
 
@@ -124,6 +127,26 @@ public class CredentialsServiceIT extends AbstractTestInitializer {
         assertEquals(resp.getCredentialsId(), credentialsEntity.getCredentialsId());
         assertArrayEquals(resp.getWebsiteBytes(), credentialsEntity.getWebsiteBytes());
         assertArrayEquals(resp.getIvWebsiteBytes(), credentialsEntity.getIvWebsiteBytes());
+    }
+
+    @Test
+    void shouldFailAboveCredentialLimitCreateCredentialsStart() {
+        // given
+        UserEntity userEntity = userDao.findByUserId(userId);
+        for (int i = 0; i < appProperties.getCredentialsLimit(); i++) {
+            CredentialsEntity entity = generateCredentialsEntity(userEntity);
+            credentialsDao.save(entity);
+        }
+
+        // when
+        CredentialsException ex = assertThrows(
+                CredentialsException.class,
+                () -> credentialsService.createCredentialsStart(userId, deviceId)
+        );
+
+        // then
+        assertEquals(CREDENTIAL_COUNT_ABOVE_LIMIT.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(CREDENTIAL_COUNT_ABOVE_LIMIT.getMessage(), ex.getErrorEnum().getMessage());
     }
 
     @Test
@@ -375,6 +398,8 @@ public class CredentialsServiceIT extends AbstractTestInitializer {
         assertNotNull(resp);
         assertArrayEquals(resp.getWebsiteBytes(), req.getWebsiteBytes());
         assertArrayEquals(resp.getIvWebsiteBytes(), req.getIvWebsiteBytes());
+        String redisKey = RedisKeys.userCredentialsCount(userId.toString());
+        assertEquals((int) count + 1, redisService.get(redisKey, Integer.class));
     }
 
     @Test
@@ -483,6 +508,22 @@ public class CredentialsServiceIT extends AbstractTestInitializer {
     }
 
     @Test
+    void shouldFailCountBelowZeroDeleteCredentialsStart() {
+        // given
+        credentialsDao.deleteAll();
+
+        // when
+        CredentialsException ex = assertThrows(
+                CredentialsException.class,
+                () -> credentialsService.deleteCredentialsStart(UUID.randomUUID(), userId, deviceId)
+        );
+
+        // then
+        assertEquals(CREDENTIAL_COUNT_BELOW_ZERO.getHttpStatus(), ex.getErrorEnum().getHttpStatus());
+        assertEquals(CREDENTIAL_COUNT_BELOW_ZERO.getMessage(), ex.getErrorEnum().getMessage());
+    }
+
+    @Test
     void shouldSucceedDeleteCredentialsStart() {
         // given
         List<CredentialsEntity> credentialsEntityList = credentialsDao.findAll();
@@ -557,6 +598,8 @@ public class CredentialsServiceIT extends AbstractTestInitializer {
         assertEquals(count - 1, credentialsDao.count());
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertTrue(credentialsDao.findById(credentialsEntity.getId()).isEmpty());
+        String redisKey = RedisKeys.userCredentialsCount(userId.toString());
+        assertEquals((int) count - 1, redisService.get(redisKey, Integer.class));
     }
 
     private String createSignature(CredentialsReq req, UUID credentialsId, PrivateKey privateKey) throws Exception {

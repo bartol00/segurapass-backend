@@ -56,7 +56,25 @@ if [ "${#TOTP_SECRET_ENCRYPTION_KEY}" -ne 64 ]; then
     exit 1
 fi
 
+case "${EMAIL_SERVICE_ACTIVE:-false}" in
+    true|false)
+        ;;
+    *)
+        echo "ERROR: EMAIL_SERVICE_ACTIVE must be 'true' or 'false'."
+        exit 1
+        ;;
+esac
+
 echo "Starting SeguraPass..."
+
+if [ "$EMAIL_SERVICE_ACTIVE" = "true" ]; then
+    echo "Email service: enabled"
+    export COMPOSE_PROFILES=email
+else
+    echo "Email service: disabled"
+    unset COMPOSE_PROFILES
+fi
+
 docker compose up --build -d
 
 echo

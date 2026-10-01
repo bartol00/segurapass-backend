@@ -1,25 +1,25 @@
 package xyz.segurapass.backend.config;
 
 import lombok.Getter;
+import org.springframework.kafka.core.KafkaTemplate;
 import xyz.segurapass.api.email.EmailReq;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.reactive.function.client.WebClient;
 
 @Configuration
 public class EmailClient {
 
-    private final WebClient webClient;
     @Getter
     private final boolean active;
+    private final KafkaTemplate<String, EmailReq> kafkaTemplate;
+
+    public static final String EMAIL_TOPIC = "segurapass-email";
 
     public EmailClient(
-            @Value("${app.email.url}") String emailUrl,
+            KafkaTemplate<String, EmailReq> kafkaTemplate,
             @Value("${app.email.active}") boolean active
     ) {
-        this.webClient = WebClient.builder()
-                .baseUrl(emailUrl)
-                .build();
+        this.kafkaTemplate = kafkaTemplate;
         this.active = active;
     }
 
@@ -27,13 +27,7 @@ public class EmailClient {
         if (!active) {
             return;
         }
-
-        webClient.post()
-                .uri("/send-email")
-                .bodyValue(req)
-                .retrieve()
-                .bodyToMono(String.class)
-                .block();
+        kafkaTemplate.send(EMAIL_TOPIC, req);
     }
 
 }

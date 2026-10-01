@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>4.0.6</version>
+		<version>4.1.1</version>
 		<relativePath/>
 	</parent>
 	<groupId>xyz.segurapass</groupId>
@@ -20,7 +20,7 @@
         <segurapass.protocol.version>6</segurapass.protocol.version>
         <jjwt.version>0.13.0</jjwt.version>
         <mapstruct.version>1.6.3</mapstruct.version>
-        <bcprov-jdk18on.version>1.84</bcprov-jdk18on.version>
+        <bcprov-jdk18on.version>1.86</bcprov-jdk18on.version>
         <commons-codec.version>1.22.1</commons-codec.version>
 	</properties>
 
@@ -56,6 +56,10 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-webmvc-test</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>

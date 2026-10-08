@@ -1,6 +1,6 @@
 package xyz.segurapass.backend;
 
-import xyz.segurapass.backend.config.EmailClient;
+import xyz.segurapass.backend.config.AppProperties;
 import xyz.segurapass.backend.helpers.*;
 import xyz.segurapass.backend.model.audit.AuditLogDao;
 import xyz.segurapass.backend.model.authorization.UserDao;
@@ -58,7 +58,7 @@ public class AuthorizationServiceIT extends AbstractTestInitializer {
     @MockitoBean
     private EmailService emailService;
     @MockitoBean
-    private EmailClient emailClient;
+    private AppProperties properties;
 
     @BeforeEach
     void setup() {
@@ -80,7 +80,7 @@ public class AuthorizationServiceIT extends AbstractTestInitializer {
     void shouldFailInvalidEmailErrorRegisterUser() {
         // given
         RegistrationReq req = generateRegistrationReq("invalid@email.com");
-        when(emailClient.isActive()).thenReturn(true);
+        when(properties.isEmailActive()).thenReturn(true);
 
         // when
         AuthorizationException ex = assertThrows(
@@ -122,7 +122,7 @@ public class AuthorizationServiceIT extends AbstractTestInitializer {
                 Duration.of(10, ChronoUnit.MINUTES)
         );
         assertTrue(redisService.exists(redisEmailKey));
-        when(emailClient.isActive()).thenReturn(true);
+        when(properties.isEmailActive()).thenReturn(true);
 
         // when
         AuthorizationException ex = assertThrows(
@@ -139,7 +139,7 @@ public class AuthorizationServiceIT extends AbstractTestInitializer {
     void shouldSucceedRegisterUser() {
         // given
         RegistrationReq req = generateRegistrationReq("unregistered@gmail.com");
-        when(emailClient.isActive()).thenReturn(true);
+        when(properties.isEmailActive()).thenReturn(true);
 
         // when
         ResponseEntity<Void> response = authorizationService.registerUser(req);
@@ -153,7 +153,7 @@ public class AuthorizationServiceIT extends AbstractTestInitializer {
     void shouldSucceedRegisterUserEmailClientNotActive() {
         // given
         RegistrationReq req = generateRegistrationReq("unregistered@gmail.com");
-        when(emailClient.isActive()).thenReturn(false);
+        when(properties.isEmailActive()).thenReturn(false);
         assertNull(userDao.findByEmail(req.getEmail()));
 
         // when
@@ -435,7 +435,7 @@ public class AuthorizationServiceIT extends AbstractTestInitializer {
     void shouldFailEmailClientNotActiveVerifyEmail() {
         // given
         String token = "token";
-        when(emailClient.isActive()).thenReturn(false);
+        when(properties.isEmailActive()).thenReturn(false);
 
         // when
         AuthorizationException ex = assertThrows(
@@ -452,7 +452,7 @@ public class AuthorizationServiceIT extends AbstractTestInitializer {
     void shouldFailUserVerificationNotExistsVerifyEmail() {
         // given
         String token = "token";
-        when(emailClient.isActive()).thenReturn(true);
+        when(properties.isEmailActive()).thenReturn(true);
 
         // when
         AuthorizationException ex = assertThrows(
@@ -491,7 +491,7 @@ public class AuthorizationServiceIT extends AbstractTestInitializer {
         assertTrue(redisService.exists(redisKey));
         assertTrue(redisService.exists(redisKeyEmail));
         assertNull(userDao.findByEmail(email));
-        when(emailClient.isActive()).thenReturn(true);
+        when(properties.isEmailActive()).thenReturn(true);
 
         // when
         ResponseEntity<String> response = authorizationService.verifyEmail(token);

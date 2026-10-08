@@ -1,7 +1,7 @@
 package xyz.segurapass.backend.helpers.impl;
 
 import xyz.segurapass.api.email.EmailReq;
-import xyz.segurapass.backend.config.EmailClient;
+import xyz.segurapass.backend.config.email.EmailSender;
 import xyz.segurapass.backend.helpers.EmailService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -9,13 +9,13 @@ import org.springframework.stereotype.Component;
 @Component
 public class EmailServiceImpl implements EmailService {
 
-    private final EmailClient emailClient;
+    private final EmailSender emailSender;
 
     @Value("${app.base.url}")
     private String baseUrl;
 
-    public EmailServiceImpl(EmailClient emailClient) {
-        this.emailClient = emailClient;
+    public EmailServiceImpl(EmailSender emailSender) {
+        this.emailSender = emailSender;
     }
 
     public void sendVerificationEmail(String to, String verificationToken) {
@@ -47,7 +47,7 @@ public class EmailServiceImpl implements EmailService {
                 htmlBody
         );
 
-        emailClient.sendEmail(emailReq);
+        emailSender.sendEmail(emailReq);
     }
 
     public void sendDeletionEmail(String to, String verificationToken) {
@@ -79,7 +79,7 @@ public class EmailServiceImpl implements EmailService {
                 htmlBody
         );
 
-        emailClient.sendEmail(emailReq);
+        emailSender.sendEmail(emailReq);
     }
 
 }

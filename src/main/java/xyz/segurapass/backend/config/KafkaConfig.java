@@ -17,8 +17,6 @@ import xyz.segurapass.api.email.EmailReq;
 import java.util.HashMap;
 import java.util.Map;
 
-import static xyz.segurapass.backend.config.EmailClient.EMAIL_TOPIC;
-
 @Configuration
 @ConditionalOnProperty(
         name = "app.email.active",
@@ -28,6 +26,8 @@ public class KafkaConfig {
 
     @Value("${spring.kafka.bootstrap-servers}")
     private String bootstrapServers;
+
+    public static final String EMAIL_TOPIC = "segurapass-email";
 
     @Bean
     public ProducerFactory<String, EmailReq> emailProducerFactory() {

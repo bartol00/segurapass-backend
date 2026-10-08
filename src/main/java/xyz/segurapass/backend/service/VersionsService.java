@@ -6,7 +6,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import xyz.segurapass.backend.config.AppProperties;
-import xyz.segurapass.backend.config.EmailClient;
 
 @Service
 public class VersionsService {
@@ -18,16 +17,13 @@ public class VersionsService {
     private String protocolVersion;
 
     @Autowired
-    private EmailClient emailClient;
-
-    @Autowired
     private AppProperties appProperties;
 
     public ResponseEntity<VersionInfo> getLatestVersion() {
         VersionInfo versionInfo = new VersionInfo(
                 appVersion,
                 protocolVersion,
-                emailClient.isActive(),
+                appProperties.isEmailActive(),
                 appProperties.getCredentialsLimit()
         );
         return ResponseEntity.ok(versionInfo);

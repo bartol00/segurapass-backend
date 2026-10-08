@@ -11,4 +11,8 @@ public class AppProperties {
     @Value("${app.credentials-limit}")
     private int credentialsLimit;
 
+    @Getter
+    @Value("${app.email.active}")
+    private boolean emailActive;
+
 }

@@ -1,6 +1,6 @@
 package xyz.segurapass.backend;
 
-import xyz.segurapass.backend.config.EmailClient;
+import xyz.segurapass.backend.config.AppProperties;
 import xyz.segurapass.backend.helpers.TokenHasher;
 import xyz.segurapass.backend.redis.RedisKeys;
 import xyz.segurapass.backend.redis.RedisService;
@@ -47,7 +47,7 @@ public class AccountDeletionServiceIT extends AbstractTestInitializer {
     @MockitoBean
     private EmailService emailService;
     @MockitoBean
-    private EmailClient emailClient;
+    private AppProperties properties;
 
     @BeforeEach
     void setup() {
@@ -190,7 +190,7 @@ public class AccountDeletionServiceIT extends AbstractTestInitializer {
         // given
         String email = "random@gmail.com";
         EmailDeletionStartReq req = generateEmailDeletionStartReq(email);
-        when(emailClient.isActive()).thenReturn(false);
+        when(properties.isEmailActive()).thenReturn(false);
 
         // when
         AccountDeletionException ex = assertThrows(
@@ -208,7 +208,7 @@ public class AccountDeletionServiceIT extends AbstractTestInitializer {
         // given
         String email = "random@gmail.com";
         EmailDeletionStartReq req = generateEmailDeletionStartReq(email);
-        when(emailClient.isActive()).thenReturn(true);
+        when(properties.isEmailActive()).thenReturn(true);
 
         // when
         accountDeletionService.startDeletionEmail(req);
@@ -229,7 +229,7 @@ public class AccountDeletionServiceIT extends AbstractTestInitializer {
                 Duration.of(15, ChronoUnit.MINUTES)
         );
         assertTrue(redisService.exists(redisKey));
-        when(emailClient.isActive()).thenReturn(true);
+        when(properties.isEmailActive()).thenReturn(true);
 
         // when
         accountDeletionService.startDeletionEmail(req);
@@ -245,7 +245,7 @@ public class AccountDeletionServiceIT extends AbstractTestInitializer {
         String emailHash = tokenHasher.generateSha256Email(email);
         String redisKey = RedisKeys.emailDeletionEmail(emailHash);
         assertFalse(redisService.exists(redisKey));
-        when(emailClient.isActive()).thenReturn(true);
+        when(properties.isEmailActive()).thenReturn(true);
 
         // when
         accountDeletionService.startDeletionEmail(req);
@@ -259,7 +259,7 @@ public class AccountDeletionServiceIT extends AbstractTestInitializer {
     void shouldFailEmailClientNotActiveCompleteDeletionEmail() {
         // given
         String token = UUID.randomUUID().toString();
-        when(emailClient.isActive()).thenReturn(false);
+        when(properties.isEmailActive()).thenReturn(false);
 
         // when
         AccountDeletionException ex = assertThrows(
@@ -276,7 +276,7 @@ public class AccountDeletionServiceIT extends AbstractTestInitializer {
     void shouldFailTokenNotFoundCompleteDeletionEmail() {
         // given
         String token = UUID.randomUUID().toString();
-        when(emailClient.isActive()).thenReturn(true);
+        when(properties.isEmailActive()).thenReturn(true);
 
         // when
         AccountDeletionException ex = assertThrows(
@@ -309,7 +309,7 @@ public class AccountDeletionServiceIT extends AbstractTestInitializer {
         );
         assertTrue(redisService.exists(redisKey));
         assertTrue(redisService.exists(emailHashRedisKey));
-        when(emailClient.isActive()).thenReturn(true);
+        when(properties.isEmailActive()).thenReturn(true);
 
         // when
         ResponseEntity<String> response = accountDeletionService.completeDeletionEmail(token);

@@ -1,6 +1,6 @@
 package xyz.segurapass.backend.service;
 
-import xyz.segurapass.backend.config.EmailClient;
+import xyz.segurapass.backend.config.AppProperties;
 import xyz.segurapass.backend.config.JwtService;
 import xyz.segurapass.backend.helpers.*;
 import xyz.segurapass.backend.model.authorization.UserDao;
@@ -37,11 +37,11 @@ public class AuthorizationService {
     private final UserDao userDao;
     private final EmailService emailService;
     private final RedisService redisService;
-    private final EmailClient emailClient;
     private final SrpFlow srpFlow;
     private final TokenGenerator tokenGenerator;
     private final TokenHasher tokenHasher;
     private final LoginHelper loginHelper;
+    private final AppProperties properties;
 
     private static final String EMAIL_REGEX =
             "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$";
@@ -87,7 +87,7 @@ public class AuthorizationService {
                 Instant.now()
         );
 
-        if (emailClient.isActive()) {
+        if (properties.isEmailActive()) {
 
             String redisEmailKey = RedisKeys.emailUnverifiedEmail(emailHash);
             if (redisService.exists(redisEmailKey)) {
@@ -231,7 +231,7 @@ public class AuthorizationService {
 
     @Transactional
     public ResponseEntity<String> verifyEmail(String token) {
-        if (!emailClient.isActive()) {
+        if (!properties.isEmailActive()) {
             throw new AuthorizationException(EMAIL_VERIFICATION_OFF);
         }
 
@@ -276,7 +276,7 @@ public class AuthorizationService {
     }
 
     private boolean isValidEmail(String email) {
-        if (!emailClient.isActive()) {
+        if (!properties.isEmailActive()) {
             return true;
         }
 

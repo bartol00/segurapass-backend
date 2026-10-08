@@ -1,6 +1,6 @@
 package xyz.segurapass.backend.service;
 
-import xyz.segurapass.backend.config.EmailClient;
+import xyz.segurapass.backend.config.AppProperties;
 import xyz.segurapass.backend.redis.RedisKeys;
 import xyz.segurapass.backend.redis.RedisService;
 import xyz.segurapass.backend.redis.entities.EmailDeletionRedisEntity;
@@ -37,10 +37,11 @@ public class AccountDeletionService {
 
     private final RedisService redisService;
     private final EmailService emailService;
-    private final EmailClient emailClient;
     private final TokenGenerator tokenGenerator;
     private final TokenHasher tokenHasher;
     private final SrpFlow srpFlow;
+
+    private final AppProperties properties;
 
     @Transactional
     public ResponseEntity<AuthorizedDeletionStartResp> startAuthorizedDeletion(
@@ -111,7 +112,7 @@ public class AccountDeletionService {
 
     @Transactional
     public void startDeletionEmail(EmailDeletionStartReq req) {
-        if (!emailClient.isActive()) {
+        if (!properties.isEmailActive()) {
             throw new AccountDeletionException(EMAIL_VERIFICATION_OFF);
         }
 
@@ -155,7 +156,7 @@ public class AccountDeletionService {
 
     @Transactional
     public ResponseEntity<String> completeDeletionEmail(String token) {
-        if (!emailClient.isActive()) {
+        if (!properties.isEmailActive()) {
             throw new AccountDeletionException(EMAIL_VERIFICATION_OFF);
         }
 
